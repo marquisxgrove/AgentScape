@@ -1,0 +1,14 @@
+{
+  "version": "v1",
+  "hooks": [
+    {
+      "name": "Keep specs in sync with the SQL migrations",
+      "trigger": "PostFileSave",
+      "matcher": "data[\\\\/]migrations[\\\\/].*\\.sql$",
+      "action": {
+        "type": "agent",
+        "prompt": "A SQL migration just changed. (1) If the file was already merged (it exists on the main branch), revert the edit and put the change in a new, higher-numbered migration instead: migrations are append-only. (2) Run `cmake --build --preset dev && ctest --preset dev -R migrations --output-on-failure` to apply every migration to a fresh in-memory database. (3) Compare every table you changed with the 'Data models' sections in .kiro/specs/*/design.md and docs/DESIGN.md, and update those docs so they match the schema exactly. Keep tables STRICT, store JSON as TEXT, timestamps as ISO-8601 UTC TEXT, booleans as INTEGER with CHECK (x IN (0,1)), and declare foreign keys with ON DELETE behaviour. (4) If repositories in src/db read or write the changed columns, update them and their integration tests."
+      }
+    }
+  ]
+}

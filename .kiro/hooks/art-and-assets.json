@@ -1,0 +1,25 @@
+{
+  "version": "v1",
+  "hooks": [
+    {
+      "name": "Retro art-direction and accessibility review",
+      "description": "Checks UI edits against the art-direction steering doc so the old-school look stays consistent.",
+      "trigger": "PostFileSave",
+      "matcher": "src[\\\\/](ui|game|render|screens)[\\\\/].*\\.(cpp|hpp)$",
+      "action": {
+        "type": "agent",
+        "prompt": "Review the UI file you just saved against .kiro/steering/art-direction.md and fix any violations: colours must come from the constants in src/ui/theme.hpp (no inline colour literals); no rounding, gradients, blur or soft shadows, and no stock ImGui window chrome; every texture uses SDL_SCALEMODE_NEAREST and is drawn at whole-pixel positions and integer scales; text on stone goes through ui::ShadowText; user-provided text is rendered with ImGui::TextUnformatted (never as a format string); every clickable element is reachable by keyboard and gamepad navigation with the visible yellow nav cursor; map or scene interactions have an equivalent ImGui list control; animations respect the 'Reduce motion' setting; copy uses the old-school game voice. Summarise what you changed in one or two lines."
+      }
+    },
+    {
+      "name": "Asset provenance check",
+      "description": "Hackathon rules forbid third-party copyrighted or trademarked material; every asset must be logged with its licence.",
+      "trigger": "PostFileSave",
+      "matcher": "assets[\\\\/](sprites|ui|fonts|audio)[\\\\/]",
+      "action": {
+        "type": "agent",
+        "prompt": "An asset under assets/ was added or changed. Make sure docs/ASSETS.md has a row for it (path, author, licence, source/notes). Sprites that are recoloured must be 8-bit indexed PNGs that use the reserved placeholder palette indices. If its origin is unknown, or it resembles assets, fonts, logos or names from an existing commercial game or AI vendor, flag it to the user and do not use it. Only original work, CC0, or OFL (fonts) is allowed."
+      }
+    }
+  ]
+}

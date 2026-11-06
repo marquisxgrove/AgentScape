@@ -1,0 +1,16 @@
+{
+  "version": "v1",
+  "hooks": [
+    {
+      "name": "Never gitignore .kiro (submission rule)",
+      "description": "Kiroween submissions are disqualified if /.kiro is ignored. Fails loudly if any .gitignore pattern matches it.",
+      "trigger": "PostFileSave",
+      "matcher": "(^|[\\\\/])\\.gitignore$",
+      "action": {
+        "type": "command",
+        "command": "git check-ignore -q --no-index .kiro/steering/product.md && echo Kiroween rule: .kiro/ must NOT be gitignored. Remove the matching .gitignore line. && exit 1 || exit 0"
+      },
+      "timeout": 15
+    }
+  ]
+}

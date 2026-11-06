@@ -1,0 +1,22 @@
+{
+  "version": "v1",
+  "hooks": [
+    {
+      "name": "Run property tests when domain logic changes",
+      "description": "src/domain is pure and fully property-tested; re-run the PBT suite on every change so counterexamples surface immediately.",
+      "trigger": "PostFileSave",
+      "matcher": "src[\\\\/]domain[\\\\/].*\\.(cpp|hpp)$",
+      "action": { "type": "command", "command": "cmake --build --preset dev --target property_tests && ctest --preset dev -L property --output-on-failure" },
+      "timeout": 300
+    },
+    {
+      "name": "Spec task: test-first and requirement check",
+      "description": "Keeps spec execution disciplined: re-read requirements and write the listed property tests before implementation.",
+      "trigger": "PreTaskExec",
+      "action": {
+        "type": "agent",
+        "prompt": "Before implementing this spec task: (1) Re-read the requirement IDs referenced by the task in the spec's requirements.md and the matching Correctness Properties in design.md. (2) Confirm prerequisite tasks are complete; if not, stop and say which. (3) If the task touches src/domain, write or update the property tests (RapidCheck via Catch2, tests/property/<spec>_props.cpp, TEST_CASE named 'Property <n>: <title>', shared generators in tests/generators/) FIRST, build and run them to see them fail, then implement. (4) Keep src/domain pure: no SDL, ImGui, SQLite, curl or I/O includes. (5) Follow the glossary terms in .kiro/steering/product.md exactly."
+      }
+    }
+  ]
+}

@@ -1,0 +1,20 @@
+{
+  "version": "v1",
+  "hooks": [
+    {
+      "name": "Format C++ on save",
+      "description": "Run clang-format over the sources whenever the agent saves a C++ file.",
+      "trigger": "PostFileSave",
+      "matcher": "\\.(cpp|hpp|h|c)$",
+      "action": { "type": "command", "command": "cmake --build --preset dev --target format" },
+      "timeout": 60
+    },
+    {
+      "name": "Build and test when the agent stops",
+      "description": "Before handing control back, make sure the debug build compiles warning-free and the whole CTest suite (incl. property tests) is green.",
+      "trigger": "Stop",
+      "action": { "type": "command", "command": "cmake --build --preset dev && ctest --preset dev --output-on-failure" },
+      "timeout": 600
+    }
+  ]
+}
