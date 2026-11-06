@@ -72,13 +72,16 @@
   - [x]* 8.3 Write unit tests for context menu navigation and Chatbox filtering.
     - _Requirements: 4.5, 5.2_
 
-- [ ] 9. Build the Promptmoor world map
-  - [ ] 9.1 Draw original pixel-art map and building sprites, and log them in `docs/ASSETS.md`.
+- [x] 9. Build the Promptmoor world map
+  - [x] 9.1 Draw original pixel-art map and building sprites, and log them in `docs/ASSETS.md`.
     - _Requirements: 3.1_
-  - [ ] 9.2 Implement `WorldMap` with hotspot polygons, hover text, left-click default, and right-click menu.
+    - _Note: single 380×300 composed map PNG from `tools/gen_map_art.py` (deterministic). Animated overlays (fog/pumpkins/bats) and the standing Adventurer come with task 10 / character-creator._
+  - [x] 9.2 Implement `WorldMap` with hotspot polygons, hover text, left-click default, and right-click menu.
     - _Requirements: 3.1–3.5_
-  - [ ] 9.3 Add the keyboard- and gamepad-navigable hotspot list beside the map.
+    - _Note: pure `domain::geometry` (point-in-polygon, bbox, unit-tested) + `game::hotspots` data; the World screen draws the map, outlines the hovered hotspot, shows hover text, left-clicks the default action, right-clicks/Menu-key opens the context menu._
+  - [x] 9.3 Add the keyboard- and gamepad-navigable hotspot list beside the map.
     - _Requirements: 3.6, 7.3, 7.4_
+    - _Note: the Places list (right column of the viewport) is driven by the same hotspot data; each entry offers the default action and opens the menu via Menu/Shift+F10/gamepad Y. Graveyard appears only during Kiroween._
 
 - [ ] 10. Add Kiroween mode
   - Add jack-o'-lantern overlays, the fog overlay (static when "Reduce motion" is on), the Graveyard hotspot, and accent palette swaps.

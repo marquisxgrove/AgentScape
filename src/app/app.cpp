@@ -112,6 +112,7 @@ bool App::init() {
   ui_.fonts = ui::loadFonts(assets / "fonts");
   textures_ = std::make_unique<render::TextureCache>(renderer_);
   ui_.skin = ui::loadSkin(*textures_, assets / "ui");
+  ui_.textures = textures_.get();
 
   updateData();  // desktop opens the store immediately; the web waits for IndexedDB
   return true;
