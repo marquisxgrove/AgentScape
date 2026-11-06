@@ -37,6 +37,7 @@ as_enable_sanitizers(as_core)
 add_library(as_domain STATIC
   src/domain/chat_log.cpp
   src/domain/context_menu.cpp
+  src/domain/device_flow.cpp
   src/domain/frame.cpp
   src/domain/guest_name.cpp
   src/domain/kiroween.cpp
@@ -107,6 +108,7 @@ if(AS_BUILD_APP)
     src/platform/paths_sdl.cpp
     src/platform/persist.cpp
     src/platform/accessibility.cpp
+    src/platform/github_device_flow.cpp
     src/platform/web_url.cpp
     src/render/game_frame.cpp
     src/render/nine_slice.cpp
@@ -132,6 +134,10 @@ if(AS_BUILD_APP)
   target_compile_definitions(agentscape PRIVATE
     AS_KIROWEEN_DEFAULT="${AS_KIROWEEN_DEFAULT}"
     AS_GITHUB_CLIENT_ID="${AS_GITHUB_CLIENT_ID}")
+  if(AS_HAVE_CURL)
+    target_compile_definitions(agentscape PRIVATE AS_HAVE_CURL=1)
+    target_link_libraries(agentscape PRIVATE CURL::libcurl)
+  endif()
   if(AS_ENABLE_DEV_SCREENS)
     target_compile_definitions(agentscape PRIVATE AS_ENABLE_DEV_SCREENS=1)
   endif()
@@ -157,6 +163,7 @@ if(AS_BUILD_TESTS)
     tests/unit/civil_time_test.cpp
     tests/unit/config_test.cpp
     tests/unit/core_test.cpp
+    tests/unit/device_flow_test.cpp
     tests/unit/domain_shell_test.cpp
     tests/unit/event_bus_test.cpp
     tests/unit/flush_scheduler_test.cpp
