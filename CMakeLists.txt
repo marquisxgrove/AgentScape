@@ -25,9 +25,12 @@ include(EmbedFiles)
 # ---------------------------------------------------------------------------
 # as_domain: pure C++20 (no SDL, ImGui, SQLite, I/O). as_core: Result, errors.
 # ---------------------------------------------------------------------------
-add_library(as_core INTERFACE)
-target_include_directories(as_core INTERFACE src)
-target_link_libraries(as_core INTERFACE tl::expected)
+add_library(as_core STATIC
+  src/core/civil_time.cpp)
+target_include_directories(as_core PUBLIC src)
+target_link_libraries(as_core PUBLIC tl::expected)
+as_enable_warnings(as_core)
+as_enable_sanitizers(as_core)
 
 add_library(as_domain STATIC
   src/domain/chat_log.cpp
@@ -43,20 +46,35 @@ as_enable_sanitizers(as_domain)
 # as_db: SQLite RAII layer + embedded migrations. as_app_core: EventBus, ScreenStack (SDL-free).
 # ---------------------------------------------------------------------------
 as_embed_migrations(AS_EMBEDDED_MIGRATIONS)
+as_embed_seed(AS_EMBEDDED_SEED)
 add_library(as_db STATIC
   src/db/database.cpp
   src/db/migrations.cpp
-  ${AS_EMBEDDED_MIGRATIONS})
+  src/db/seed_loader.cpp
+  ${AS_EMBEDDED_MIGRATIONS}
+  ${AS_EMBEDDED_SEED})
 target_include_directories(as_db PUBLIC src)
-target_link_libraries(as_db PUBLIC as_core SQLiteLib::SQLite3)
+target_link_libraries(as_db PUBLIC as_core SQLiteLib::SQLite3 PRIVATE nlohmann_json::nlohmann_json)
 as_enable_warnings(as_db)
 as_enable_sanitizers(as_db)
 
+# SDL-free platform pieces (file ops, path resolution, flush scheduling) - unit-testable.
+add_library(as_platform_core STATIC
+  src/platform/data_files.cpp
+  src/platform/flush_scheduler.cpp
+  src/platform/paths.cpp)
+target_include_directories(as_platform_core PUBLIC src)
+target_link_libraries(as_platform_core PUBLIC as_core)
+as_enable_warnings(as_platform_core)
+as_enable_sanitizers(as_platform_core)
+
 add_library(as_app_core STATIC
+  src/app/config.cpp
   src/app/event_bus.cpp
+  src/app/local_store.cpp
   src/app/screen_stack.cpp)
 target_include_directories(as_app_core PUBLIC src)
-target_link_libraries(as_app_core PUBLIC as_domain)
+target_link_libraries(as_app_core PUBLIC as_domain as_db as_platform_core)
 as_enable_warnings(as_app_core)
 as_enable_sanitizers(as_app_core)
 
@@ -67,6 +85,9 @@ if(AS_BUILD_APP)
   add_executable(agentscape
     src/main.cpp
     src/app/app.cpp
+    src/platform/paths_sdl.cpp
+    src/platform/persist.cpp
+    src/platform/web_url.cpp
     src/render/game_frame.cpp)
   target_include_directories(agentscape PRIVATE src)
   target_link_libraries(agentscape PRIVATE
@@ -95,11 +116,14 @@ if(AS_BUILD_TESTS)
   include(Catch)
 
   add_executable(unit_tests
+    tests/unit/civil_time_test.cpp
+    tests/unit/config_test.cpp
     tests/unit/core_test.cpp
     tests/unit/event_bus_test.cpp
+    tests/unit/flush_scheduler_test.cpp
     tests/unit/regressions_game_shell.cpp
     tests/unit/screen_stack_test.cpp)
-  target_link_libraries(unit_tests PRIVATE as_app_core as_domain Catch2::Catch2WithMain)
+  target_link_libraries(unit_tests PRIVATE as_app_core as_platform_core as_domain Catch2::Catch2WithMain)
   as_enable_warnings(unit_tests)
   as_enable_sanitizers(unit_tests)
   catch_discover_tests(unit_tests PROPERTIES LABELS "unit")
@@ -111,8 +135,11 @@ if(AS_BUILD_TESTS)
   as_enable_sanitizers(property_tests)
   catch_discover_tests(property_tests PROPERTIES LABELS "property" ENVIRONMENT "RC_PARAMS=max_success=200")
 
-  add_executable(integration_tests tests/integration/db_test.cpp)
-  target_link_libraries(integration_tests PRIVATE as_db Catch2::Catch2WithMain)
+  add_executable(integration_tests
+    tests/integration/db_test.cpp
+    tests/integration/local_store_test.cpp
+    tests/integration/seed_test.cpp)
+  target_link_libraries(integration_tests PRIVATE as_app_core as_db Catch2::Catch2WithMain)
   as_enable_warnings(integration_tests)
   as_enable_sanitizers(integration_tests)
   catch_discover_tests(integration_tests PROPERTIES LABELS "integration")

@@ -1,0 +1,13 @@
+{
+  "snapshotAt": "2026-10-01T00:00:00Z",
+  "npcs": [
+    { "id": "seed:npc:mossbeard", "name": "Mossbeard" },
+    { "id": "seed:npc:quillwright", "name": "Quillwright" },
+    { "id": "seed:npc:tokenmancer", "name": "Tokenmancer" },
+    { "id": "seed:npc:lady-lambda", "name": "Lady Lambda" },
+    { "id": "seed:npc:stacktrace", "name": "Cpt Stacktrace" },
+    { "id": "seed:npc:hexlint", "name": "Hexlint" },
+    { "id": "seed:npc:brambleprompt", "name": "Brambleprompt" },
+    { "id": "seed:npc:nullwyn", "name": "Nullwyn" }
+  ]
+}

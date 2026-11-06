@@ -1,6 +1,7 @@
 #pragma once
 
 #include <cstdint>
+#include <functional>
 #include <optional>
 #include <stdexcept>
 #include <string>
@@ -48,9 +49,16 @@ class Database {
 
   sqlite3* handle() const { return db_; }
 
+  // Called after every successful Transaction::commit (the web build schedules an IndexedDB flush).
+  void setAfterCommit(std::function<void()> hook) { afterCommit_ = std::move(hook); }
+  void notifyCommitted() const {
+    if (afterCommit_) afterCommit_();
+  }
+
  private:
   explicit Database(sqlite3* db) : db_(db) {}
   sqlite3* db_ = nullptr;
+  std::function<void()> afterCommit_;
 };
 
 // RAII prepared statement. Always bind parameters; never concatenate SQL.
@@ -122,8 +130,8 @@ auto guarded(Fn&& fn) -> Result<decltype(fn())> {
     } else {
       return fn();
     }
-  } catch (const std::exception&) {
-    return makeError(GameErrorCode::StorageFailed, "Something went wrong. Nothing was saved.");
+  } catch (const std::exception& e) {
+    return makeError(GameErrorCode::StorageFailed, "Something went wrong. Nothing was saved.", e.what());
   }
 }
 
