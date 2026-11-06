@@ -1,6 +1,7 @@
 #pragma once
 
 #include <functional>
+#include <functional>
 #include <map>
 #include <memory>
 #include <optional>
@@ -14,11 +15,21 @@ enum class ScreenId { Login, World, Costumer, Codex, Tavern, Hiscores, Graveyard
 // Navigation parameters, e.g. {"agent", "<slug>"} when opening an examine card.
 using ScreenParams = std::map<std::string, std::string>;
 
-// Per-frame context handed to screens. Grows as services are added (kept SDL-free on purpose).
+class ScreenStack;  // forward
+
+// Per-frame context handed to screens. `services` is set by App; screens never touch the db directly.
 struct FrameCtx {
   double dt = 0.0;
   bool kiroween = false;
   bool reduceMotion = false;
+  struct Services* services = nullptr;
+  ScreenStack* nav = nullptr;
+
+  // Default "Reduce motion" for a NEW guest (web: the browser preference). Desktop: false.
+  bool reduceMotionDefault = false;
+  // A screen calls this after a successful sign-in so App can adopt the user (remember settings,
+  // apply the font, optionally remember the profile). userId is a ULID; remember is for real players.
+  std::function<void(const std::string& userId, bool remember)> onSignedIn;
 };
 
 // Tabs on the TabPanel a screen may force (e.g. the Costumer shows Equipment).

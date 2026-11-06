@@ -153,6 +153,41 @@ bool PixelButton(const char* label, ImVec2 size, std::string_view hoverMarkup) {
   return pressed;
 }
 
+bool Toggle(const char* label, bool* value, std::string_view hoverMarkup) {
+  constexpr float kBox = 11.0F;
+  const auto text = visibleLabel(label);
+  ImFont* font = ImGui::GetFont();
+  const float fontSize = ImGui::GetFontSize();
+  const ImVec2 textSize = floorVec(measure(font, fontSize, text));
+  const float height = std::max(kBox, lineHeight());
+
+  ImGui::SetCursorScreenPos(floorVec(ImGui::GetCursorScreenPos()));
+  const bool pressed = ImGui::InvisibleButton(label, {kBox + 6 + textSize.x + 2, height}, ImGuiButtonFlags_EnableNav);
+  const bool hovered = ImGui::IsItemHovered();
+  const ImVec2 min = ImGui::GetItemRectMin();
+  if (pressed) *value = !*value;
+
+  ImDrawList* dl = ImGui::GetWindowDrawList();
+  const ImVec2 box{min.x, min.y + std::floor((height - kBox) / 2)};
+  const ImVec2 boxMax{box.x + kBox, box.y + kBox};
+  dl->AddRectFilled(box, boxMax, toU32(hovered ? PaletteColor::Stone : PaletteColor::StoneDark));
+  dl->AddRect(box, boxMax, toU32(PaletteColor::Ink));
+  if (*value) {  // a 7x7 pixel tick, drawn pixel by pixel so it stays crisp at any scale
+    constexpr int kTick[][2] = {{0, 4}, {1, 5}, {2, 6}, {3, 5}, {4, 4}, {5, 3}, {6, 2}, {7, 1}};
+    for (const auto& p : kTick) {
+      const float x = box.x + 1 + static_cast<float>(p[0]);
+      const float y = box.y + 1 + static_cast<float>(p[1]);
+      dl->AddRectFilled({x, y}, {x + 1, y + 2}, toU32(PaletteColor::TextYellow));
+    }
+  }
+  drawShadowed(dl, font, fontSize, {min.x + kBox + 6, min.y + std::floor((height - fontSize) / 2)},
+               PaletteColor::TextYellow, text);
+
+  if (hovered && !hoverMarkup.empty()) setHoverText(std::string(hoverMarkup));
+  if (pressed && ctx().onClick) ctx().onClick();
+  return pressed;
+}
+
 StonePanel::StonePanel(const char* id, std::string_view title, ImVec2 size, PanelVariant variant) {
   const ImVec2 avail = ImGui::GetContentRegionAvail();
   const ImVec2 sz = floorVec({size.x > 0 ? size.x : avail.x, size.y > 0 ? size.y : avail.y});

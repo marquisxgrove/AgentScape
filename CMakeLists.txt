@@ -26,7 +26,9 @@ include(EmbedFiles)
 # as_domain: pure C++20 (no SDL, ImGui, SQLite, I/O). as_core: Result, errors.
 # ---------------------------------------------------------------------------
 add_library(as_core STATIC
-  src/core/civil_time.cpp)
+  src/core/civil_time.cpp
+  src/core/ids.cpp
+  src/core/rng.cpp)
 target_include_directories(as_core PUBLIC src)
 target_link_libraries(as_core PUBLIC tl::expected)
 as_enable_warnings(as_core)
@@ -36,7 +38,9 @@ add_library(as_domain STATIC
   src/domain/chat_log.cpp
   src/domain/context_menu.cpp
   src/domain/frame.cpp
-  src/domain/kiroween.cpp)
+  src/domain/guest_name.cpp
+  src/domain/kiroween.cpp
+  src/domain/settings.cpp)
 target_include_directories(as_domain PUBLIC src)
 target_link_libraries(as_domain PUBLIC as_core nlohmann_json::nlohmann_json)
 as_enable_warnings(as_domain)
@@ -57,6 +61,14 @@ target_include_directories(as_db PUBLIC src)
 target_link_libraries(as_db PUBLIC as_core SQLiteLib::SQLite3 PRIVATE nlohmann_json::nlohmann_json)
 as_enable_warnings(as_db)
 as_enable_sanitizers(as_db)
+
+# Services own transactions and orchestrate domain + db (no SDL/ImGui).
+add_library(as_services STATIC
+  src/services/profile_service.cpp)
+target_include_directories(as_services PUBLIC src)
+target_link_libraries(as_services PUBLIC as_db as_domain)
+as_enable_warnings(as_services)
+as_enable_sanitizers(as_services)
 
 # SDL-free platform pieces (file ops, path resolution, flush scheduling) - unit-testable.
 add_library(as_platform_core STATIC
@@ -81,7 +93,7 @@ add_library(as_app_core STATIC
   src/app/local_store.cpp
   src/app/screen_stack.cpp)
 target_include_directories(as_app_core PUBLIC src)
-target_link_libraries(as_app_core PUBLIC as_domain as_db as_platform_core)
+target_link_libraries(as_app_core PUBLIC as_domain as_db as_services as_platform_core)
 as_enable_warnings(as_app_core)
 as_enable_sanitizers(as_app_core)
 
@@ -94,11 +106,14 @@ if(AS_BUILD_APP)
     src/app/app.cpp
     src/platform/paths_sdl.cpp
     src/platform/persist.cpp
+    src/platform/accessibility.cpp
     src/platform/web_url.cpp
     src/render/game_frame.cpp
     src/render/nine_slice.cpp
     src/render/texture_cache.cpp
-    src/screens/login/title_screen.cpp
+    src/screens/login/login_screen.cpp
+    src/screens/world/world_screen.cpp
+    src/ui/tab_panel.cpp
     src/ui/theme.cpp
     src/ui/ui_context.cpp
     src/ui/widgets.cpp)
@@ -113,7 +128,7 @@ if(AS_BUILD_APP)
   endif()
   target_include_directories(agentscape PRIVATE src)
   target_link_libraries(agentscape PRIVATE
-    as_app_core as_ui_core as_db as_domain imgui SDL3::SDL3 SDL3_image::SDL3_image)
+    as_app_core as_services as_ui_core as_db as_domain imgui SDL3::SDL3 SDL3_image::SDL3_image)
   target_compile_definitions(agentscape PRIVATE
     AS_KIROWEEN_DEFAULT="${AS_KIROWEEN_DEFAULT}"
     AS_GITHUB_CLIENT_ID="${AS_GITHUB_CLIENT_ID}")
@@ -142,6 +157,7 @@ if(AS_BUILD_TESTS)
     tests/unit/civil_time_test.cpp
     tests/unit/config_test.cpp
     tests/unit/core_test.cpp
+    tests/unit/domain_shell_test.cpp
     tests/unit/event_bus_test.cpp
     tests/unit/flush_scheduler_test.cpp
     tests/unit/markup_test.cpp
@@ -162,8 +178,9 @@ if(AS_BUILD_TESTS)
   add_executable(integration_tests
     tests/integration/db_test.cpp
     tests/integration/local_store_test.cpp
+    tests/integration/profile_service_test.cpp
     tests/integration/seed_test.cpp)
-  target_link_libraries(integration_tests PRIVATE as_app_core as_db Catch2::Catch2WithMain)
+  target_link_libraries(integration_tests PRIVATE as_app_core as_services as_db Catch2::Catch2WithMain)
   as_enable_warnings(integration_tests)
   as_enable_sanitizers(integration_tests)
   catch_discover_tests(integration_tests PROPERTIES LABELS "integration")

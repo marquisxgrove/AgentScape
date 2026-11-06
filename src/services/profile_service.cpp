@@ -1,0 +1,182 @@
+#include "services/profile_service.hpp"
+
+#include "core/civil_time.hpp"
+#include "core/ids.hpp"
+#include "domain/guest_name.hpp"
+
+namespace as::services {
+
+namespace {
+constexpr const char* USER_COLUMNS = "id, name, kind, role, settings, created_at, last_seen_at";
+constexpr const char* REMEMBERED_KEY = "remembered_user_id";
+
+UserKind kindFrom(const std::string& s) {
+  if (s == "GUEST") return UserKind::Guest;
+  if (s == "NPC") return UserKind::Npc;
+  return UserKind::Player;
+}
+
+std::chrono::sys_seconds timeFrom(const std::string& s) {
+  return core::parseIso8601(s).value_or(std::chrono::sys_seconds{});
+}
+
+User readUser(const db::Statement& st) {
+  User u;
+  u.id = st.columnText(0);
+  u.name = st.columnText(1);
+  u.kind = kindFrom(st.columnText(2));
+  u.role = st.columnText(3) == "KEEPER" ? UserRole::Keeper : UserRole::User;
+  u.settings = domain::settingsFromJson(st.columnText(4));
+  u.createdAt = timeFrom(st.columnText(5));
+  u.lastSeenAt = timeFrom(st.columnText(6));
+  return u;
+}
+
+std::optional<User> findUser(db::Database& db, const std::string& id) {
+  auto st = db.prepare(std::string("SELECT ") + USER_COLUMNS + " FROM user WHERE id = ?");
+  st.bind(1, id);
+  if (!st.step()) return std::nullopt;
+  return readUser(st);
+}
+
+Result<User> notFound() { return makeError(GameErrorCode::NotFound, "You can't do that right now."); }
+}  // namespace
+
+Result<User> ProfileService::createGuest(const domain::Settings& defaults) {
+  return db::guarded([&]() -> User {
+    const auto now = clock_.now();
+    const std::string stamp = core::formatIso8601(now);
+    const std::string id = core::newUlid(now, rng_);
+    const std::string name = domain::randomGuestName(rng_);
+
+    db::Transaction tx{db_};
+    db_.prepare(
+           "INSERT INTO user(id, name, kind, role, settings, created_at, last_seen_at) "
+           "VALUES (?, ?, 'GUEST', 'USER', ?, ?, ?)")
+        .bind(1, id)
+        .bind(2, name)
+        .bind(3, domain::settingsToJson(defaults))
+        .bind(4, stamp)
+        .bind(5, stamp)
+        .run();
+    tx.commit();
+
+    User u;
+    u.id = id;
+    u.name = name;
+    u.kind = UserKind::Guest;
+    u.settings = defaults;
+    u.createdAt = now;
+    u.lastSeenAt = now;
+    return u;
+  });
+}
+
+Result<User> ProfileService::getUser(const std::string& id) {
+  auto found = db::guarded([&] { return findUser(db_, id); });
+  if (!found) return tl::unexpected(found.error());
+  if (!*found) return notFound();
+  return **found;
+}
+
+Result<User> ProfileService::signIn(const std::string& id) {
+  return db::guarded([&]() -> std::optional<User> {
+           db::Transaction tx{db_};
+           db_.prepare("UPDATE user SET last_seen_at = ? WHERE id = ? AND kind != 'NPC'")
+               .bind(1, core::formatIso8601(clock_.now()))
+               .bind(2, id)
+               .run();
+           const bool updated = db_.changes() == 1;
+           tx.commit();
+           return updated ? findUser(db_, id) : std::nullopt;
+         })
+      .and_then([](std::optional<User> u) -> Result<User> {
+        if (!u) return notFound();
+        return *u;
+      });
+}
+
+Result<std::vector<User>> ProfileService::listLocalUsers() {
+  return db::guarded([&] {
+    std::vector<User> users;
+    auto st = db_.prepare(std::string("SELECT ") + USER_COLUMNS +
+                          " FROM user WHERE kind = 'PLAYER' ORDER BY last_seen_at DESC, name ASC");
+    while (st.step()) users.push_back(readUser(st));
+    return users;
+  });
+}
+
+Result<void> ProfileService::rememberUser(const std::string& id) {
+  auto r = db::guarded([&]() -> bool {
+    db::Transaction tx{db_};
+    auto check = db_.prepare("SELECT 1 FROM user WHERE id = ? AND kind = 'PLAYER'");
+    check.bind(1, id);
+    if (!check.step()) return false;  // missing, a Guest, or an NPC
+    db_.prepare("INSERT INTO app_state(key, value) VALUES (?, ?) "
+                "ON CONFLICT(key) DO UPDATE SET value = excluded.value")
+        .bind(1, REMEMBERED_KEY)
+        .bind(2, id)
+        .run();
+    tx.commit();
+    return true;
+  });
+  if (!r) return tl::unexpected(r.error());
+  if (!*r) return makeError(GameErrorCode::Forbidden, "You can't do that right now.");
+  return {};
+}
+
+Result<void> ProfileService::forgetRemembered() {
+  return db::guarded([&] {
+    db::Transaction tx{db_};
+    db_.prepare("DELETE FROM app_state WHERE key = ?").bind(1, REMEMBERED_KEY).run();
+    tx.commit();
+  });
+}
+
+Result<std::optional<User>> ProfileService::rememberedUser() {
+  return db::guarded([&]() -> std::optional<User> {
+    auto st = db_.prepare("SELECT value FROM app_state WHERE key = ?");
+    st.bind(1, REMEMBERED_KEY);
+    if (!st.step()) return std::nullopt;
+    auto user = findUser(db_, st.columnText(0));
+    // Defensive: only a real (non-Guest, non-NPC) User may be auto-signed-in.
+    if (user && user->kind != UserKind::Player) return std::nullopt;
+    return user;
+  });
+}
+
+Result<User> ProfileService::updateSettings(const std::string& id, const domain::Settings& settings) {
+  return db::guarded([&]() -> std::optional<User> {
+           db::Transaction tx{db_};
+           db_.prepare("UPDATE user SET settings = ?, last_seen_at = ? WHERE id = ? AND kind != 'NPC'")
+               .bind(1, domain::settingsToJson(settings))
+               .bind(2, core::formatIso8601(clock_.now()))
+               .bind(3, id)
+               .run();
+           const bool updated = db_.changes() == 1;
+           tx.commit();
+           return updated ? findUser(db_, id) : std::nullopt;
+         })
+      .and_then([](std::optional<User> u) -> Result<User> {
+        if (!u) return notFound();
+        return *u;
+      });
+}
+
+Result<int> ProfileService::cleanupGuests() {
+  return db::guarded([&] {
+    const auto cutoff = clock_.now() - GUEST_MAX_IDLE;
+    db::Transaction tx{db_};
+    db_.prepare("DELETE FROM user WHERE kind = 'GUEST' AND last_seen_at < ?")
+        .bind(1, core::formatIso8601(cutoff))
+        .run();
+    const int removed = db_.changes();
+    // A remembered pointer must never dangle.
+    db_.exec("DELETE FROM app_state WHERE key = 'remembered_user_id' "
+             "AND value NOT IN (SELECT id FROM user)");
+    tx.commit();
+    return removed;
+  });
+}
+
+}  // namespace as::services

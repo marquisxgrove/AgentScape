@@ -60,7 +60,10 @@ void UiGalleryScreen::draw(app::FrameCtx& /*ctx*/) {
   ui::ShadowText("Clicks: " + std::to_string(clicks_), ui::PaletteColor::TextGreen);
 
   ImGui::Spacing();
-  ImGui::Checkbox("Plain font", &ui::ctx().plainFont);
+  ui::Toggle("Plain font", &ui::ctx().plainFont);
+  ImGui::SameLine(0, 12);
+  static bool sampleOff = false;
+  ui::Toggle("Another toggle", &sampleOff);
   ImGui::SameLine(0, 12);
   ImGui::PushFont(ui::ctx().fonts.plain.body);
   ui::ShadowText("Plain font preview: The quick brown familiar jumps over 13 lazy bugs.");

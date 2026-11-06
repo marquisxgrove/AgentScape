@@ -9,6 +9,8 @@
 #include "app/config.hpp"
 #include "app/local_store.hpp"
 #include "app/screen_stack.hpp"
+#include "app/services.hpp"
+#include "core/rng.hpp"
 #include "platform/persist.hpp"
 #include "render/game_frame.hpp"
 #include "render/texture_cache.hpp"
@@ -39,7 +41,10 @@ class App {
   bool init();
   void updateData();
   void openStore(bool resetData);
+  void onStoreReady();
+  void signInRemembered();
   void registerScreens();
+  void applySettings(const domain::Settings& settings);
   void drawShell();
   void drawLoading();
   void drawLoadFailed();
@@ -57,9 +62,14 @@ class App {
   int framesRendered_ = 0;
   bool quitRequested_ = false;
 
+  core::SystemRng rng_;
+  core::SystemClock clock_;
   platform::Persistence persistence_;
   DataState dataState_ = DataState::WaitingForStorage;
   std::optional<OpenedStore> store_;
+  std::optional<Services> services_;
+  std::optional<std::string> currentUserId_;
+  domain::Settings settings_;
   std::optional<LocalStoreError> loadError_;
   bool inMemoryOnly_ = false;  // web without IndexedDB: progress won't survive a reload
   std::string savePath_;

@@ -47,13 +47,15 @@
   - _Requirements: 1.4, 7.2, 7.3_
   - _Notes: fonts are Silkscreen (pixel, native 8 px) and Atkinson Hyperlegible (plain). Text inside parchment panels switches to dark colours (`ui::textColorOn`) because the light text colours are below 2:1 on PARCHMENT. Visual QA: `agentscape --screen=ui-gallery --snapshot=gallery.png`._
 
-- [ ] 6. Build the TabPanel and Settings
+- [x] 6. Build the TabPanel and Settings
   - Build the TabPanel with a Settings tab that persists toggles through `ProfileService.updateSettings`, plus "Log out". In the web build, default "Reduce motion" from `prefers-reduced-motion`.
   - _Requirements: 2.8, 7.1, 7.2, 7.5_
+  - _Note: only the Settings tab exists; Equipment/Skills/Quest Log tabs arrive with their specs. The panel is shown once signed in._
 
-- [ ] 7. Build the login screen
-  - [ ] 7.1 Build the login screen with the stone panel, "Play as Guest", the local User list, the remembered-User auto sign-in, error display, and Kiroween bats when active. Add `ProfileService.createGuest` and `cleanupGuests`.
+- [ ] 7. Build the login screen (7.1 done; 7.2/7.3 GitHub device flow remaining)
+  - [x] 7.1 Build the login screen with the stone panel, "Play as Guest", the local User list, the remembered-User auto sign-in, error display, and Kiroween bats when active. Add `ProfileService.createGuest` and `cleanupGuests`.
     - _Requirements: 2.1–2.3, 2.6, 2.7, 8.5_
+    - _Note: login panel, Play as Guest, continue-as list, remembered-player auto sign-in, guest cleanup, and settings-apply-on-sign-in are done. Kiroween bats come with task 10 (login effects). Everyone lands on World until character-creator adds the "no Adventurer -> Costumer" branch (Req 2.6)._
   - [ ] 7.2 Implement `platform::github_device_flow` (desktop only; libcurl on a worker thread; token discarded after the profile fetch) and the code-display panel. Hide the button on web or when `AS_GITHUB_CLIENT_ID` is empty.
     - _Requirements: 2.4, 2.5, 2.7_
   - [ ]* 7.3 Write unit tests for device-flow response parsing, the `slow_down` interval, expiry, and denial.
