@@ -91,3 +91,13 @@ TEST_CASE("an explicit data dir never touches the platform default", "[unit][con
   CHECK(as::platform::resolveDataDir(std::nullopt, platformDefault) == "/pref/AgentScape");
   CHECK(defaultCalls == 1);
 }
+
+TEST_CASE("dev QA flags select a start screen and a snapshot path", "[unit][config]") {
+  Fixture f;
+  f.args = {"--screen=ui-gallery", "--snapshot=out/gallery.png"};
+  const auto cfg = f.parse();
+  CHECK(cfg.startScreen == "ui-gallery");
+  CHECK(cfg.snapshotPath == "out/gallery.png");
+  CHECK(cfg.headlessSmoke);  // a snapshot run always exits on its own
+  CHECK(cfg.warnings.empty());
+}

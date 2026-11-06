@@ -4,13 +4,23 @@
 #include <imgui_impl_sdl3.h>
 #include <imgui_impl_sdlrenderer3.h>
 
+#include <SDL3_image/SDL_image.h>
+
 #include <chrono>
+#include <cstdint>
 #include <cstdlib>
 #include <string_view>
 #include <vector>
 
 #include "platform/paths.hpp"
 #include "platform/web_url.hpp"
+#include "screens/login/title_screen.hpp"
+#include "ui/layout.hpp"
+#include "ui/theme.hpp"
+#include "ui/widgets.hpp"
+#ifdef AS_ENABLE_DEV_SCREENS
+#include "screens/dev/ui_gallery_screen.hpp"
+#endif
 
 namespace as::app {
 
@@ -23,16 +33,21 @@ void logError(const char* what, const GameError& e) {
   SDL_Log("%s: %s%s%s", what, e.message.c_str(), e.detail.empty() ? "" : " | ", e.detail.c_str());
 }
 
-constexpr ImVec4 YELLOW{1.0F, 0.85F, 0.2F, 1.0F};
-constexpr ImVec4 RED{0.95F, 0.25F, 0.2F, 1.0F};
+constexpr int SNAPSHOT_FRAME = 3;  // a few frames in, so ImGui has laid everything out
+constexpr int SMOKE_FRAMES = 5;
 
-bool beginFullFrameWindow(const char* id) {
-  ImGui::SetNextWindowPos({0, 0});
-  ImGui::SetNextWindowSize({static_cast<float>(domain::FRAME_W), static_cast<float>(domain::FRAME_H)});
+// A borderless, transparent ImGui window covering a frame region. Panels are drawn by widgets.
+bool beginRegion(const char* id, const ui::FrameRect& r) {
+  ImGui::SetNextWindowPos({static_cast<float>(r.x), static_cast<float>(r.y)});
+  ImGui::SetNextWindowSize({static_cast<float>(r.w), static_cast<float>(r.h)});
   constexpr ImGuiWindowFlags kFlags = ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_NoMove |
-                                      ImGuiWindowFlags_NoSavedSettings | ImGuiWindowFlags_NoBringToFrontOnFocus;
+                                      ImGuiWindowFlags_NoSavedSettings | ImGuiWindowFlags_NoBackground |
+                                      ImGuiWindowFlags_NoBringToFrontOnFocus;
   return ImGui::Begin(id, nullptr, kFlags);
 }
+
+constexpr ui::FrameRect FULL_FRAME{0, 0, domain::FRAME_W, domain::FRAME_H};
+constexpr ui::FrameRect CENTER_DIALOG{232, 186, 300, 110};
 }  // namespace
 
 Config configFromProcess(int argc, char** argv) {
@@ -77,28 +92,33 @@ bool App::init() {
   frame_ = std::make_unique<render::GameFrame>(renderer_);
   if (!frame_->valid()) return false;
 
+  kiroween_ = domain::isKiroweenActive(config_.kiroween, utcNow());
+
   IMGUI_CHECKVERSION();
   ImGui::CreateContext();
   ImGuiIO& io = ImGui::GetIO();
   io.IniFilename = nullptr;
   io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard | ImGuiConfigFlags_NavEnableGamepad;
-  ImGui::StyleColorsDark();
-  ImGuiStyle& style = ImGui::GetStyle();
-  style.AntiAliasedLines = false;
-  style.AntiAliasedLinesUseTex = false;
-  style.AntiAliasedFill = false;
-  style.WindowRounding = style.FrameRounding = style.ChildRounding = style.PopupRounding = 0.0F;
-  style.ScrollbarRounding = style.GrabRounding = style.TabRounding = 0.0F;
   ImGui_ImplSDL3_InitForSDLRenderer(window_, renderer_);
   ImGui_ImplSDLRenderer3_Init(renderer_);
 
-  kiroween_ = domain::isKiroweenActive(config_.kiroween, utcNow());
+  ui::setContext(&ui_);
+  ui_.kiroween = kiroween_;
+  ui::applyTheme(kiroween_);
+  const auto assets = platform::assetsDir();
+  ui_.fonts = ui::loadFonts(assets / "fonts");
+  textures_ = std::make_unique<render::TextureCache>(renderer_);
+  ui_.skin = ui::loadSkin(*textures_, assets / "ui");
+
+  registerScreens();
   updateData();  // desktop opens the store immediately; the web waits for IndexedDB
   return true;
 }
 
 App::~App() {
   store_.reset();  // close the database before tearing down the platform layer
+  textures_.reset();
+  ui::setContext(nullptr);
   if (ImGui::GetCurrentContext() != nullptr) {
     ImGui_ImplSDLRenderer3_Shutdown();
     ImGui_ImplSDL3_Shutdown();
@@ -171,46 +191,92 @@ SDL_AppResult App::handleEvent(SDL_Event& event) {
   return SDL_APP_CONTINUE;
 }
 
+void App::registerScreens() {
+  screens_.registerScreen(ScreenId::Login, [] { return std::make_unique<screens::TitleScreen>(); });
+#ifdef AS_ENABLE_DEV_SCREENS
+  screens_.registerScreen(ScreenId::DevGallery, [] { return std::make_unique<screens::UiGalleryScreen>(); });
+#endif
+  ScreenId start = ScreenId::Login;
+  if (config_.startScreen) {
+#ifdef AS_ENABLE_DEV_SCREENS
+    if (*config_.startScreen == "ui-gallery") start = ScreenId::DevGallery;
+#endif
+    if (start == ScreenId::Login) SDL_Log("Unknown or unavailable --screen=%s", config_.startScreen->c_str());
+  }
+  screens_.navigate(start);
+}
+
 void App::drawLoading() {
-  if (beginFullFrameWindow("##loading")) {
-    ImGui::SetCursorPos({330, 240});
-    ImGui::TextColored(YELLOW, "Loading...");
+  if (beginRegion("##loading", FULL_FRAME)) {
+    ImGui::SetCursorPos({340, 245});
+    ui::ShadowText("Loading...");
   }
   ImGui::End();
 }
 
 void App::drawLoadFailed() {
-  if (beginFullFrameWindow("##loadfailed")) {
-    ImGui::SetCursorPos({250, 200});
-    ImGui::TextColored(RED, "Your save could not be loaded.");
-    ImGui::SetCursorPosX(250);
+  if (beginRegion("##loadfailed", CENTER_DIALOG)) {
+    ui::StonePanel panel{"##loadfailed-panel", "AgentScape"};
+    ui::ShadowText("Your save could not be loaded.", ui::PaletteColor::TextRed);
+    ImGui::Spacing();
     if (loadError_ && loadError_->canStartFresh) {
-      if (ImGui::Button("Start fresh")) {
+      if (ui::PixelButton("Start fresh")) {
         dataState_ = DataState::WaitingForStorage;
         openStore(/*resetData=*/true);
       }
       ImGui::SameLine();
     }
-    if (ImGui::Button("Quit")) quitRequested_ = true;
+    if (ui::PixelButton("Quit")) quitRequested_ = true;
   }
   ImGui::End();
 }
 
 void App::drawShell() {
-  if (beginFullFrameWindow("##frame")) {
-    ImGui::TextColored(YELLOW, "Welcome to AgentScape");
-    ImGui::TextUnformatted("Rate your familiars, brave adventurer.");
-    ImGui::Separator();
-    ImGui::Text("Frame %dx%d at %dx scale", domain::FRAME_W, domain::FRAME_H, frame_->layout().scale);
-    ImGui::TextUnformatted(kiroween_ ? "Kiroween mode: ON" : "Kiroween mode: off");
-    ImGui::TextUnformatted("Save:");
-    ImGui::SameLine();
-    ImGui::TextUnformatted(savePath_.c_str());  // user-controlled path: never a format string
-    if (inMemoryOnly_) {
-      ImGui::TextColored(RED, "Your progress can't be saved in this browser (private mode?).");
+  FrameCtx ctx;
+  ctx.dt = static_cast<double>(ImGui::GetIO().DeltaTime);
+  ctx.kiroween = kiroween_;
+
+  if (beginRegion("##viewport", ui::VIEWPORT)) {
+    if (Screen* screen = screens_.current()) {
+      screen->update(ctx);
+      screen->draw(ctx);
     }
   }
   ImGui::End();
+
+  if (beginRegion("##tabpanel", ui::TAB_PANEL)) {
+    ui::StonePanel panel{"##tabs", "Settings"};
+    ui::ShadowText("The tab panel arrives", ui::PaletteColor::Parchment);
+    ui::ShadowText("with game-shell task 6.", ui::PaletteColor::Parchment);
+  }
+  ImGui::End();
+
+  if (beginRegion("##chatbox", ui::CHATBOX)) {
+    ui::StonePanel panel{"##chat", ""};
+    ui::RichText("Welcome to AgentScape.");
+    if (kiroween_) ui::RichText("<col=pumpkin>A chill runs through Promptmoor. Kiroween has begun!</col>");
+    if (inMemoryOnly_) {
+      ui::RichText("<col=red>Your progress can't be saved in this browser (private mode?).</col>");
+    }
+  }
+  ImGui::End();
+
+  ui::HoverText({static_cast<float>(ui::VIEWPORT.x), static_cast<float>(ui::VIEWPORT.y)});
+}
+
+void App::saveSnapshot() {
+  // Reads the 765x503 frame texture (the current render target), not the scaled window.
+  SDL_Surface* shot = SDL_RenderReadPixels(renderer_, nullptr);
+  if (shot == nullptr) {
+    SDL_Log("Snapshot failed: %s", SDL_GetError());
+    return;
+  }
+  if (IMG_SavePNG(shot, config_.snapshotPath->c_str())) {
+    SDL_Log("Snapshot saved to %s", config_.snapshotPath->c_str());
+  } else {
+    SDL_Log("Snapshot could not be written: %s", SDL_GetError());
+  }
+  SDL_DestroySurface(shot);
 }
 
 SDL_AppResult App::iterate() {
@@ -218,11 +284,25 @@ SDL_AppResult App::iterate() {
   persistence_.tick();
   frame_->updateLayout(window_);
 
+  screens_.applyPending();
+
   ImGui_ImplSDLRenderer3_NewFrame();
+  if (!fontTextureNearest_) {
+    // The backend creates the font atlas with linear filtering; every texture must be nearest.
+    if (auto* fontTex = reinterpret_cast<SDL_Texture*>(static_cast<std::uintptr_t>(ImGui::GetIO().Fonts->TexID))) {
+      SDL_SetTextureScaleMode(fontTex, SDL_SCALEMODE_NEAREST);
+      fontTextureNearest_ = true;
+    }
+  }
   ImGui_ImplSDL3_NewFrame();
   ImGui::GetIO().DisplaySize = {static_cast<float>(domain::FRAME_W), static_cast<float>(domain::FRAME_H)};
   ImGui::GetIO().DisplayFramebufferScale = {1.0F, 1.0F};
   ImGui::NewFrame();
+  ui::beginFrame();
+  ImGui::PushFont(ui::activeFonts().body);
+  ImGui::GetBackgroundDrawList()->AddRectFilled(
+      {0, 0}, {static_cast<float>(domain::FRAME_W), static_cast<float>(domain::FRAME_H)},
+      ui::toU32(ui::PaletteColor::StoneDark));
   switch (dataState_) {
     case DataState::WaitingForStorage:
       drawLoading();
@@ -234,15 +314,17 @@ SDL_AppResult App::iterate() {
       drawShell();
       break;
   }
+  ImGui::PopFont();
   ImGui::Render();
 
   frame_->beginFrame();
   ImGui_ImplSDLRenderer3_RenderDrawData(ImGui::GetDrawData(), renderer_);
+  if (config_.snapshotPath && framesRendered_ + 1 == SNAPSHOT_FRAME) saveSnapshot();
   frame_->present();
 
   ++framesRendered_;
   if (quitRequested_) return SDL_APP_SUCCESS;
-  if (config_.headlessSmoke && framesRendered_ >= 5) {
+  if (config_.headlessSmoke && framesRendered_ >= SMOKE_FRAMES) {
     // Smoke runs must fail loudly if storage didn't come up.
     return dataState_ == DataState::Ready ? SDL_APP_SUCCESS : SDL_APP_FAILURE;
   }

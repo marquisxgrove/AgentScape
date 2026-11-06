@@ -8,8 +8,11 @@
 
 #include "app/config.hpp"
 #include "app/local_store.hpp"
+#include "app/screen_stack.hpp"
 #include "platform/persist.hpp"
 #include "render/game_frame.hpp"
+#include "render/texture_cache.hpp"
+#include "ui/ui_context.hpp"
 
 namespace as::app {
 
@@ -36,14 +39,20 @@ class App {
   bool init();
   void updateData();
   void openStore(bool resetData);
+  void registerScreens();
   void drawShell();
   void drawLoading();
   void drawLoadFailed();
+  void saveSnapshot();
 
   Config config_;
   SDL_Window* window_ = nullptr;
   SDL_Renderer* renderer_ = nullptr;
   std::unique_ptr<render::GameFrame> frame_;
+  std::unique_ptr<render::TextureCache> textures_;
+  ui::UiContext ui_;
+  ScreenStack screens_;
+  bool fontTextureNearest_ = false;
   bool kiroween_ = false;
   int framesRendered_ = 0;
   bool quitRequested_ = false;

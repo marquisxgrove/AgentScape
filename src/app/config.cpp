@@ -36,6 +36,11 @@ Config parseConfig(const ConfigSources& sources) {
       cfg.resetData = true;
     } else if (arg == "--smoke") {
       cfg.headlessSmoke = true;
+    } else if (startsWith(arg, "--screen=")) {
+      cfg.startScreen = std::string(arg.substr(std::string_view{"--screen="}.size()));
+    } else if (startsWith(arg, "--snapshot=")) {
+      cfg.snapshotPath = std::string(arg.substr(std::string_view{"--snapshot="}.size()));
+      cfg.headlessSmoke = true;
     } else if (startsWith(arg, "-psn_")) {
       // macOS Finder process serial number; ignore.
     } else {

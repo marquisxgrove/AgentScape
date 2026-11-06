@@ -41,10 +41,11 @@
     - **Property 4: Chat log append**
     - **Validates: Requirements 5.4, 5.5**
 
-- [ ] 5. Build UI primitives
+- [x] 5. Build UI primitives
   - Add the theme constants and `ui::applyTheme`, load the OFL pixel and plain fonts, and build `StonePanel`, `PixelButton`, `ShadowText`, `RichText` (with `parseMarkup`), and `HoverText`.
   - Add the dev-only UI gallery screen (`AS_ENABLE_DEV_SCREENS`).
   - _Requirements: 1.4, 7.2, 7.3_
+  - _Notes: fonts are Silkscreen (pixel, native 8 px) and Atkinson Hyperlegible (plain). Text inside parchment panels switches to dark colours (`ui::textColorOn`) because the light text colours are below 2:1 on PARCHMENT. Visual QA: `agentscape --screen=ui-gallery --snapshot=gallery.png`._
 
 - [ ] 6. Build the TabPanel and Settings
   - Build the TabPanel with a Settings tab that persists toggles through `ProfileService.updateSettings`, plus "Log out". In the web build, default "Reduce motion" from `prefers-reduced-motion`.
