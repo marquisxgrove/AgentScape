@@ -70,6 +70,11 @@ void beginFrame() {
 
 Surface currentSurface() { return ctx().surfaces.empty() ? Surface::Stone : ctx().surfaces.back(); }
 
+render::TextureCache& UiContext::mapTextures() {
+  assert(textures != nullptr && "UiContext::textures not set");
+  return *textures;
+}
+
 void setHoverText(std::string markup) { ctx().hoverMarkup = std::move(markup); }
 
 }  // namespace as::ui

@@ -39,6 +39,7 @@ add_library(as_domain STATIC
   src/domain/context_menu.cpp
   src/domain/device_flow.cpp
   src/domain/frame.cpp
+  src/domain/geometry.cpp
   src/domain/guest_name.cpp
   src/domain/kiroween.cpp
   src/domain/settings.cpp)
@@ -121,6 +122,7 @@ if(AS_BUILD_APP)
     src/platform/accessibility.cpp
     src/platform/github_device_flow.cpp
     src/platform/web_url.cpp
+    src/game/hotspots.cpp
     src/render/game_frame.cpp
     src/render/nine_slice.cpp
     src/render/texture_cache.cpp
@@ -182,6 +184,7 @@ if(AS_BUILD_TESTS)
     tests/unit/event_bus_test.cpp
     tests/unit/chatbox_test.cpp
     tests/unit/flush_scheduler_test.cpp
+    tests/unit/geometry_test.cpp
     tests/unit/markup_test.cpp
     tests/unit/regressions_game_shell.cpp
     tests/unit/screen_stack_test.cpp)

@@ -8,6 +8,7 @@
 #include <vector>
 
 #include "render/nine_slice.hpp"
+#include "render/texture_cache.hpp"
 #include "ui/palette.hpp"
 
 namespace as::ui {
@@ -43,6 +44,10 @@ struct UiContext {
 
   // Surfaces of the open StonePanels (innermost last); text colours adapt to the innermost one.
   std::vector<Surface> surfaces;
+
+  // Shared texture cache for screens (map, sprites). Set by App; may be null in tests.
+  render::TextureCache* textures = nullptr;
+  render::TextureCache& mapTextures();  // asserts textures != nullptr
 };
 
 Surface currentSurface();
