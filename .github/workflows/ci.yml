@@ -1,0 +1,64 @@
+name: CI
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  desktop:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - { os: ubuntu-24.04, name: linux-gcc }
+          - { os: macos-14, name: macos-clang }
+          - { os: windows-2022, name: windows-msvc }
+    runs-on: ${{ matrix.os }}
+    name: ${{ matrix.name }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Linux dependencies
+        if: runner.os == 'Linux'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y ninja-build libx11-dev libxext-dev libxrandr-dev libxcursor-dev \
+            libxi-dev libxss-dev libwayland-dev libxkbcommon-dev libasound2-dev libpulse-dev \
+            libgl1-mesa-dev libegl1-mesa-dev libdrm-dev libgbm-dev
+      - name: macOS dependencies
+        if: runner.os == 'macOS'
+        run: brew install ninja
+      - uses: ilammy/msvc-dev-cmd@v1
+        if: runner.os == 'Windows'
+      - name: Configure
+        run: cmake --preset dev
+      - name: Build
+        run: cmake --build --preset dev
+      - name: Test
+        run: ctest --preset dev
+
+  asan:
+    runs-on: ubuntu-24.04
+    name: linux-asan
+    steps:
+      - uses: actions/checkout@v4
+      - run: |
+          sudo apt-get update
+          sudo apt-get install -y ninja-build libx11-dev libxext-dev libxrandr-dev libxcursor-dev \
+            libxi-dev libxss-dev libwayland-dev libxkbcommon-dev libasound2-dev libpulse-dev \
+            libgl1-mesa-dev libegl1-mesa-dev libdrm-dev libgbm-dev
+      - run: cmake --preset asan
+      - run: cmake --build --preset asan
+      - run: ctest --preset asan
+
+  web:
+    runs-on: ubuntu-24.04
+    name: web
+    steps:
+      - uses: actions/checkout@v4
+      - uses: mymindstorm/setup-emsdk@v14
+        with:
+          version: 4.0.8
+      - run: sudo apt-get update && sudo apt-get install -y ninja-build
+      - run: echo "EMSDK=$EMSDK" >> "$GITHUB_ENV"
+      - run: cmake --preset web
+      - run: cmake --build --preset web
