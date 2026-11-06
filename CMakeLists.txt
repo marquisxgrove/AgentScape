@@ -63,14 +63,6 @@ target_link_libraries(as_db PUBLIC as_core SQLiteLib::SQLite3 PRIVATE nlohmann_j
 as_enable_warnings(as_db)
 as_enable_sanitizers(as_db)
 
-# Services own transactions and orchestrate domain + db (no SDL/ImGui).
-add_library(as_services STATIC
-  src/services/profile_service.cpp)
-target_include_directories(as_services PUBLIC src)
-target_link_libraries(as_services PUBLIC as_db as_domain)
-as_enable_warnings(as_services)
-as_enable_sanitizers(as_services)
-
 # SDL-free platform pieces (file ops, path resolution, flush scheduling) - unit-testable.
 add_library(as_platform_core STATIC
   src/platform/data_files.cpp
@@ -83,20 +75,39 @@ as_enable_sanitizers(as_platform_core)
 
 # Pure UI logic (palette, markup parser): no ImGui, unit-testable.
 add_library(as_ui_core STATIC
+  src/ui/chat_model.cpp
+  src/ui/context_menu_model.cpp
   src/ui/markup.cpp)
 target_include_directories(as_ui_core PUBLIC src)
+target_link_libraries(as_ui_core PUBLIC as_domain)
 as_enable_warnings(as_ui_core)
 as_enable_sanitizers(as_ui_core)
 
+# EventBus: typed pub/sub, no app/service deps (services publish onto it).
+add_library(as_events STATIC src/app/event_bus.cpp)
+target_include_directories(as_events PUBLIC src)
+target_link_libraries(as_events PUBLIC as_domain)
+as_enable_warnings(as_events)
+as_enable_sanitizers(as_events)
+
+# Services own transactions and orchestrate domain + db (no SDL/ImGui).
+add_library(as_services STATIC
+  src/services/activity_service.cpp
+  src/services/profile_service.cpp)
+target_include_directories(as_services PUBLIC src)
+target_link_libraries(as_services PUBLIC as_events as_db as_domain)
+as_enable_warnings(as_services)
+as_enable_sanitizers(as_services)
+
 add_library(as_app_core STATIC
   src/app/config.cpp
-  src/app/event_bus.cpp
   src/app/local_store.cpp
   src/app/screen_stack.cpp)
 target_include_directories(as_app_core PUBLIC src)
-target_link_libraries(as_app_core PUBLIC as_domain as_db as_services as_platform_core)
+target_link_libraries(as_app_core PUBLIC as_domain as_db as_services as_events as_platform_core)
 as_enable_warnings(as_app_core)
 as_enable_sanitizers(as_app_core)
+
 
 # ---------------------------------------------------------------------------
 # Application
@@ -115,6 +126,8 @@ if(AS_BUILD_APP)
     src/render/texture_cache.cpp
     src/screens/login/login_screen.cpp
     src/screens/world/world_screen.cpp
+    src/ui/chatbox.cpp
+    src/ui/context_menu_host.cpp
     src/ui/tab_panel.cpp
     src/ui/theme.cpp
     src/ui/ui_context.cpp
@@ -163,14 +176,16 @@ if(AS_BUILD_TESTS)
     tests/unit/civil_time_test.cpp
     tests/unit/config_test.cpp
     tests/unit/core_test.cpp
+    tests/unit/context_menu_test.cpp
     tests/unit/device_flow_test.cpp
     tests/unit/domain_shell_test.cpp
     tests/unit/event_bus_test.cpp
+    tests/unit/chatbox_test.cpp
     tests/unit/flush_scheduler_test.cpp
     tests/unit/markup_test.cpp
     tests/unit/regressions_game_shell.cpp
     tests/unit/screen_stack_test.cpp)
-  target_link_libraries(unit_tests PRIVATE as_app_core as_platform_core as_ui_core as_domain Catch2::Catch2WithMain)
+  target_link_libraries(unit_tests PRIVATE as_app_core as_events as_platform_core as_ui_core as_domain Catch2::Catch2WithMain)
   as_enable_warnings(unit_tests)
   as_enable_sanitizers(unit_tests)
   catch_discover_tests(unit_tests PROPERTIES LABELS "unit")
@@ -183,6 +198,7 @@ if(AS_BUILD_TESTS)
   catch_discover_tests(property_tests PROPERTIES LABELS "property" ENVIRONMENT "RC_PARAMS=max_success=200")
 
   add_executable(integration_tests
+    tests/integration/activity_service_test.cpp
     tests/integration/db_test.cpp
     tests/integration/local_store_test.cpp
     tests/integration/profile_service_test.cpp

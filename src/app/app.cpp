@@ -118,6 +118,8 @@ bool App::init() {
 }
 
 App::~App() {
+  chatbox_.reset();  // unsubscribes from the bus before services/db go away
+  services_.reset();
   store_.reset();  // close the database before tearing down the platform layer
   textures_.reset();
   ui::setContext(nullptr);
@@ -166,7 +168,9 @@ void App::openStore(bool resetData) {
   if (store_->seeded) SDL_Log("Seeded community snapshot: %d NPC adventurers", store_->seeded->npcsUpserted);
   SDL_Log("Local store ready: %s (schema %d)", savePath_.c_str(), store_->schemaVersion);
   persistence_.requestFlush();  // migrations/seed on a new web save
-  services_.emplace(Services{services::ProfileService{store_->db, clock_, rng_}});
+  services_.emplace(Services{services::ProfileService{store_->db, clock_, rng_},
+                             services::ActivityService{store_->db, clock_, bus_}});
+  chatbox_.emplace(bus_);
   onStoreReady();
   dataState_ = DataState::Ready;
 }
@@ -184,10 +188,25 @@ void App::signInRemembered() {
   if (!remembered || !*remembered) return;
   auto user = services_->profile.signIn((*remembered)->id);
   if (!user) return;
-  currentUserId_ = user->id;
-  applySettings(user->settings);
+  adoptUser(user->id, user->settings);
   screens_.navigate(ScreenId::World);
   SDL_Log("Signed in remembered user %s", user->name.c_str());
+}
+
+void App::adoptUser(const std::string& userId, const domain::Settings& settings) {
+  currentUserId_ = userId;
+  applySettings(settings);
+  // Seed the Chatbox: 20 most recent Tavern events, then the welcome line (Req 5.1/5.3).
+  if (chatbox_ && services_) {
+    if (auto recent = services_->activity.latest(20)) {
+      std::vector<domain::ChatMessage> msgs;
+      msgs.reserve(recent->size());
+      for (const auto& e : *recent) msgs.push_back(services::toChatMessage(e));
+      chatbox_->loadInitial(msgs);
+    }
+    ui::pushGameMessage("Welcome to AgentScape.");
+    if (kiroween_) ui::pushGameMessage("A chill runs through Promptmoor. Kiroween has begun!");
+  }
 }
 
 void App::applySettings(const domain::Settings& settings) {
@@ -268,9 +287,11 @@ void App::drawShell() {
   ctx.services = services_ ? &*services_ : nullptr;
   ctx.nav = &screens_;
   ctx.reduceMotionDefault = platform::prefersReducedMotion();
+  ctx.contextRequest = &contextReq_;
   ctx.onSignedIn = [this](const std::string& userId, bool remember) {
-    currentUserId_ = userId;
-    if (auto user = services_->profile.getUser(userId)) applySettings(user->settings);
+    if (auto user = services_->profile.getUser(userId)) {
+      adoptUser(userId, user->settings);
+    }
     if (remember) services_->profile.rememberUser(userId);
   };
 
@@ -309,14 +330,23 @@ void App::drawShell() {
   ImGui::End();
 
   if (beginRegion("##chatbox", ui::CHATBOX)) {
-    ui::StonePanel panel{"##chat", ""};
-    ui::RichText("Welcome to AgentScape.");
-    if (kiroween_) ui::RichText("<col=pumpkin>A chill runs through Promptmoor. Kiroween has begun!</col>");
-    if (inMemoryOnly_) {
-      ui::RichText("<col=red>Your progress can't be saved in this browser (private mode?).</col>");
-    }
+    if (chatbox_) chatbox_->draw();
   }
   ImGui::End();
+
+  // A screen asked to open the context menu this frame.
+  if (contextReq_.requested) {
+    contextMenu_.open(contextReq_.actions, contextReq_.examineText, contextReq_.x, contextReq_.y);
+    contextReq_ = app::ContextRequest{};
+  }
+  if (auto chosen = contextMenu_.draw()) {
+    if (chosen->id == "examine") {
+      ui::pushGameMessage(chosen->target);  // Req 4.3: Examine prints to the Chatbox
+    } else {
+      // Other default actions map to a screen navigation (e.g. "enter" -> target screen).
+      SDL_Log("Context action: %s -> %s", chosen->id.c_str(), chosen->target.c_str());
+    }
+  }
 
   ui::HoverText({static_cast<float>(ui::VIEWPORT.x), static_cast<float>(ui::VIEWPORT.y)});
 }

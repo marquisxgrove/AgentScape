@@ -9,11 +9,15 @@
 #include "app/config.hpp"
 #include "app/local_store.hpp"
 #include "app/screen_stack.hpp"
+#include "app/context_request.hpp"
+#include "app/event_bus.hpp"
 #include "app/services.hpp"
 #include "core/rng.hpp"
 #include "platform/persist.hpp"
 #include "render/game_frame.hpp"
 #include "render/texture_cache.hpp"
+#include "ui/chatbox.hpp"
+#include "ui/context_menu_host.hpp"
 #include "ui/ui_context.hpp"
 
 namespace as::app {
@@ -43,6 +47,7 @@ class App {
   void openStore(bool resetData);
   void onStoreReady();
   void signInRemembered();
+  void adoptUser(const std::string& userId, const domain::Settings& settings);
   void registerScreens();
   void applySettings(const domain::Settings& settings);
   void drawShell();
@@ -64,6 +69,10 @@ class App {
 
   core::SystemRng rng_;
   core::SystemClock clock_;
+  app::EventBus bus_;
+  std::optional<ui::Chatbox> chatbox_;
+  ui::ContextMenuHost contextMenu_;
+  app::ContextRequest contextReq_;
   platform::Persistence persistence_;
   DataState dataState_ = DataState::WaitingForStorage;
   std::optional<OpenedStore> store_;
