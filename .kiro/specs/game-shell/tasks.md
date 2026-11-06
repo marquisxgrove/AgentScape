@@ -7,25 +7,24 @@
   - Add the GitHub Actions CI: a desktop matrix (Windows MSVC, macOS Clang, Linux GCC), `asan` on Linux, and a `web` build.
   - _Requirements: all (foundation)_
 
-- [ ] 2. Build the app skeleton (2.3 EventBus/ScreenStack remaining)
+- [x] 2. Build the app skeleton
   - [x] 2.1 Implement `main.cpp` with SDL3 main callbacks, `app::App`, `app::Config`, the SDL window and renderer (software fallback), and ImGui with the SDL3 and SDL_Renderer backends.
     - _Requirements: 1.2, 6.1_
   - [x] 2.2 Implement `render::GameFrame`: the 765×503 target texture, integer-scaled present with letterbox, and pointer-coordinate conversion.
     - _Requirements: 1.1–1.5_
-  - [ ] 2.3 Implement `app::EventBus` and `app::ScreenStack`.
+  - [x] 2.3 Implement `app::EventBus` and `app::ScreenStack`.
     - _Requirements: 5.4_
 
 - [ ] 3. Set up local data
-  - [ ] 3.1 Implement `db::Database`, `Statement`, and `Transaction` (RAII), the embedded migration runner using `PRAGMA user_version`, and `0001_init.sql` (`user`, `app_state`, `activity_event`).
+  - [x] 3.1 Implement `db::Database`, `Statement`, and `Transaction` (RAII), the embedded migration runner using `PRAGMA user_version`, and `0001_init.sql` (`user`, `app_state`, `activity_event`).
     - _Requirements: 8.1, 8.2_
   - [ ] 3.2 Implement `platform::paths` and `platform::persist` (IDBFS mount, load-before-open, debounced flush, `pagehide`).
     - _Requirements: 8.1, 8.3, 8.4_
   - [ ] 3.3 Write an idempotent seed loader skeleton for `data/seed/*.json` and the `--reseed` and `--reset-data` flags.
     - _Requirements: 8.1_
 
-- [ ] 4. Implement shell domain logic
-  - [ ] 4.1 Implement `computeFrameScale`, `layoutFrame`, `toFramePoint`, `parseKiroweenSetting`, `resolveKiroweenSetting`, `isKiroweenActive`, `buildMenu`, and `appendMessages` in `src/domain/`.
-    - _Progress: `frame` and `kiroween` done; `context_menu` and `chat_log` remaining._
+- [x] 4. Implement shell domain logic
+  - [x] 4.1 Implement `computeFrameScale`, `layoutFrame`, `toFramePoint`, `parseKiroweenSetting`, `resolveKiroweenSetting`, `isKiroweenActive`, `buildMenu`, and `appendMessages` in `src/domain/`.
     - _Requirements: 1.1, 1.5, 4.1, 4.2, 5.4, 5.5, 6.1–6.3_
   - [x]* 4.2 Write property test for frame scale (Property 1).
     - **Property 1: Frame scale is the largest integer that fits**
@@ -33,10 +32,10 @@
   - [x]* 4.3 Write property test for Kiroween resolution (Property 2).
     - **Property 2: Kiroween resolution**
     - **Validates: Requirements 6.1, 6.2, 6.3**
-  - [ ]* 4.4 Write property test for context menu shape (Property 3).
+  - [x]* 4.4 Write property test for context menu shape (Property 3).
     - **Property 3: Context menu shape**
     - **Validates: Requirements 4.1, 4.2**
-  - [ ]* 4.5 Write property test for chat log append (Property 4).
+  - [x]* 4.5 Write property test for chat log append (Property 4).
     - **Property 4: Chat log append**
     - **Validates: Requirements 5.4, 5.5**
 

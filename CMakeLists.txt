@@ -20,6 +20,7 @@ set(AS_GITHUB_CLIENT_ID "" CACHE STRING "Public GitHub OAuth App client ID (devi
 list(APPEND CMAKE_MODULE_PATH ${CMAKE_CURRENT_SOURCE_DIR}/cmake)
 include(Warnings)
 include(Dependencies)
+include(EmbedFiles)
 
 # ---------------------------------------------------------------------------
 # as_domain: pure C++20 (no SDL, ImGui, SQLite, I/O). as_core: Result, errors.
@@ -29,12 +30,35 @@ target_include_directories(as_core INTERFACE src)
 target_link_libraries(as_core INTERFACE tl::expected)
 
 add_library(as_domain STATIC
+  src/domain/chat_log.cpp
+  src/domain/context_menu.cpp
   src/domain/frame.cpp
   src/domain/kiroween.cpp)
 target_include_directories(as_domain PUBLIC src)
 target_link_libraries(as_domain PUBLIC as_core nlohmann_json::nlohmann_json)
 as_enable_warnings(as_domain)
 as_enable_sanitizers(as_domain)
+
+# ---------------------------------------------------------------------------
+# as_db: SQLite RAII layer + embedded migrations. as_app_core: EventBus, ScreenStack (SDL-free).
+# ---------------------------------------------------------------------------
+as_embed_migrations(AS_EMBEDDED_MIGRATIONS)
+add_library(as_db STATIC
+  src/db/database.cpp
+  src/db/migrations.cpp
+  ${AS_EMBEDDED_MIGRATIONS})
+target_include_directories(as_db PUBLIC src)
+target_link_libraries(as_db PUBLIC as_core SQLiteLib::SQLite3)
+as_enable_warnings(as_db)
+as_enable_sanitizers(as_db)
+
+add_library(as_app_core STATIC
+  src/app/event_bus.cpp
+  src/app/screen_stack.cpp)
+target_include_directories(as_app_core PUBLIC src)
+target_link_libraries(as_app_core PUBLIC as_domain)
+as_enable_warnings(as_app_core)
+as_enable_sanitizers(as_app_core)
 
 # ---------------------------------------------------------------------------
 # Application
@@ -46,7 +70,7 @@ if(AS_BUILD_APP)
     src/render/game_frame.cpp)
   target_include_directories(agentscape PRIVATE src)
   target_link_libraries(agentscape PRIVATE
-    as_domain imgui SDL3::SDL3 SDL3_image::SDL3_image SQLiteLib::SQLite3)
+    as_app_core as_db as_domain imgui SDL3::SDL3 SDL3_image::SDL3_image)
   target_compile_definitions(agentscape PRIVATE
     AS_KIROWEEN_DEFAULT="${AS_KIROWEEN_DEFAULT}"
     AS_GITHUB_CLIENT_ID="${AS_GITHUB_CLIENT_ID}")
@@ -70,8 +94,12 @@ if(AS_BUILD_TESTS)
   enable_testing()
   include(Catch)
 
-  add_executable(unit_tests tests/unit/core_test.cpp)
-  target_link_libraries(unit_tests PRIVATE as_domain Catch2::Catch2WithMain)
+  add_executable(unit_tests
+    tests/unit/core_test.cpp
+    tests/unit/event_bus_test.cpp
+    tests/unit/regressions_game_shell.cpp
+    tests/unit/screen_stack_test.cpp)
+  target_link_libraries(unit_tests PRIVATE as_app_core as_domain Catch2::Catch2WithMain)
   as_enable_warnings(unit_tests)
   as_enable_sanitizers(unit_tests)
   catch_discover_tests(unit_tests PROPERTIES LABELS "unit")
@@ -83,7 +111,13 @@ if(AS_BUILD_TESTS)
   as_enable_sanitizers(property_tests)
   catch_discover_tests(property_tests PROPERTIES LABELS "property" ENVIRONMENT "RC_PARAMS=max_success=200")
 
-  # integration_tests and smoke_test are added with the db layer and the app (tasks 3 and 11).
+  add_executable(integration_tests tests/integration/db_test.cpp)
+  target_link_libraries(integration_tests PRIVATE as_db Catch2::Catch2WithMain)
+  as_enable_warnings(integration_tests)
+  as_enable_sanitizers(integration_tests)
+  catch_discover_tests(integration_tests PROPERTIES LABELS "integration")
+
+  # smoke_test (headless demo path) is added with the login and world screens (task 11).
 endif()
 
 # ---------------------------------------------------------------------------
