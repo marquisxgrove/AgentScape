@@ -1,16 +1,16 @@
 # Implementation Plan: Game Shell
 
-- [ ] 1. Scaffold the project
+- [x] 1. Scaffold the project
   - Create `CMakeLists.txt`, `CMakePresets.json` (`dev`, `release`, `asan`, `web`), `cmake/Dependencies.cmake` with pinned `FetchContent` dependencies, `cmake/Warnings.cmake`, `.clang-format`, and `.clang-tidy`.
   - Add the `agentscape` app target, the `property_tests`, `unit_tests`, `integration_tests`, and `smoke_test` targets with CTest labels, and the `format` and `tidy` targets.
   - Add `.gitignore` (must NOT ignore `.kiro/`; ignore `build/`), `web/shell.html`, and `docs/ASSETS.md`.
   - Add the GitHub Actions CI: a desktop matrix (Windows MSVC, macOS Clang, Linux GCC), `asan` on Linux, and a `web` build.
   - _Requirements: all (foundation)_
 
-- [ ] 2. Build the app skeleton
-  - [ ] 2.1 Implement `main.cpp` with SDL3 main callbacks, `app::App`, `app::Config`, the SDL window and renderer (software fallback), and ImGui with the SDL3 and SDL_Renderer backends.
+- [ ] 2. Build the app skeleton (2.3 EventBus/ScreenStack remaining)
+  - [x] 2.1 Implement `main.cpp` with SDL3 main callbacks, `app::App`, `app::Config`, the SDL window and renderer (software fallback), and ImGui with the SDL3 and SDL_Renderer backends.
     - _Requirements: 1.2, 6.1_
-  - [ ] 2.2 Implement `render::GameFrame`: the 765×503 target texture, integer-scaled present with letterbox, and pointer-coordinate conversion.
+  - [x] 2.2 Implement `render::GameFrame`: the 765×503 target texture, integer-scaled present with letterbox, and pointer-coordinate conversion.
     - _Requirements: 1.1–1.5_
   - [ ] 2.3 Implement `app::EventBus` and `app::ScreenStack`.
     - _Requirements: 5.4_
@@ -25,11 +25,12 @@
 
 - [ ] 4. Implement shell domain logic
   - [ ] 4.1 Implement `computeFrameScale`, `layoutFrame`, `toFramePoint`, `parseKiroweenSetting`, `resolveKiroweenSetting`, `isKiroweenActive`, `buildMenu`, and `appendMessages` in `src/domain/`.
+    - _Progress: `frame` and `kiroween` done; `context_menu` and `chat_log` remaining._
     - _Requirements: 1.1, 1.5, 4.1, 4.2, 5.4, 5.5, 6.1–6.3_
-  - [ ]* 4.2 Write property test for frame scale (Property 1).
+  - [x]* 4.2 Write property test for frame scale (Property 1).
     - **Property 1: Frame scale is the largest integer that fits**
     - **Validates: Requirement 1.1**
-  - [ ]* 4.3 Write property test for Kiroween resolution (Property 2).
+  - [x]* 4.3 Write property test for Kiroween resolution (Property 2).
     - **Property 2: Kiroween resolution**
     - **Validates: Requirements 6.1, 6.2, 6.3**
   - [ ]* 4.4 Write property test for context menu shape (Property 3).

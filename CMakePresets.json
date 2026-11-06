@@ -1,0 +1,77 @@
+{
+  "version": 3,
+  "cmakeMinimumRequired": { "major": 3, "minor": 22, "patch": 0 },
+  "configurePresets": [
+    {
+      "name": "base",
+      "hidden": true,
+      "generator": "Ninja",
+      "binaryDir": "${sourceDir}/build/${presetName}",
+      "cacheVariables": { "CMAKE_EXPORT_COMPILE_COMMANDS": "ON" }
+    },
+    {
+      "name": "dev",
+      "displayName": "Debug (desktop)",
+      "inherits": "base",
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Debug",
+        "AS_ENABLE_DEV_SCREENS": "ON"
+      }
+    },
+    {
+      "name": "release",
+      "displayName": "Release (desktop)",
+      "inherits": "base",
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Release",
+        "AS_ENABLE_DEV_SCREENS": "OFF"
+      }
+    },
+    {
+      "name": "asan",
+      "displayName": "Debug + AddressSanitizer/UBSan",
+      "inherits": "dev",
+      "cacheVariables": { "AS_SANITIZE": "ON" }
+    },
+    {
+      "name": "tests-only",
+      "displayName": "Domain/core tests only (no SDL, no window)",
+      "inherits": "dev",
+      "cacheVariables": { "AS_BUILD_APP": "OFF" }
+    },
+    {
+      "name": "web",
+      "displayName": "WebAssembly (Emscripten)",
+      "inherits": "base",
+      "toolchainFile": "$env{EMSDK}/upstream/emscripten/cmake/Modules/Platform/Emscripten.cmake",
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Release",
+        "AS_BUILD_TESTS": "OFF"
+      }
+    }
+  ],
+  "buildPresets": [
+    { "name": "dev", "configurePreset": "dev" },
+    { "name": "release", "configurePreset": "release" },
+    { "name": "asan", "configurePreset": "asan" },
+    { "name": "tests-only", "configurePreset": "tests-only" },
+    { "name": "web", "configurePreset": "web" }
+  ],
+  "testPresets": [
+    {
+      "name": "dev",
+      "configurePreset": "dev",
+      "output": { "outputOnFailure": true }
+    },
+    {
+      "name": "asan",
+      "configurePreset": "asan",
+      "output": { "outputOnFailure": true }
+    },
+    {
+      "name": "tests-only",
+      "configurePreset": "tests-only",
+      "output": { "outputOnFailure": true }
+    }
+  ]
+}
