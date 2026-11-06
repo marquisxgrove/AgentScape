@@ -23,6 +23,10 @@ void drawSpans(ImDrawList* dl, ImVec2 pos, const std::vector<TextSpan>& spans);
 // hoverMarkup, if given, becomes the frame's hover text while the button is hovered.
 bool PixelButton(const char* label, ImVec2 size = {0, 0}, std::string_view hoverMarkup = {});
 
+// Retro check box with a shadowed label. Flips *value and returns true when activated (mouse,
+// keyboard or gamepad). hoverMarkup becomes the frame's hover text while hovered.
+bool Toggle(const char* label, bool* value, std::string_view hoverMarkup = {});
+
 enum class PanelVariant { Stone, Parchment };
 
 // RAII panel: draws the 9-slice and an orange shadowed title, then opens a padded, clipped child

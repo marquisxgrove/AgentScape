@@ -12,10 +12,13 @@
 #include <string_view>
 #include <vector>
 
+#include "platform/accessibility.hpp"
 #include "platform/paths.hpp"
 #include "platform/web_url.hpp"
-#include "screens/login/title_screen.hpp"
+#include "screens/login/login_screen.hpp"
+#include "screens/world/world_screen.hpp"
 #include "ui/layout.hpp"
+#include "ui/tab_panel.hpp"
 #include "ui/theme.hpp"
 #include "ui/widgets.hpp"
 #ifdef AS_ENABLE_DEV_SCREENS
@@ -110,7 +113,6 @@ bool App::init() {
   textures_ = std::make_unique<render::TextureCache>(renderer_);
   ui_.skin = ui::loadSkin(*textures_, assets / "ui");
 
-  registerScreens();
   updateData();  // desktop opens the store immediately; the web waits for IndexedDB
   return true;
 }
@@ -164,7 +166,33 @@ void App::openStore(bool resetData) {
   if (store_->seeded) SDL_Log("Seeded community snapshot: %d NPC adventurers", store_->seeded->npcsUpserted);
   SDL_Log("Local store ready: %s (schema %d)", savePath_.c_str(), store_->schemaVersion);
   persistence_.requestFlush();  // migrations/seed on a new web save
+  services_.emplace(Services{services::ProfileService{store_->db, clock_, rng_}});
+  onStoreReady();
   dataState_ = DataState::Ready;
+}
+
+void App::onStoreReady() {
+  if (auto removed = services_->profile.cleanupGuests(); removed && *removed > 0) {
+    SDL_Log("Removed %d stale Guest profile(s)", *removed);
+  }
+  registerScreens();
+  signInRemembered();  // Req 2.1: auto sign-in a remembered (non-Guest) user
+}
+
+void App::signInRemembered() {
+  auto remembered = services_->profile.rememberedUser();
+  if (!remembered || !*remembered) return;
+  auto user = services_->profile.signIn((*remembered)->id);
+  if (!user) return;
+  currentUserId_ = user->id;
+  applySettings(user->settings);
+  screens_.navigate(ScreenId::World);
+  SDL_Log("Signed in remembered user %s", user->name.c_str());
+}
+
+void App::applySettings(const domain::Settings& settings) {
+  settings_ = settings;
+  ui_.plainFont = settings.plainFont;
 }
 
 SDL_AppResult App::handleEvent(SDL_Event& event) {
@@ -192,7 +220,8 @@ SDL_AppResult App::handleEvent(SDL_Event& event) {
 }
 
 void App::registerScreens() {
-  screens_.registerScreen(ScreenId::Login, [] { return std::make_unique<screens::TitleScreen>(); });
+  screens_.registerScreen(ScreenId::Login, [] { return std::make_unique<screens::LoginScreen>(); });
+  screens_.registerScreen(ScreenId::World, [] { return std::make_unique<screens::WorldScreen>(); });
 #ifdef AS_ENABLE_DEV_SCREENS
   screens_.registerScreen(ScreenId::DevGallery, [] { return std::make_unique<screens::UiGalleryScreen>(); });
 #endif
@@ -235,7 +264,17 @@ void App::drawShell() {
   FrameCtx ctx;
   ctx.dt = static_cast<double>(ImGui::GetIO().DeltaTime);
   ctx.kiroween = kiroween_;
+  ctx.reduceMotion = settings_.reduceMotion;
+  ctx.services = services_ ? &*services_ : nullptr;
+  ctx.nav = &screens_;
+  ctx.reduceMotionDefault = platform::prefersReducedMotion();
+  ctx.onSignedIn = [this](const std::string& userId, bool remember) {
+    currentUserId_ = userId;
+    if (auto user = services_->profile.getUser(userId)) applySettings(user->settings);
+    if (remember) services_->profile.rememberUser(userId);
+  };
 
+  const ScreenId before = screens_.currentId().value_or(ScreenId::Login);
   if (beginRegion("##viewport", ui::VIEWPORT)) {
     if (Screen* screen = screens_.current()) {
       screen->update(ctx);
@@ -244,10 +283,28 @@ void App::drawShell() {
   }
   ImGui::End();
 
+  // The Tab_Panel (Settings) is shown only once a user is signed in (i.e. not on the login screen).
   if (beginRegion("##tabpanel", ui::TAB_PANEL)) {
-    ui::StonePanel panel{"##tabs", "Settings"};
-    ui::ShadowText("The tab panel arrives", ui::PaletteColor::Parchment);
-    ui::ShadowText("with game-shell task 6.", ui::PaletteColor::Parchment);
+    if (before != ScreenId::Login && currentUserId_) {
+      const auto result = ui::drawTabPanel(settings_);
+      if (result.settingsChanged) {
+        applySettings(result.settings);
+        if (services_) {
+          if (auto saved = services_->profile.updateSettings(*currentUserId_, result.settings); !saved) {
+            logError("Save settings", saved.error());
+          }
+        }
+      }
+      if (result.logOut) {
+        services_->profile.forgetRemembered();
+        currentUserId_.reset();
+        applySettings(domain::Settings{});
+        screens_.navigate(ScreenId::Login);
+      }
+    } else {
+      ui::StonePanel panel{"##tabs", "AgentScape"};
+      ui::ShadowText("Sign in to begin.", ui::PaletteColor::Parchment);
+    }
   }
   ImGui::End();
 
