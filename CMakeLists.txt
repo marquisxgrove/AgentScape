@@ -68,6 +68,13 @@ target_link_libraries(as_platform_core PUBLIC as_core)
 as_enable_warnings(as_platform_core)
 as_enable_sanitizers(as_platform_core)
 
+# Pure UI logic (palette, markup parser): no ImGui, unit-testable.
+add_library(as_ui_core STATIC
+  src/ui/markup.cpp)
+target_include_directories(as_ui_core PUBLIC src)
+as_enable_warnings(as_ui_core)
+as_enable_sanitizers(as_ui_core)
+
 add_library(as_app_core STATIC
   src/app/config.cpp
   src/app/event_bus.cpp
@@ -88,10 +95,25 @@ if(AS_BUILD_APP)
     src/platform/paths_sdl.cpp
     src/platform/persist.cpp
     src/platform/web_url.cpp
-    src/render/game_frame.cpp)
+    src/render/game_frame.cpp
+    src/render/nine_slice.cpp
+    src/render/texture_cache.cpp
+    src/screens/login/title_screen.cpp
+    src/ui/theme.cpp
+    src/ui/ui_context.cpp
+    src/ui/widgets.cpp)
+  if(AS_ENABLE_DEV_SCREENS)
+    target_sources(agentscape PRIVATE src/screens/dev/ui_gallery_screen.cpp)
+  endif()
+  # Assets ship next to the binary (desktop) or inside the .data file (web).
+  if(NOT EMSCRIPTEN)
+    add_custom_command(TARGET agentscape POST_BUILD
+      COMMAND ${CMAKE_COMMAND} -E copy_directory ${CMAKE_SOURCE_DIR}/assets $<TARGET_FILE_DIR:agentscape>/assets
+      VERBATIM)
+  endif()
   target_include_directories(agentscape PRIVATE src)
   target_link_libraries(agentscape PRIVATE
-    as_app_core as_db as_domain imgui SDL3::SDL3 SDL3_image::SDL3_image)
+    as_app_core as_ui_core as_db as_domain imgui SDL3::SDL3 SDL3_image::SDL3_image)
   target_compile_definitions(agentscape PRIVATE
     AS_KIROWEEN_DEFAULT="${AS_KIROWEEN_DEFAULT}"
     AS_GITHUB_CLIENT_ID="${AS_GITHUB_CLIENT_ID}")
@@ -104,6 +126,7 @@ if(AS_BUILD_APP)
     set_target_properties(agentscape PROPERTIES SUFFIX ".html")
     target_link_options(agentscape PRIVATE
       --shell-file=${CMAKE_SOURCE_DIR}/web/shell.html
+      --preload-file ${CMAKE_SOURCE_DIR}/assets@/assets
       -sALLOW_MEMORY_GROWTH=1 -lidbfs.js)
   endif()
 endif()
@@ -121,9 +144,10 @@ if(AS_BUILD_TESTS)
     tests/unit/core_test.cpp
     tests/unit/event_bus_test.cpp
     tests/unit/flush_scheduler_test.cpp
+    tests/unit/markup_test.cpp
     tests/unit/regressions_game_shell.cpp
     tests/unit/screen_stack_test.cpp)
-  target_link_libraries(unit_tests PRIVATE as_app_core as_platform_core as_domain Catch2::Catch2WithMain)
+  target_link_libraries(unit_tests PRIVATE as_app_core as_platform_core as_ui_core as_domain Catch2::Catch2WithMain)
   as_enable_warnings(unit_tests)
   as_enable_sanitizers(unit_tests)
   catch_discover_tests(unit_tests PROPERTIES LABELS "unit")

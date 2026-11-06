@@ -17,6 +17,8 @@ struct Config {
   bool reseed = false;                              // --reseed
   bool resetData = false;                           // --reset-data
   bool headlessSmoke = false;                       // --smoke: run a few frames and quit (CI)
+  std::optional<std::string> startScreen;           // --screen=<name> (dev builds: "ui-gallery")
+  std::optional<std::string> snapshotPath;          // --snapshot=<file.png>: save the frame, implies --smoke
   std::vector<std::string> warnings;                // unknown/invalid arguments, logged at startup
 };
 
