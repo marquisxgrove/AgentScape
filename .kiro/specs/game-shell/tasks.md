@@ -15,13 +15,15 @@
   - [x] 2.3 Implement `app::EventBus` and `app::ScreenStack`.
     - _Requirements: 5.4_
 
-- [ ] 3. Set up local data
+- [x] 3. Set up local data
   - [x] 3.1 Implement `db::Database`, `Statement`, and `Transaction` (RAII), the embedded migration runner using `PRAGMA user_version`, and `0001_init.sql` (`user`, `app_state`, `activity_event`).
     - _Requirements: 8.1, 8.2_
-  - [ ] 3.2 Implement `platform::paths` and `platform::persist` (IDBFS mount, load-before-open, debounced flush, `pagehide`).
+  - [x] 3.2 Implement `platform::paths` and `platform::persist` (IDBFS mount, load-before-open, debounced flush, `pagehide`).
     - _Requirements: 8.1, 8.3, 8.4_
-  - [ ] 3.3 Write an idempotent seed loader skeleton for `data/seed/*.json` and the `--reseed` and `--reset-data` flags.
+    - _Note: the IDBFS path is compiled only under Emscripten and is verified at the task 11 checkpoint (web build + reload)._
+  - [x] 3.3 Write an idempotent seed loader skeleton for `data/seed/*.json` and the `--reseed` and `--reset-data` flags.
     - _Requirements: 8.1_
+    - _Seed rows use stable `seed:<kind>:<slug>` ids (never valid ULIDs, so they can't collide with player rows). Bump `db::SEED_VERSION` when `data/seed/` changes. agent-codex and quest-logs add their files to `KNOWN_FILES` in `src/db/seed_loader.cpp`._
 
 - [x] 4. Implement shell domain logic
   - [x] 4.1 Implement `computeFrameScale`, `layoutFrame`, `toFramePoint`, `parseKiroweenSetting`, `resolveKiroweenSetting`, `isKiroweenActive`, `buildMenu`, and `appendMessages` in `src/domain/`.

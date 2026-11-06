@@ -4,37 +4,41 @@
 
 #include <memory>
 #include <optional>
+#include <string>
 
-#include "domain/kiroween.hpp"
+#include "app/config.hpp"
+#include "app/local_store.hpp"
+#include "platform/persist.hpp"
 #include "render/game_frame.hpp"
 
 namespace as::app {
 
-struct Config {
-  std::optional<domain::KiroweenSetting> kiroween;  // resolved CLI > env > URL > build default
-  bool reseed = false;
-  bool resetData = false;
-  bool headlessSmoke = false;  // --smoke: run a few frames and quit (used by CI)
-};
+// Builds the Config from argv, the process environment and (web) the URL query.
+Config configFromProcess(int argc, char** argv);
 
-// Parses argv and the environment. The web URL query is read via platform code later.
-Config parseConfig(int argc, char** argv);
-
-// The only class main.cpp touches. Owns the window, renderer, ImGui context and frame.
+// The only class main.cpp touches. Owns the window, renderer, ImGui context, frame and Local_Store.
 class App {
  public:
   static std::unique_ptr<App> create(const Config& config);
   ~App();
   App(const App&) = delete;
   App& operator=(const App&) = delete;
+  App(App&&) = delete;
+  App& operator=(App&&) = delete;
 
   SDL_AppResult handleEvent(SDL_Event& event);
   SDL_AppResult iterate();
 
  private:
-  explicit App(const Config& config) : config_(config) {}
+  enum class DataState { WaitingForStorage, Ready, LoadFailed };
+
+  explicit App(Config config) : config_(std::move(config)) {}
   bool init();
+  void updateData();
+  void openStore(bool resetData);
   void drawShell();
+  void drawLoading();
+  void drawLoadFailed();
 
   Config config_;
   SDL_Window* window_ = nullptr;
@@ -42,6 +46,14 @@ class App {
   std::unique_ptr<render::GameFrame> frame_;
   bool kiroween_ = false;
   int framesRendered_ = 0;
+  bool quitRequested_ = false;
+
+  platform::Persistence persistence_;
+  DataState dataState_ = DataState::WaitingForStorage;
+  std::optional<OpenedStore> store_;
+  std::optional<LocalStoreError> loadError_;
+  bool inMemoryOnly_ = false;  // web without IndexedDB: progress won't survive a reload
+  std::string savePath_;
 };
 
 }  // namespace as::app

@@ -29,8 +29,9 @@ Result<Database> Database::open(const std::string& path, JournalMode journal) {
   sqlite3* raw = nullptr;
   const int flags = SQLITE_OPEN_READWRITE | SQLITE_OPEN_CREATE | SQLITE_OPEN_URI;
   if (sqlite3_open_v2(path.c_str(), &raw, flags, nullptr) != SQLITE_OK) {
+    std::string detail = "open " + path + ": " + (raw != nullptr ? sqlite3_errmsg(raw) : "out of memory");
     if (raw != nullptr) sqlite3_close(raw);
-    return makeError(GameErrorCode::StorageFailed, "Your save could not be loaded.");
+    return makeError(GameErrorCode::StorageFailed, "Your save could not be loaded.", std::move(detail));
   }
   Database db{raw};
   try {
@@ -39,18 +40,20 @@ Result<Database> Database::open(const std::string& path, JournalMode journal) {
       db.exec(journal == JournalMode::Wal ? "PRAGMA journal_mode = WAL;" : "PRAGMA journal_mode = DELETE;");
     }
     sqlite3_busy_timeout(raw, 2000);
-  } catch (const DbError&) {
-    return makeError(GameErrorCode::StorageFailed, "Your save could not be loaded.");
+  } catch (const DbError& e) {
+    return makeError(GameErrorCode::StorageFailed, "Your save could not be loaded.", e.what());
   }
   return db;
 }
 
-Database::Database(Database&& other) noexcept : db_(std::exchange(other.db_, nullptr)) {}
+Database::Database(Database&& other) noexcept
+    : db_(std::exchange(other.db_, nullptr)), afterCommit_(std::move(other.afterCommit_)) {}
 
 Database& Database::operator=(Database&& other) noexcept {
   if (this != &other) {
     if (db_ != nullptr) sqlite3_close_v2(db_);
     db_ = std::exchange(other.db_, nullptr);
+    afterCommit_ = std::move(other.afterCommit_);
   }
   return *this;
 }
@@ -188,6 +191,7 @@ Transaction::~Transaction() {
 void Transaction::commit() {
   db_.exec("COMMIT;");
   done_ = true;
+  db_.notifyCommitted();
 }
 
 }  // namespace as::db

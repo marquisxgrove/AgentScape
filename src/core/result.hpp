@@ -17,13 +17,14 @@ enum class GameErrorCode {
 struct GameError {
   GameErrorCode code = GameErrorCode::Internal;
   std::string message;  // game-voice text, safe to show the player
+  std::string detail;   // technical cause for SDL_Log only; never shown to the player
 };
 
 template <typename T, typename E = GameError>
 using Result = tl::expected<T, E>;
 
-inline tl::unexpected<GameError> makeError(GameErrorCode code, std::string message) {
-  return tl::unexpected<GameError>(GameError{code, std::move(message)});
+inline tl::unexpected<GameError> makeError(GameErrorCode code, std::string message, std::string detail = {}) {
+  return tl::unexpected<GameError>(GameError{code, std::move(message), std::move(detail)});
 }
 
 }  // namespace as

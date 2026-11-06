@@ -13,7 +13,7 @@ SDL_AppResult SDL_AppInit(void** appstate, int argc, char** argv) {
     SDL_Log("SDL_Init failed: %s", SDL_GetError());
     return SDL_APP_FAILURE;
   }
-  auto app = as::app::App::create(as::app::parseConfig(argc, argv));
+  auto app = as::app::App::create(as::app::configFromProcess(argc, argv));
   if (!app) {
     return SDL_APP_FAILURE;
   }
