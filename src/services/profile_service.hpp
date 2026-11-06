@@ -38,6 +38,10 @@ class ProfileService {
   // that spec's migration, and this is the single place to add it.
   Result<User> createGuest(const domain::Settings& defaults = {});
 
+  // Signs in the PLAYER linked to this GitHub id, creating one on first use. Updates the stored
+  // login/name on every sign-in. The caller has already discarded the access token.
+  Result<User> signInGitHub(std::int64_t githubId, const std::string& login, const std::string& displayName);
+
   Result<User> getUser(const std::string& id);
   // Marks the user as active now (keeps Guests from being cleaned up) and returns the fresh row.
   Result<User> signIn(const std::string& id);

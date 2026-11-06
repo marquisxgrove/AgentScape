@@ -72,6 +72,46 @@ Result<User> ProfileService::createGuest(const domain::Settings& defaults) {
   });
 }
 
+Result<User> ProfileService::signInGitHub(std::int64_t githubId, const std::string& login,
+                                          const std::string& displayName) {
+  return db::guarded([&]() -> std::optional<User> {
+           const auto now = clock_.now();
+           const std::string stamp = core::formatIso8601(now);
+
+           db::Transaction tx{db_};
+           auto existing = db_.prepare("SELECT id FROM user WHERE github_id = ?");
+           existing.bind(1, githubId);
+           std::string id;
+           if (existing.step()) {
+             id = existing.columnText(0);
+             db_.prepare("UPDATE user SET name = ?, github_login = ?, last_seen_at = ? WHERE id = ?")
+                 .bind(1, displayName)
+                 .bind(2, login)
+                 .bind(3, stamp)
+                 .bind(4, id)
+                 .run();
+           } else {
+             id = core::newUlid(now, rng_);
+             db_.prepare(
+                    "INSERT INTO user(id, name, kind, role, github_id, github_login, settings, created_at, "
+                    "last_seen_at) VALUES (?, ?, 'PLAYER', 'USER', ?, ?, '{}', ?, ?)")
+                 .bind(1, id)
+                 .bind(2, displayName)
+                 .bind(3, githubId)
+                 .bind(4, login)
+                 .bind(5, stamp)
+                 .bind(6, stamp)
+                 .run();
+           }
+           tx.commit();
+           return findUser(db_, id);
+         })
+      .and_then([](std::optional<User> u) -> Result<User> {
+        if (!u) return notFound();
+        return *u;
+      });
+}
+
 Result<User> ProfileService::getUser(const std::string& id) {
   auto found = db::guarded([&] { return findUser(db_, id); });
   if (!found) return tl::unexpected(found.error());

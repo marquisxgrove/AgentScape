@@ -104,6 +104,22 @@ if(AS_BUILD_APP)
     GIT_SHALLOW    TRUE)
   FetchContent_MakeAvailable(SDL3 SDL3_image imgui)
 
+  # libcurl is needed only for the optional desktop GitHub device-flow login. Fetch it only when a
+  # client id is configured, so the default build (and restricted CI) stays curl-free.
+  if(AS_GITHUB_CLIENT_ID AND NOT EMSCRIPTEN)
+    set(BUILD_CURL_EXE OFF CACHE BOOL "" FORCE)
+    set(CURL_DISABLE_TESTS ON CACHE BOOL "" FORCE)
+    set(CURL_USE_LIBPSL OFF CACHE BOOL "" FORCE)
+    set(CURL_ENABLE_EXPORT_TARGET OFF CACHE BOOL "" FORCE)
+    FetchContent_Declare(curl
+      GIT_REPOSITORY https://github.com/curl/curl.git
+      GIT_TAG        curl-8_10_1
+      GIT_SHALLOW    TRUE)
+    FetchContent_MakeAvailable(curl)
+    # Dependencies.cmake is include()d, so this lands in the same scope as CMakeLists.txt (no PARENT_SCOPE).
+    set(AS_HAVE_CURL ON)
+  endif()
+
   add_library(imgui STATIC
     ${imgui_SOURCE_DIR}/imgui.cpp
     ${imgui_SOURCE_DIR}/imgui_demo.cpp

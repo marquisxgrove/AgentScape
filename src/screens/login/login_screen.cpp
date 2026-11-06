@@ -8,6 +8,14 @@
 
 namespace as::screens {
 
+LoginScreen::LoginScreen() : github_(std::make_unique<platform::GitHubDeviceFlow>()) {}
+LoginScreen::~LoginScreen() = default;
+
+void LoginScreen::onExit() {
+  if (githubActive_) github_->cancel();  // never leave a worker polling after we leave the screen
+  githubActive_ = false;
+}
+
 void LoginScreen::onEnter(const app::ScreenParams& params) {
   loaded_ = false;
   const auto it = params.find("error");
@@ -36,8 +44,74 @@ void LoginScreen::draw(app::FrameCtx& ctx) {
   if (!loaded_) refreshUsers(ctx);
 
   ui::StonePanel panel{"##login", "Welcome to AgentScape"};
+  if (githubActive_) {
+    drawGitHubFlow(ctx);
+  } else {
+    drawChoices(ctx);
+  }
+}
+
+void LoginScreen::drawGitHubFlow(app::FrameCtx& ctx) {
+  const auto snap = github_->poll();
+  using platform::DeviceFlowState;
+
+  switch (snap.state) {
+    case DeviceFlowState::Idle:
+    case DeviceFlowState::RequestingCode:
+      ui::ShadowText("Contacting GitHub...", ui::PaletteColor::Parchment);
+      break;
+    case DeviceFlowState::AwaitingUser:
+    case DeviceFlowState::Polling:
+      ui::ShadowText("Enter this code at GitHub:", ui::PaletteColor::Parchment);
+      ImGui::Spacing();
+      ui::ShadowText(snap.userCode, ui::PaletteColor::TextOrange);
+      ImGui::Spacing();
+      ui::ShadowText(snap.verificationUri, ui::PaletteColor::TextCyan);
+      ImGui::Spacing();
+      if (ui::PixelButton("Copy code", {96, 0})) ImGui::SetClipboardText(snap.userCode.c_str());
+      ImGui::SameLine();
+      if (ui::PixelButton("Open page", {96, 0})) platform::openUrl(snap.verificationUri);
+      break;
+    case DeviceFlowState::Succeeded: {
+      githubActive_ = false;
+      github_->cancel();
+      if (snap.profile) {
+        auto user = ctx.services->profile.signInGitHub(snap.profile->id, snap.profile->login, snap.profile->displayName);
+        if (user) {
+          afterSignIn(ctx, *user, /*remember=*/true);
+          return;
+        }
+        error_ = user.error().message;
+      }
+      return;
+    }
+    case DeviceFlowState::Failed:
+      error_ = snap.error;  // red game-voice text; Guest login stays available (Req 2.7)
+      githubActive_ = false;
+      github_->cancel();
+      return;
+  }
+
+  ImGui::Spacing();
+  if (ui::PixelButton("Cancel", {96, 0})) {
+    github_->cancel();
+    githubActive_ = false;
+    error_.clear();
+  }
+}
+
+void LoginScreen::drawChoices(app::FrameCtx& ctx) {
   ui::ShadowText("Choose how to enter Promptmoor.", ui::PaletteColor::Parchment);
   ImGui::Spacing();
+
+  if (platform::githubSignInAvailable()) {
+    if (ui::PixelButton("Sign in with GitHub", {160, 0},
+                        ui::hoverText("Sign in", "with GitHub", ui::PaletteColor::TextCyan, 0))) {
+      error_.clear();
+      github_->start();
+      githubActive_ = true;
+    }
+  }
 
   if (ui::PixelButton("Play as Guest", {160, 0}, ui::hoverText("Play", "as Guest", ui::PaletteColor::TextCyan, 0))) {
     domain::Settings guestDefaults;
