@@ -62,12 +62,14 @@
   - [x]* 7.3 Write unit tests for device-flow response parsing, the `slow_down` interval, expiry, and denial.
     - _Requirements: 2.4, 2.7_
 
-- [ ] 8. Build the ContextMenu and Chatbox
-  - [ ] 8.1 Implement `ContextMenuHost` and `ContextMenuModel` with pointer, long-press, `Menu`/`Shift+F10`, and gamepad opening, keyboard and gamepad navigation, and Examine → Chatbox.
+- [x] 8. Build the ContextMenu and Chatbox
+  - [x] 8.1 Implement `ContextMenuHost` and `ContextMenuModel` with pointer, long-press, `Menu`/`Shift+F10`, and gamepad opening, keyboard and gamepad navigation, and Examine → Chatbox.
     - _Requirements: 4.1–4.5_
-  - [ ] 8.2 Implement `Chatbox` with tabs, `ui::pushGameMessage`, the initial load of 20 ActivityEvents, and the `ActivityPosted` subscription.
+    - _Note: ContextMenuModel (open/navigate/confirm/cancel, wrapping, Cancel = no side effect) is pure and unit-tested; ContextMenuHost drives it from ImGui (arrows/Enter/Esc, D-pad/A/B, click, click-outside). Screens request it via `app::ContextRequest`. Touch long-press (≥500 ms) pending the World_Map input layer (task 9)._
+  - [x] 8.2 Implement `Chatbox` with tabs, `ui::pushGameMessage`, the initial load of 20 ActivityEvents, and the `ActivityPosted` subscription.
     - _Requirements: 5.1–5.6_
-  - [ ]* 8.3 Write unit tests for context menu navigation and Chatbox filtering.
+    - _Note: pure `ChatModel` (dedupe/cap-100/filter) + `Chatbox` widget subscribing to ActivityPosted and GameMessage; `ActivityService.post/latest` publishes after commit. Welcome + 20 recent Tavern events load on sign-in._
+  - [x]* 8.3 Write unit tests for context menu navigation and Chatbox filtering.
     - _Requirements: 4.5, 5.2_
 
 - [ ] 9. Build the Promptmoor world map

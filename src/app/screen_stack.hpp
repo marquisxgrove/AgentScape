@@ -24,6 +24,7 @@ struct FrameCtx {
   bool reduceMotion = false;
   struct Services* services = nullptr;
   ScreenStack* nav = nullptr;
+  struct ContextRequest* contextRequest = nullptr;  // a screen fills this to open a context menu
 
   // Default "Reduce motion" for a NEW guest (web: the browser preference). Desktop: false.
   bool reduceMotionDefault = false;
