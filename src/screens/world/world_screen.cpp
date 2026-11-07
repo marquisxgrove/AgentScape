@@ -28,7 +28,7 @@ void WorldScreen::onEnter(const app::ScreenParams&) { adventurerLoaded_ = false;
 
 void WorldScreen::activate(app::FrameCtx& ctx, const game::Hotspot& h) {
   // Screens that exist open; the rest are narrated until their own specs land.
-  if ((h.screen == app::ScreenId::Costumer || h.screen == app::ScreenId::Codex) && ctx.nav != nullptr) {
+  if ((h.screen == app::ScreenId::Costumer || h.screen == app::ScreenId::Codex || h.screen == app::ScreenId::Graveyard) && ctx.nav != nullptr) {
     ctx.nav->navigate(h.screen);
     return;
   }

@@ -8,6 +8,7 @@
 #include "db/migrations.hpp"
 #include "db/seed_loader.hpp"
 #include "services/codex_cache.hpp"
+#include "domain/voting.hpp"
 #include "services/codex_service.hpp"
 
 using namespace as;
@@ -237,4 +238,46 @@ TEST_CASE("the list refreshes after a rating event, and not before", "[integrati
   REQUIRE(it != after->rows.end());
   CHECK(it->levels.overallCount == before.levels.overallCount + 300);
   CHECK(*it->levels.overall < *before.levels.overall);
+}
+
+TEST_CASE("the graveyard holds the top visible Banes of approved Agents", "[integration][codex-service][graveyard]") {
+  Fixture f;
+  const auto stones = f.svc.tombstones();
+  REQUIRE(stones.has_value());
+  REQUIRE_FALSE(stones->empty());
+  CHECK(stones->size() <= 13);
+  for (const auto& t : *stones) {
+    CHECK(t.agree + t.disagree >= 3);
+    CHECK_FALSE(t.text.empty());
+    CHECK_FALSE(t.agentName.empty());
+    CHECK(f.scalar("SELECT COUNT(*) FROM note WHERE id = '" + t.noteId + "' AND kind = 'BANE' AND hidden = 0") == 1);
+  }
+  // Best first: the first stone is at least as well supported as the last.
+  const auto score = [](const Tombstone& t) { return domain::wilsonLowerBound(t.agree, t.disagree); };
+  for (std::size_t i = 0; i + 1 < stones->size(); ++i) CHECK(score((*stones)[i]) >= score((*stones)[i + 1]));
+}
+
+TEST_CASE("hiding a Bane, or losing its Agent, takes its tombstone away", "[integration][codex-service][graveyard]") {
+  Fixture f;
+  const auto before = f.svc.tombstones();
+  REQUIRE(before.has_value());
+  const auto first = before->front();
+  f.db.exec("UPDATE note SET hidden = 1 WHERE id = '" + first.noteId + "'");
+  auto after = f.svc.tombstones();
+  CHECK(std::none_of(after->begin(), after->end(), [&](const Tombstone& t) { return t.noteId == first.noteId; }));
+
+  const auto second = after->front();
+  f.db.exec("UPDATE agent SET status = 'REJECTED' WHERE slug = '" + second.agentSlug + "'");
+  after = f.svc.tombstones();
+  CHECK(std::none_of(after->begin(), after->end(), [&](const Tombstone& t) { return t.agentSlug == second.agentSlug; }));
+}
+
+TEST_CASE("a Bane under three votes has no tombstone, and a Boon never does", "[integration][codex-service][graveyard]") {
+  Fixture f;
+  f.db.exec("INSERT INTO user(id, name, kind, created_at, last_seen_at) VALUES ('u1', 'u1', 'PLAYER', 't', 't')");
+  f.db.exec("INSERT INTO note(id, agent_id, author_id, kind, text, agree, disagree, hidden, created_at) VALUES "
+            "('few', 'seed:agent:quillback', 'u1', 'BANE', 'Two votes only here.', 2, 0, 0, 't'), "
+            "('boon', 'seed:agent:quillback', 'u1', 'BOON', 'Lots of votes for a Boon.', 500, 0, 0, 't')");
+  const auto stones = f.svc.tombstones();
+  CHECK(std::none_of(stones->begin(), stones->end(), [](const Tombstone& t) { return t.noteId == "few" || t.noteId == "boon"; }));
 }

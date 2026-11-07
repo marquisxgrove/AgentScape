@@ -10,6 +10,7 @@
 #include "db/database.hpp"
 #include "domain/codex_query.hpp"
 #include "domain/compare.hpp"
+#include "domain/graveyard.hpp"
 #include "domain/stat_table.hpp"
 #include "services/codex_cache.hpp"
 #include "services/codex_store.hpp"
@@ -46,6 +47,17 @@ struct CodexPage {
   std::vector<std::string> vendors;    // every vendor in the Codex, for the filter (unaffected by the other filters)
 };
 
+// One grave in the Hall of Hallucinations: a top-voted Bane and the Agent it belongs to.
+struct Tombstone {
+  std::string noteId;
+  std::string agentSlug;
+  std::string agentName;
+  std::optional<std::string> skill;   // Skill storage name, e.g. "RELIABILITY"
+  std::string text;                   // plain text: the epitaph
+  std::int64_t agree = 0;
+  std::int64_t disagree = 0;
+};
+
 struct AgentCard {
   Agent agent;
   domain::AgentLevels levels;
@@ -68,6 +80,10 @@ class CodexService {
   // The card for an approved Agent, or nullopt if there is none by that slug (or it isn't approved).
   Result<std::optional<AgentCard>> card(const std::string& slug, std::optional<domain::QuestType> scope,
                                         std::size_t topNotes = 5);
+
+  // The Hall of Hallucinations (Requirement 7.1): up to domain::MAX_TOMBSTONES visible Banes of approved Agents
+  // with at least 3 votes, best Note_Score first.
+  Result<std::vector<Tombstone>> tombstones();
 
   // Every approved Agent, by name (for pickers).
   Result<std::vector<Agent>> approvedAgents();

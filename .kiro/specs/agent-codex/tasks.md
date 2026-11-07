@@ -51,7 +51,7 @@
   - Add the Proving Grounds screen with 2–3 Agent pickers, Quest_Type scope, per-row highlight (ties included), remembered selection, and "Copy" (`SDL_SetClipboardText`).
   - _Requirements: 6.1–6.4_
 
-- [ ] 8. Build the Hall of Hallucinations
+- [x] 8. Build the Hall of Hallucinations
   - Add the Graveyard screen (Kiroween only) with up to 13 tombstones from top non-hidden Banes with ≥ 3 votes, epitaphs, open-card actions, and a navigable list.
   - _Requirements: 7.1–7.4_
 
