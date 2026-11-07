@@ -59,6 +59,6 @@
   - _Requirements: 9.1, 9.2_
 
 - [ ] 9. Final checkpoint: full demo path
-  - Complete the smoke test: guest login → create Adventurer → equip Kiroween gear → Codex card → write Quest Log → "+250 XP" and level-up message → Hiscores. Save snapshots of every screen.
-  - Build the `web` preset, run the demo path manually in Chrome, Firefox, and Safari, and reload to confirm persistence.
-  - Make sure all tests pass, and ask the user if questions arise.
+  - [x] Complete the smoke test: guest login → create Adventurer → equip Kiroween gear → Codex card → write Quest Log → "+250 XP" and level-up message → Hiscores. Save snapshots of every screen. _Done as `smoke_demo_path` (`--smoke-path`): phase 1 plays the whole path and saves 9 snapshots; phase 2 is a separate process on the same database and checks the XP, level, gear, Quest Log and Hiscores row survived (the desktop analogue of a reload)._
+  - [ ] Build the `web` preset, run the demo path manually in Chrome, Firefox, and Safari, and reload to confirm persistence. _NOT DONE: needs Emscripten and real browsers, which the development sandbox does not have. Still to do by hand (see docs/SUBMISSION.md)._
+  - [x] Make sure all tests pass, and ask the user if questions arise. _All desktop tests pass; the AddressSanitizer preset could not be run in the sandbox (no sanitizer runtime), so CI is the check for that._
