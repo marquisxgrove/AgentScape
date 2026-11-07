@@ -144,7 +144,10 @@ TEST_CASE("Property 3: XP table and level", "[property][scoring][quest-logs]") {
     RC_ASSERT(level >= 1);
     RC_ASSERT(level <= MAX_QUESTING_LEVEL);
     RC_ASSERT(xpTable()[static_cast<std::size_t>(level)] <= xp);
-    RC_ASSERT(level == MAX_QUESTING_LEVEL || xp < xpTable()[static_cast<std::size_t>(level) + 1]);
+    // Evaluated outside RC_ASSERT: its expression capture overloads ||, which loses short-circuiting
+    // and would read xpTable()[100] (out of bounds) at the top level.
+    const bool belowNext = level == MAX_QUESTING_LEVEL || xp < xpTable()[static_cast<std::size_t>(level) + 1];
+    RC_ASSERT(belowNext);
   });
 }
 

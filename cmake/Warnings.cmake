@@ -5,6 +5,10 @@ function(as_enable_warnings target)
   else()
     target_compile_options(${target} PRIVATE
       -Wall -Wextra -Wpedantic -Wconversion -Wshadow -Werror)
+    if(EMSCRIPTEN)
+      # EM_JS/EM_ASM refer to their arguments as $0, $1... which -Wpedantic flags as '$' in an identifier.
+      target_compile_options(${target} PRIVATE -Wno-dollar-in-identifier-extension)
+    endif()
   endif()
 endfunction()
 

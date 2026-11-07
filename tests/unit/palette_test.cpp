@@ -62,7 +62,7 @@ TEST_CASE("every skin tone is a plausible skin colour (warm: red >= green >= blu
   for (int tone = 0; tone < APPEARANCE_LIMITS.colors.skin; ++tone) {
     Appearance a;
     a.colors.skin = tone;
-    const auto& main = buildPalette(a, base)[static_cast<std::size_t>(RESERVED_SKIN.first + 4)];  // shade 4 = the tone
+    const Rgba main = buildPalette(a, base)[static_cast<std::size_t>(RESERVED_SKIN.first + 4)];  // shade 4 = the tone
     CHECK(main.r >= main.g);
     CHECK(main.g >= main.b);
   }
@@ -75,7 +75,7 @@ TEST_CASE("every colour choice in a region is distinct, and shades run dark to l
     for (int choice = 0; choice < count; ++choice) {
       Appearance a;
       set(a, choice);
-      const auto& c = buildPalette(a, base)[static_cast<std::size_t>(range.first + 4)];
+      const Rgba c = buildPalette(a, base)[static_cast<std::size_t>(range.first + 4)];
       CHECK(seen.insert({c.r, c.g, c.b}).second);
     }
   };
