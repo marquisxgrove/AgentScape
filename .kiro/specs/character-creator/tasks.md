@@ -39,17 +39,19 @@
   - [x]* 3.3 Write integration tests for the single-active invariant and the 5-Adventurer limit.
     - _Requirements: 1.4, 7.2, 7.3_
 
-- [ ] 4. Create sprites
+- [x] 4. Create sprites
   - Draw the original 32×48 paper-doll layers for both body types, all styles, all catalog items, and four facings with 2 idle frames, as 8-bit indexed PNGs that use the reserved placeholder indices.
   - Pack them into `assets/sprites/avatar.png` and `avatar.json`, and log them in `docs/ASSETS.md`.
   - _Requirements: 3.1, 6.1_
+  - _Note: drawn procedurally by `tools/gen_avatar.py` (deterministic). One set of layers serves both body types: type B is the same art with the torso band pulled in by one pixel per side at composite time (`render::narrowedForBodyB`), which keeps the atlas small. Plain Tunic/Trousers/Boots have no overlay (they are the base layers). Art quality is "readable procedural pixel art", reviewed via the avatar gallery; a hand-drawn pass would be a drop-in replacement of the two atlas files._
 
-- [ ] 5. Build the AvatarRenderer
-  - [ ] 5.1 Implement `AvatarRenderer`: atlas loading, palette swap, layer compositing via `drawOrder`, the texture cache, facings, and idle animation that respects "Reduce motion".
+- [ ] 5. Build the AvatarRenderer (5.1 and 5.3 done; 5.2 Export button waits for the Costumer)
+  - [x] 5.1 Implement `AvatarRenderer`: atlas loading, palette swap, layer compositing via `drawOrder`, the texture cache, facings, and idle animation that respects "Reduce motion".
     - _Requirements: 2.6, 3.1–3.3, 4.5_
-  - [ ] 5.2 Implement `exportSurface`, `platform::exportPng` (desktop save dialog; web download), and the Export button.
+  - [~] 5.2 Implement `exportSurface`, `platform::exportPng` (desktop save dialog; web download), and the Export button.
     - _Requirements: 8.1, 8.2_
-  - [ ] 5.3 Add the dev-only avatar gallery screen for visual QA.
+    - _Done: `AvatarRenderer::exportSurface` (4x, transparent) and `platform::PngExporter` (desktop `SDL_ShowSaveFileDialog`, web browser download, cancel/failed outcomes, safe file names), verified end to end with `--export-avatar`. The Export button itself is part of the Costumer screen (task 6.1). The web download path is compiled only under Emscripten and is unverified here._
+  - [x] 5.3 Add the dev-only avatar gallery screen for visual QA.
     - _Requirements: 3.1_
 
 - [ ] 6. Build the Costumer screen

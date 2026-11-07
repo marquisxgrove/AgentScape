@@ -1,5 +1,8 @@
 #include <catch2/catch_test_macros.hpp>
 
+#include <set>
+#include <tuple>
+
 #include "core/rng.hpp"
 #include "domain/appearance.hpp"
 #include "domain/palette.hpp"
@@ -52,4 +55,42 @@ TEST_CASE("buildPalette is deterministic", "[unit][palette]") {
   const Appearance a = randomAppearance(rng);
   const Palette256 base = basePalette();
   CHECK(buildPalette(a, base) == buildPalette(a, base));
+}
+
+TEST_CASE("every skin tone is a plausible skin colour (warm: red >= green >= blue)", "[unit][palette]") {
+  const Palette256 base = basePalette();
+  for (int tone = 0; tone < APPEARANCE_LIMITS.colors.skin; ++tone) {
+    Appearance a;
+    a.colors.skin = tone;
+    const auto& main = buildPalette(a, base)[static_cast<std::size_t>(RESERVED_SKIN.first + 4)];  // shade 4 = the tone
+    CHECK(main.r >= main.g);
+    CHECK(main.g >= main.b);
+  }
+}
+
+TEST_CASE("every colour choice in a region is distinct, and shades run dark to light", "[unit][palette]") {
+  const Palette256 base = basePalette();
+  const auto distinct = [&](int count, auto set, ReservedRange range) {
+    std::set<std::tuple<int, int, int>> seen;
+    for (int choice = 0; choice < count; ++choice) {
+      Appearance a;
+      set(a, choice);
+      const auto& c = buildPalette(a, base)[static_cast<std::size_t>(range.first + 4)];
+      CHECK(seen.insert({c.r, c.g, c.b}).second);
+    }
+  };
+  distinct(APPEARANCE_LIMITS.colors.skin, [](Appearance& a, int i) { a.colors.skin = i; }, RESERVED_SKIN);
+  distinct(APPEARANCE_LIMITS.colors.hair, [](Appearance& a, int i) { a.colors.hair = i; }, RESERVED_HAIR);
+  distinct(APPEARANCE_LIMITS.colors.torso, [](Appearance& a, int i) { a.colors.torso = i; }, RESERVED_TORSO);
+  distinct(APPEARANCE_LIMITS.colors.legs, [](Appearance& a, int i) { a.colors.legs = i; }, RESERVED_LEGS);
+  distinct(APPEARANCE_LIMITS.colors.feet, [](Appearance& a, int i) { a.colors.feet = i; }, RESERVED_FEET);
+
+  Appearance a;
+  a.colors.torso = 7;  // a mid-blue
+  const auto pal = buildPalette(a, base);
+  for (int i = 1; i < RESERVED_TORSO.count; ++i) {
+    const auto& dark = pal[static_cast<std::size_t>(RESERVED_TORSO.first + i - 1)];
+    const auto& light = pal[static_cast<std::size_t>(RESERVED_TORSO.first + i)];
+    CHECK(light.b >= dark.b);
+  }
 }

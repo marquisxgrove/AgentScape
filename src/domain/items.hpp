@@ -22,7 +22,7 @@ struct Item {
   std::string_view name;
   Slot slot;
   std::string_view examine;
-  std::string_view sprite;
+  std::string_view sprite;  // atlas row name under item/; empty = no overlay (the item is the base layer)
   UnlockRule unlock;
   bool twoHanded = false;
   std::span<const Layer> hides = {};
