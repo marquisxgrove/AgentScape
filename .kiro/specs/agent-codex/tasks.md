@@ -55,5 +55,5 @@
   - Add the Graveyard screen (Kiroween only) with up to 13 tombstones from top non-hidden Banes with ≥ 3 votes, epitaphs, open-card actions, and a navigable list.
   - _Requirements: 7.1–7.4_
 
-- [ ] 9. Checkpoint
+- [x] 9. Checkpoint
   - Extend the smoke test with the Codex flow. Make sure all tests pass, and ask the user if questions arise.

@@ -541,6 +541,11 @@ SDL_AppResult App::iterate() {
   ++framesRendered_;
   if (quitRequested_) return SDL_APP_SUCCESS;
 
+  if (config_.smokeCodexDir) {
+    if (framesRendered_ >= 2 && runCodexStep()) return demoFailed_ ? SDL_APP_FAILURE : SDL_APP_SUCCESS;
+    return SDL_APP_CONTINUE;
+  }
+
   if (config_.smokeCostumerDir) {
     if (framesRendered_ >= 2 && runCostumerStep()) return demoFailed_ ? SDL_APP_FAILURE : SDL_APP_SUCCESS;
     return SDL_APP_CONTINUE;
@@ -559,6 +564,131 @@ SDL_AppResult App::iterate() {
     return dataState_ == DataState::Ready ? SDL_APP_SUCCESS : SDL_APP_FAILURE;
   }
   return SDL_APP_CONTINUE;
+}
+
+// The agent-codex flow, one step per frame so each step's screen is what the previous frame rendered:
+//   guest -> Codex (searching "lanternfold" finds 2) -> examine card -> the same card in Debugging (narrower)
+//   -> write a Boon, another user votes, you can't vote on your own -> Proving Grounds remembers 2 Agents
+//   -> propose, a Keeper approves, the Codex grows -> Graveyard (Kiroween) holds 1 to 13 tombstones.
+// It drives the real screens by navigation and the real services by calls. It does NOT simulate mouse or
+// keyboard input, so it proves that each screen loads, renders and persists what the services give it.
+bool App::runCodexStep() {
+  const auto fail = [&](const char* why) {
+    SDL_Log("SMOKE FAIL: %s", why);
+    demoFailed_ = true;
+    return true;
+  };
+  const auto shoot = [&](const char* file) {
+    SDL_Surface* shot = SDL_RenderReadPixels(renderer_, nullptr);
+    if (shot == nullptr) return;
+    const std::string path = *config_.smokeCodexDir + "/" + file;
+    if (!IMG_SavePNG(shot, path.c_str())) SDL_Log("Snapshot write failed: %s", SDL_GetError());
+    SDL_DestroySurface(shot);
+  };
+  if (dataState_ != DataState::Ready || !services_) return fail("store not ready");
+  auto& svc = *services_;
+  const std::string me = currentUserId_.value_or("");
+  using domain::QuestType;
+
+  switch (demoStep_++) {
+    case 0: {
+      auto guest = svc.profile.createGuest();
+      if (!guest) return fail("createGuest failed");
+      svc.profile.signIn(guest->id);
+      adoptUser(guest->id, guest->settings);
+      screens_.navigate(ScreenId::World);
+      screens_.navigate(ScreenId::Codex, {{"q", "lanternfold"}});
+      return false;
+    }
+    case 1: {
+      if (screens_.currentId() != ScreenId::Codex) return fail("did not reach the Codex");
+      domain::ListQuery q;
+      q.text = "lanternfold";
+      auto page = svc.codex.list(q, std::nullopt);
+      if (!page || page->total != 2) return fail("searching 'lanternfold' should find 2 familiars");
+      shoot("x1-codex-search.png");
+      screens_.navigate(ScreenId::CodexCard, {{"agent", "gryphon"}});
+      return false;
+    }
+    case 2: {
+      if (screens_.currentId() != ScreenId::CodexCard) return fail("did not reach the examine card");
+      auto card = svc.codex.card("gryphon", std::nullopt);
+      if (!card || !*card || (*card)->levels.overallCount == 0) return fail("Gryphon's card has no Quest Logs");
+      shoot("x2-card.png");
+      screens_.navigate(ScreenId::CodexCard, {{"agent", "gryphon"}, {"scope", "DEBUGGING"}});
+      return false;
+    }
+    case 3: {
+      if (screens_.currentId() != ScreenId::CodexCard) return fail("did not reach the Debugging card");
+      auto all = svc.codex.card("gryphon", std::nullopt);
+      auto dbg = svc.codex.card("gryphon", QuestType::Debugging);
+      if (!all || !dbg || !*all || !*dbg) return fail("card lookup failed");
+      if ((*dbg)->levels.overallCount >= (*all)->levels.overallCount) return fail("Debugging should narrow the Quest Logs");
+      shoot("x3-card-debugging.png");
+
+      // Boons and votes.
+      auto other = svc.profile.createGuest();
+      if (!other) return fail("second guest failed");
+      services::NewNote note;
+      note.agentId = (*all)->agent.id;
+      note.kind = services::NoteKind::Boon;
+      note.text = "Smoke test remark: tidy, readable answers.";
+      auto id = svc.notes.createNote(me, note);
+      if (!id) return fail("createNote failed");
+      if (svc.notes.voteOnNote(me, *id, domain::VoteValue::Agree)) return fail("voting on your own Note was allowed");
+      if (!svc.notes.voteOnNote(other->id, *id, domain::VoteValue::Agree)) return fail("another user's vote failed");
+      auto boons = svc.codex.notes((*all)->agent.id, services::NoteKind::Boon);
+      if (!boons) return fail("reading Boons failed");
+      const auto mine = std::find_if(boons->begin(), boons->end(), [&](const services::NoteView& n) { return n.id == *id; });
+      if (mine == boons->end() || mine->agree != 1) return fail("the new Boon should show with one agree vote");
+
+      screens_.navigate(ScreenId::Proving, {{"add", "gryphon"}, {"scope", "DEBUGGING"}});
+      return false;
+    }
+    case 4:
+      if (screens_.currentId() != ScreenId::Proving) return fail("did not reach the Proving Grounds");
+      screens_.navigate(ScreenId::Proving, {{"add", "cairn"}});   // a fresh visit restores Gryphon + Debugging
+      return false;
+    case 5: {
+      if (screens_.currentId() != ScreenId::Proving) return fail("did not return to the Proving Grounds");
+      auto saved = svc.proving.restore(me);
+      if (!saved || saved->slugs != std::vector<std::string>{"gryphon", "cairn"}) return fail("the comparison was not remembered");
+      if (saved->questType != std::optional{QuestType::Debugging}) return fail("the Quest Type was not remembered");
+      auto cols = svc.codex.compareColumns(saved->slugs, saved->questType);
+      if (!cols || cols->size() != 2) return fail("compare should have 2 columns");
+      shoot("x4-proving.png");
+
+      // Propose, approve, and the Codex grows.
+      domain::AgentInput in;
+      in.name = "Smoke Familiar";
+      in.vendor = "Candlewick";
+      in.examine = "A made-up familiar proposed by the smoke test.";
+      auto proposed = svc.agents.proposeAgent(me, in);
+      if (!proposed) return fail("proposeAgent failed");
+      auto before = svc.codex.list({}, std::nullopt);
+      if (!before || before->total != 14) return fail("a pending proposal must not be in the Codex");
+      if (!svc.keeper.setKeeper(me, true)) return fail("setKeeper failed");
+      if (!svc.keeper.moderateAgent(me, *proposed, true)) return fail("approving the proposal failed");
+      auto after = svc.codex.list({}, std::nullopt);
+      if (!after || after->total != 15) return fail("the approved familiar should join the Codex");
+      svc.keeper.setKeeper(me, false);
+
+      screens_.navigate(ScreenId::Graveyard);
+      return false;
+    }
+    case 6: {
+      if (screens_.currentId() != ScreenId::Graveyard) return fail("did not reach the Graveyard");
+      auto stones = svc.codex.tombstones();
+      if (!stones || stones->empty() || stones->size() > domain::MAX_TOMBSTONES) {
+        return fail("the Graveyard should hold 1 to 13 tombstones");
+      }
+      shoot("x5-graveyard.png");
+      SDL_Log("SMOKE OK: codex flow completed (%zu tombstones)", stones->size());
+      return true;
+    }
+    default:
+      return true;
+  }
 }
 
 bool App::runCostumerStep() {
