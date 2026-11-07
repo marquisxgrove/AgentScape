@@ -14,13 +14,17 @@
     - **Property 5: Wilson bounds and ordering** / **Property 6: Vote model** / **Property 7: Slug normalization** / **Property 8: Rate limit**
     - **Validates: Requirements 4.2, 4.3, 5.2–5.5**
 
-- [ ] 2. Add persistence
-  - [ ] 2.1 Add migration `0003_codex.sql` (`agent`, `agent_skill_stat`, `note`, `note_vote`, `report`) and the repositories.
+- [~] 2. Add persistence (2.3: Agents, ratings and Notes done; Quest Logs and NPC Adventurers wait for their specs)
+  - [x] 2.1 Add migration `0003_codex.sql` (`agent`, `agent_skill_stat`, `note`, `note_vote`, `report`) and the repositories.
     - _Requirements: 2.1, 3.5, 5.1, 8.2_
-  - [ ] 2.2 Implement `applyRatingDelta(tx, …)` with the after-commit `RatingsChanged` event and `CodexCache` invalidation.
+    - _Note: the stat table gained `seed_sum`/`seed_count` (so a reseed swaps only the seeded baseline and never erases player ratings) and CHECK constraints (every aggregate must be a possible set of 1-5 ratings). Repositories are plain functions in `services/codex_store` (read side: `findAgentBy*`, `listAgents`, `loadStats`) plus `domain::StatTable`/`levelsFor` for the pure level computation._
+  - [x] 2.2 Implement `applyRatingDelta(tx, …)` with the after-commit `RatingsChanged` event and `CodexCache` invalidation.
     - _Requirements: 3.5_
-  - [ ] 2.3 Write `data/seed/*.json` (≥ 12 Agents, NPC Adventurers, sample Quest Logs and Notes) and the idempotent seed loader. Add an integration test that seeding twice is a no-op.
+    - _Note: UPDATE-then-INSERT rather than a single upsert, because SQLite checks CHECK constraints against the proposed row before it detects a key conflict (found by the randomised create/edit/delete test). Events: `RatingsChanged` (existing), plus new `AgentChanged` and `NotesChanged`; `CodexCache` bumps a generation counter on all three._
+  - [~] 2.3 Write `data/seed/*.json` (≥ 12 Agents, NPC Adventurers, sample Quest Logs and Notes) and the idempotent seed loader. Add an integration test that seeding twice is a no-op.
     - _Requirements: 9.1–9.3_
+    - _Done: `agents.json` (14 Agents), `ratings.json` (synthetic baseline for every Agent/Skill/Quest Type, all Skills ranked in the All scope), `notes.json` (49 Boons/Banes; 21 Banes are Graveyard-ready) via `tools/gen_seed_codex.py`; the loader validates through the same domain validators proposals use, rejects bad files whole, and is idempotent. **Deferred:** sample Quest Logs and NPC Adventurers/XP need the quest-logs and Hiscores specs (tables don't exist yet). When quest-logs seeds Quest Logs they must be display-only: their ratings are already inside the snapshot baseline._
+    - _**The ratings and notes are synthetic sample data about real product names** (generated from a hash, no deliberate ranking; flagged in the files). The Codex UI should label them "sample snapshot"._
 
 - [ ] 3. Build the Codex list
   - Implement `CodexService::list` with search, filters, sort (unranked last), pagination, and Quest_Type scope.

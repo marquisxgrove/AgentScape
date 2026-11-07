@@ -176,7 +176,8 @@ void App::openStore(bool resetData) {
   loadError_.reset();
   store_->db.setAfterCommit([this] { persistence_.requestFlush(); });
   if (!store_->backupPath.empty()) SDL_Log("Old save moved to %s", store_->backupPath.string().c_str());
-  if (store_->seeded) SDL_Log("Seeded community snapshot: %d NPC adventurers", store_->seeded->npcsUpserted);
+  if (store_->seeded) SDL_Log("Seeded community snapshot: %d NPCs, %d Agents, %d rating aggregates, %d Notes", store_->seeded->npcsUpserted,
+            store_->seeded->agentsUpserted, store_->seeded->statRows, store_->seeded->notesUpserted);
   SDL_Log("Local store ready: %s (schema %d)", savePath_.c_str(), store_->schemaVersion);
   persistence_.requestFlush();  // migrations/seed on a new web save
   services_.emplace(Services{services::ProfileService{store_->db, clock_, rng_},

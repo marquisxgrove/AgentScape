@@ -60,7 +60,8 @@ bool isAllowed(std::span<const std::chrono::sys_seconds> history, std::chrono::s
 
 - `CodexService::list({ q, kind, vendor, questType, sort, page })` loads approved Agents plus their stats and computes levels in memory. This is fine because the number of Agents is small (< 1,000). Results are memoised in `CodexCache` until the next `RatingsChanged` or `AgentChanged` event.
 - `CodexService::card(slug, questType)`.
-- `applyRatingDelta(db::Transaction&, agentId, questType, std::span<const Delta>)` upserts stats with `INSERT … ON CONFLICT DO UPDATE SET sum = sum + excluded.sum, count = count + excluded.count`, and queues `RatingsChanged` for after commit. Quest Logs call it.
+- `applyRatingDelta(db::Transaction&, agentId, questType, std::span<const Delta>)` upserts stats with an `UPDATE … SET sum = sum + ?, count = count + ?` followed by an `INSERT` only when no row existed (a single `INSERT … ON CONFLICT` can't be used: SQLite checks `CHECK` constraints against the proposed row before it detects the key conflict), and queues `RatingsChanged` for after commit. Quest Logs call it.
+- The seeded snapshot writes `seed_sum`/`seed_count` and adjusts `sum`/`count` by the difference between the new and previous baseline, so reseeding is idempotent and never touches ratings players added. Seeded Quest Logs (quest-logs spec) are display-only: their ratings are already inside the snapshot baseline and must not be applied again.
 - Commands: `proposeAgent`, `moderateAgent`, `createNote`, `voteOnNote`, `reportContent`, `setNoteHidden`, `resolveReport`, `setKeeper`. Keeper-only commands return `GameError::NotAllowed` for users without the `KEEPER` role.
 - Denormalised `agree`/`disagree` counts on `note` are updated in the same transaction as the `note_vote` upsert or delete.
 - `ProvingGroundsService::remember(userId, agents, questType)` stores the last comparison in the user's settings JSON. `toPlainText(comparison)` formats the clipboard table.
@@ -103,7 +104,11 @@ CREATE TABLE agent_skill_stat (
   quest_type TEXT NOT NULL,
   sum        INTEGER NOT NULL DEFAULT 0,
   count      INTEGER NOT NULL DEFAULT 0,
-  PRIMARY KEY (agent_id, skill, quest_type)
+  seed_sum   INTEGER NOT NULL DEFAULT 0,                 -- the seeded community snapshot's share of sum/count,
+  seed_count INTEGER NOT NULL DEFAULT 0,                 -- so a reseed swaps only that part (never player ratings)
+  PRIMARY KEY (agent_id, skill, quest_type),
+  CHECK (count >= 0 AND sum >= count AND sum <= 5 * count),   -- a possible sum of `count` ratings in 1..5
+  CHECK (seed_count >= 0 AND seed_sum >= seed_count AND seed_sum <= 5 * seed_count)
 ) STRICT;
 
 CREATE TABLE note (
