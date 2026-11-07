@@ -2,7 +2,13 @@ name: CI
 
 on:
   push:
+    branches: [main]
   pull_request:
+
+# One run per branch/PR: a newer push cancels the run it replaces.
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
 
 jobs:
   desktop:
@@ -11,12 +17,13 @@ jobs:
       matrix:
         include:
           - { os: ubuntu-24.04, name: linux-gcc }
-          - { os: macos-14, name: macos-clang }
+          - { os: macos-15, name: macos-clang }
           - { os: windows-2022, name: windows-msvc }
     runs-on: ${{ matrix.os }}
+    timeout-minutes: 30  # a hung test (e.g. an MSVC debug-assert dialog) must not hold a runner for 6 h
     name: ${{ matrix.name }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
       - name: Linux dependencies
         if: runner.os == 'Linux'
         run: |
@@ -34,10 +41,10 @@ jobs:
       - name: Build
         run: cmake --build --preset dev
       - name: Test
-        run: ctest --preset dev
+        run: ctest --preset dev --timeout 300
       - name: Upload smoke snapshots
         if: always() && runner.os == 'Linux'
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v5
         with:
           name: smoke-snapshots-${{ matrix.name }}
           path: build/dev/smoke/*.png
@@ -45,9 +52,10 @@ jobs:
 
   asan:
     runs-on: ubuntu-24.04
+    timeout-minutes: 30
     name: linux-asan
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
       - run: |
           sudo apt-get update
           sudo apt-get install -y ninja-build libx11-dev libxext-dev libxrandr-dev libxcursor-dev \
@@ -55,13 +63,14 @@ jobs:
             libgl1-mesa-dev libegl1-mesa-dev libdrm-dev libgbm-dev
       - run: cmake --preset asan
       - run: cmake --build --preset asan
-      - run: ctest --preset asan
+      - run: ctest --preset asan --timeout 300
 
   web:
     runs-on: ubuntu-24.04
+    timeout-minutes: 30
     name: web
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
       - uses: mymindstorm/setup-emsdk@v14
         with:
           version: 4.0.8

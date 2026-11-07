@@ -6,13 +6,15 @@ set(FETCHCONTENT_QUIET OFF)
 FetchContent_Declare(tl_expected
   GIT_REPOSITORY https://github.com/TartanLlama/expected.git
   GIT_TAG        v1.1.0
-  GIT_SHALLOW    TRUE)
+  GIT_SHALLOW    TRUE
+  SYSTEM)  # third-party headers must not trip our -Werror warning set
 set(EXPECTED_BUILD_TESTS OFF CACHE BOOL "" FORCE)
 
 FetchContent_Declare(nlohmann_json
   GIT_REPOSITORY https://github.com/nlohmann/json.git
   GIT_TAG        v3.11.3
-  GIT_SHALLOW    TRUE)
+  GIT_SHALLOW    TRUE
+  SYSTEM)
 
 FetchContent_MakeAvailable(tl_expected nlohmann_json)
 
