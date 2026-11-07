@@ -41,6 +41,8 @@ Config parseConfig(const ConfigSources& sources) {
     } else if (startsWith(arg, "--snapshot=")) {
       cfg.snapshotPath = std::string(arg.substr(std::string_view{"--snapshot="}.size()));
       cfg.headlessSmoke = true;
+    } else if (startsWith(arg, "--smoke-demo=")) {
+      cfg.smokeDemoDir = std::string(arg.substr(std::string_view{"--smoke-demo="}.size()));
     } else if (startsWith(arg, "-psn_")) {
       // macOS Finder process serial number; ignore.
     } else {

@@ -19,6 +19,7 @@ struct Config {
   bool headlessSmoke = false;                       // --smoke: run a few frames and quit (CI)
   std::optional<std::string> startScreen;           // --screen=<name> (dev builds: "ui-gallery")
   std::optional<std::string> snapshotPath;          // --snapshot=<file.png>: save the frame, implies --smoke
+  std::optional<std::string> smokeDemoDir;          // --smoke-demo=<dir>: run the demo path, snapshot each step
   std::vector<std::string> warnings;                // unknown/invalid arguments, logged at startup
 };
 

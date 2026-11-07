@@ -88,8 +88,9 @@
   - _Requirements: 6.1–6.5_
   - _Note: pure `game::kiroween_fx` (fog drift, bat flight, pumpkin flicker; reduce-motion = static) is unit-tested; `game::KiroweenLayer` renders fog + pumpkins on the World map and bats on the login screen. Graveyard hotspot + accent theme already wired (tasks 9 and 5). Resolution/precedence was task 4 (Property 2)._
 
-- [ ] 11. Checkpoint: shell smoke test
+- [x] 11. Checkpoint: shell smoke test
   - Add the headless smoke test: guest login → World → open the Tavern hotspot's context menu → Enter. Save screen snapshots.
   - Confirm the `web` preset builds and runs in Chrome and Firefox, and that data survives a page reload.
   - Make sure all tests pass, and ask the user if questions arise.
   - _Requirements: 2.3, 3.3, 3.4, 8.4_
+  - _Note: `--smoke-demo=<dir>` drives the real app (SDL dummy video + software renderer) through the demo path, snapshotting each step (01-login, 02-world, 03-context-menu, 04-entered); CTest `smoke` label (`cmake/RunSmoke.cmake`) runs it and checks the snapshots; CI uploads them as artifacts. **Web build + Chrome/Firefox reload check is still outstanding** — it needs an Emscripten toolchain (not available in this environment); the CI `web` job compiles it but the in-browser reload test must be run by a human or added to CI with a headless browser._

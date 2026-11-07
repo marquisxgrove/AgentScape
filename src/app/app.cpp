@@ -12,6 +12,7 @@
 #include <string_view>
 #include <vector>
 
+#include "game/hotspots.hpp"
 #include "platform/accessibility.hpp"
 #include "platform/paths.hpp"
 #include "platform/web_url.hpp"
@@ -412,11 +413,84 @@ SDL_AppResult App::iterate() {
 
   ++framesRendered_;
   if (quitRequested_) return SDL_APP_SUCCESS;
+
+  if (config_.smokeDemoDir) {
+    // One demo step per frame, so each step's screen is what the previous frame rendered.
+    if (framesRendered_ >= 2 && runDemoStep()) {
+      return demoFailed_ ? SDL_APP_FAILURE : SDL_APP_SUCCESS;
+    }
+    return SDL_APP_CONTINUE;
+  }
+
   if (config_.headlessSmoke && framesRendered_ >= SMOKE_FRAMES) {
     // Smoke runs must fail loudly if storage didn't come up.
     return dataState_ == DataState::Ready ? SDL_APP_SUCCESS : SDL_APP_FAILURE;
   }
   return SDL_APP_CONTINUE;
+}
+
+void App::snapshotTo(const std::string& file) {
+  SDL_Surface* shot = SDL_RenderReadPixels(renderer_, nullptr);
+  if (shot == nullptr) {
+    SDL_Log("Demo snapshot failed: %s", SDL_GetError());
+    return;
+  }
+  const std::string path = *config_.smokeDemoDir + "/" + file;
+  if (!IMG_SavePNG(shot, path.c_str())) SDL_Log("Demo snapshot write failed: %s", SDL_GetError());
+  SDL_DestroySurface(shot);
+}
+
+bool App::runDemoStep() {
+  // The demo path (game-shell task 11): guest login -> World -> open the Tavern context menu -> Enter.
+  const auto fail = [&](const char* why) {
+    SDL_Log("SMOKE FAIL: %s", why);
+    demoFailed_ = true;
+    return true;
+  };
+  switch (demoStep_++) {
+    case 0:
+      if (dataState_ != DataState::Ready) return fail("store not ready at login");
+      if (screens_.currentId() != ScreenId::Login) return fail("did not start on the login screen");
+      snapshotTo("01-login.png");
+      return false;
+    case 1: {
+      // "Play as Guest"
+      auto guest = services_->profile.createGuest();
+      if (!guest) return fail("createGuest failed");
+      auto signedIn = services_->profile.signIn(guest->id);
+      if (!signedIn) return fail("guest signIn failed");
+      adoptUser(signedIn->id, signedIn->settings);
+      screens_.navigate(ScreenId::World);
+      return false;
+    }
+    case 2:
+      if (screens_.currentId() != ScreenId::World) return fail("did not reach the World screen");
+      snapshotTo("02-world.png");
+      // Open the Tavern hotspot's context menu.
+      for (const auto* h : game::visibleHotspots(kiroween_)) {
+        if (h->id == "tavern") {
+          std::vector<domain::MenuAction> actions{
+              {std::string(h->id), std::string(h->defaultAction) + " " + std::string(h->name), std::string(h->id), true}};
+          contextReq_.open(actions, std::string(h->examine), 200, 120);
+        }
+      }
+      return false;
+    case 3:
+      if (!contextMenu_.isOpen()) return fail("context menu did not open on the Tavern");
+      snapshotTo("03-context-menu.png");
+      // Confirm the default action ("Enter Tavern").
+      if (auto chosen = contextMenu_.confirmSelected(); !chosen || chosen->id != "tavern") {
+        return fail("confirming the menu did not yield the Tavern action");
+      }
+      ui::pushGameMessage("Enter Tavern...");
+      return false;
+    case 4:
+      snapshotTo("04-entered.png");
+      SDL_Log("SMOKE OK: demo path completed");
+      return true;
+    default:
+      return true;
+  }
 }
 
 }  // namespace as::app
