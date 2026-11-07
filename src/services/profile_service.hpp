@@ -1,6 +1,7 @@
 #pragma once
 
 #include <chrono>
+#include <functional>
 #include <optional>
 #include <string>
 #include <vector>
@@ -56,6 +57,12 @@ class ProfileService {
 
   Result<User> updateSettings(const std::string& id, const domain::Settings& settings);
 
+  // Called for each idle Guest just BEFORE its rows are deleted, so its content leaves the Codex through the normal
+  // delete paths (ratings out of the aggregates, helpful and note votes withdrawn) instead of being orphaned by
+  // ON DELETE CASCADE. App wires this to QuestService::purgeUser and NoteService::retractAllVotes.
+  using BeforeGuestDelete = std::function<void(const std::string& userId)>;
+  void setBeforeGuestDelete(BeforeGuestDelete hook) { beforeGuestDelete_ = std::move(hook); }
+
   // Deletes Guests idle for more than GUEST_MAX_IDLE (and, via ON DELETE CASCADE, their content).
   // Returns how many were removed.
   Result<int> cleanupGuests();
@@ -64,6 +71,7 @@ class ProfileService {
   db::Database& db_;
   const core::Clock& clock_;
   core::Rng& rng_;
+  BeforeGuestDelete beforeGuestDelete_;
 };
 
 }  // namespace as::services

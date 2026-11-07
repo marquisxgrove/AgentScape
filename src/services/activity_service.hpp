@@ -30,6 +30,11 @@ class ActivityService {
 
   // Records an event and returns it. Publishes ActivityPosted after the transaction commits.
   Result<ActivityEvent> post(ActivityKind kind, const std::string& text);
+  // For services that already hold a transaction: writes the row but neither commits nor publishes. Call
+  // announce() with the result AFTER the surrounding transaction commits.
+  Result<ActivityEvent> record(ActivityKind kind, const std::string& text);
+  void announce(const ActivityEvent& event);
+
   // The most recent `limit` events, oldest-first (ready to feed the Chatbox).
   Result<std::vector<ActivityEvent>> latest(int limit = 20);
 

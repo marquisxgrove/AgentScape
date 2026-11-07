@@ -69,9 +69,10 @@ TEST_CASE("an empty data dir means the platform default", "[unit][config]") {
 
 TEST_CASE("flags are parsed and unknown arguments are reported", "[unit][config]") {
   Fixture f;
-  f.args = {"--reseed", "--reset-data", "--smoke", "--bogus", "--data-dir"};
+  f.args = {"--reseed", "--repair-xp", "--reset-data", "--smoke", "--bogus", "--data-dir"};
   const auto cfg = f.parse();
   CHECK(cfg.reseed);
+  CHECK(cfg.repairXp);
   CHECK(cfg.resetData);
   CHECK(cfg.headlessSmoke);
   CHECK_FALSE(cfg.dataDir.has_value());

@@ -1,5 +1,7 @@
 #include "services/note_service.hpp"
 
+#include <algorithm>
+#include <tuple>
 #include <vector>
 
 #include "core/civil_time.hpp"
@@ -44,6 +46,7 @@ Result<std::string> NoteService::createNote(const std::string& userId, const New
   }
 
   std::string agentId = in.agentId;
+  XpGrant grantOut;
   auto result = safely([&]() -> Result<std::string> {
     const auto now = clock_.now();
     db::Transaction tx{db_};
@@ -79,10 +82,17 @@ Result<std::string> NoteService::createNote(const std::string& userId, const New
         .bind(7, *text)
         .bind(8, core::formatIso8601(now))
         .run();
+    // The Note and its XP commit together (the ledger is unique per Note, so a retry can't pay twice).
+    auto grant = xp_.award(userId, domain::XpReason::Note, id, domain::XP_REWARDS.note);
+    if (!grant) return tl::unexpected(grant.error());
     tx.commit();
+    grantOut = std::move(*grant);
     return id;
   });
-  if (result) bus_.publish(app::NotesChanged{agentId});
+  if (result) {
+    bus_.publish(app::NotesChanged{agentId});
+    publishGrant(bus_, activity_, userId, grantOut);
+  }
   return result;
 }
 
@@ -131,6 +141,30 @@ Result<void> NoteService::voteOnNote(const std::string& userId, const std::strin
     return {};
   });
   if (result) bus_.publish(app::NotesChanged{agentId});
+  return result;
+}
+
+Result<void> NoteService::retractAllVotes(const std::string& userId) {
+  std::vector<std::string> agents;
+  auto result = safely([&]() -> Result<void> {
+    db::Transaction tx{db_};
+    auto votes = db_.prepare("SELECT v.note_id, v.value, n.agent_id FROM note_vote v JOIN note n ON n.id = v.note_id WHERE v.user_id = ?");
+    votes.bind(1, userId);
+    std::vector<std::tuple<std::string, int, std::string>> rows;
+    while (votes.step()) rows.emplace_back(votes.columnText(0), static_cast<int>(votes.columnInt(1)), votes.columnText(2));
+    for (const auto& [noteId, value, agentId] : rows) {
+      db_.prepare(value > 0 ? "UPDATE note SET agree = agree - 1 WHERE id = ?" : "UPDATE note SET disagree = disagree - 1 WHERE id = ?")
+          .bind(1, noteId)
+          .run();
+      if (std::find(agents.begin(), agents.end(), agentId) == agents.end()) agents.push_back(agentId);
+    }
+    db_.prepare("DELETE FROM note_vote WHERE user_id = ?").bind(1, userId).run();
+    tx.commit();
+    return {};
+  });
+  if (result) {
+    for (const auto& a : agents) bus_.publish(app::NotesChanged{a});
+  }
   return result;
 }
 

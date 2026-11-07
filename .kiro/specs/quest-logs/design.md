@@ -74,6 +74,8 @@ std::vector<std::pair<T, int>> competitionRank(std::vector<T> rows, Score score,
 
 ### Services
 
+> Implementation notes (services slice): `QuestService`, `NoteService` and `KeeperService` each build the small services they use (`ActivityService`, `XpService`, `AdventurerService`) from the same db, clock, rng and bus instead of taking references. The App's `Services` bundle is moved after construction, so references into it would dangle. Quest Logs add `ReportTarget::QuestLog`. `ProfileService::setBeforeGuestDelete` lets an idle Guest's content leave through `QuestService::purgeUser` and `NoteService::retractAllVotes` (cascade alone would orphan ratings and leave vote counts inflated).
+
 - `QuestService`: `createQuestLog`, `updateQuestLog`, `deleteQuestLog`, `toggleHelpful`, `setQuestLogModeration({ hidden, excluded })` (Keeper only). Reports use the shared `reportContent`.
 - `XpService::award(tx, userId, reason, refId, amount)` runs `INSERT INTO xp_entry … ON CONFLICT (user_id, reason, ref_id) DO NOTHING` and checks `sqlite3_changes()` to know whether XP was actually awarded. After awarding, it recomputes the level and grants unlocks. `XpService::revoke(tx, userId, refId)` deletes entries that reference a Quest Log.
 - Note and proposal XP: the agent-codex commands `createNote` and `moderateAgent` call `XpService::award`. That wiring is a task in this spec.

@@ -63,19 +63,21 @@ Result<void> KeeperService::reportContent(const std::string& userId, ReportTarge
     user.bind(1, userId);
     if (!user.step()) return makeError(GameErrorCode::Forbidden, MSG_GENERIC);
 
-    auto exists = db_.prepare(target == ReportTarget::Note
-                                  ? "SELECT 1 FROM note WHERE id = ? AND hidden = 0"
-                                  : "SELECT 1 FROM agent WHERE id = ? AND status = 'APPROVED'");
+    const char* existsSql = target == ReportTarget::Note       ? "SELECT 1 FROM note WHERE id = ? AND hidden = 0"
+                            : target == ReportTarget::QuestLog ? "SELECT 1 FROM quest_log WHERE id = ? AND hidden = 0"
+                                                               : "SELECT 1 FROM agent WHERE id = ? AND status = 'APPROVED'";
+    const char* typeName = target == ReportTarget::Note ? "NOTE" : (target == ReportTarget::QuestLog ? "QUEST_LOG" : "AGENT");
+    auto exists = db_.prepare(existsSql);
     exists.bind(1, targetId);
     if (!exists.step()) return makeError(GameErrorCode::NotFound, MSG_GONE);
 
     auto dup = db_.prepare("SELECT 1 FROM report WHERE target_type = ? AND target_id = ? AND reporter_id = ?");
-    dup.bind(1, target == ReportTarget::Note ? "NOTE" : "AGENT").bind(2, targetId).bind(3, userId);
+    dup.bind(1, typeName).bind(2, targetId).bind(3, userId);
     if (dup.step()) return makeError(GameErrorCode::InvalidInput, "You have already reported that.");
 
     db_.prepare("INSERT INTO report(id, target_type, target_id, reporter_id, reason, created_at) VALUES (?, ?, ?, ?, ?, ?)")
         .bind(1, core::newUlid(now, rng_))
-        .bind(2, target == ReportTarget::Note ? "NOTE" : "AGENT")
+        .bind(2, typeName)
         .bind(3, targetId)
         .bind(4, userId)
         .bind(5, reason)
@@ -102,16 +104,19 @@ Result<KeeperQueue> KeeperService::queue(const std::string& keeperId) {
 
     auto reports = db_.prepare(
         "SELECT r.id, r.target_type, r.target_id, r.reason, r.created_at, COALESCE(ru.name, 'someone'), "
-        "       n.text, n.hidden, n.agent_id, na.name, a.name "
+        "       n.text, n.hidden, n.agent_id, na.name, a.name, ql.title, ql.hidden, ql.agent_id, qa.name "
         "FROM report r LEFT JOIN user ru ON ru.id = r.reporter_id "
         "LEFT JOIN note n ON r.target_type = 'NOTE' AND n.id = r.target_id "
         "LEFT JOIN agent na ON na.id = n.agent_id "
         "LEFT JOIN agent a ON r.target_type = 'AGENT' AND a.id = r.target_id "
+        "LEFT JOIN quest_log ql ON r.target_type = 'QUEST_LOG' AND ql.id = r.target_id "
+        "LEFT JOIN agent qa ON qa.id = ql.agent_id "
         "WHERE r.resolved = 0 ORDER BY r.created_at, r.id");
     while (reports.step()) {
       ReportView v;
       v.id = reports.columnText(0);
-      v.target = reports.columnText(1) == "NOTE" ? ReportTarget::Note : ReportTarget::Agent;
+      const std::string type = reports.columnText(1);
+      v.target = type == "NOTE" ? ReportTarget::Note : (type == "QUEST_LOG" ? ReportTarget::QuestLog : ReportTarget::Agent);
       v.targetId = reports.columnText(2);
       v.reason = reports.columnText(3);
       v.createdAt = core::parseIso8601(reports.columnText(4)).value_or(std::chrono::sys_seconds{});
@@ -121,6 +126,11 @@ Result<KeeperQueue> KeeperService::queue(const std::string& keeperId) {
         v.targetHidden = reports.columnInt(7) == 1;
         v.agentId = reports.columnOptText(8).value_or("");
         v.agentName = reports.columnOptText(9).value_or("");
+      } else if (v.target == ReportTarget::QuestLog) {
+        v.targetText = reports.columnOptText(11).value_or("(deleted)");   // the log's title
+        v.targetHidden = reports.columnInt(12) == 1;
+        v.agentId = reports.columnOptText(13).value_or("");
+        v.agentName = reports.columnOptText(14).value_or("");
       } else {
         v.targetText = reports.columnOptText(10).value_or("(deleted)");
         v.agentId = v.targetId;
@@ -141,6 +151,8 @@ Result<KeeperQueue> KeeperService::queue(const std::string& keeperId) {
 
 Result<void> KeeperService::moderateAgent(const std::string& keeperId, const std::string& agentId, bool approve) {
   std::string name;
+  std::optional<std::string> proposerId;
+  XpGrant grantOut;
   auto result = safely<void>([&]() -> Result<void> {
     const auto now = clock_.now();
     db::Transaction tx{db_};
@@ -149,16 +161,29 @@ Result<void> KeeperService::moderateAgent(const std::string& keeperId, const std
     agent.bind(1, agentId);
     if (!agent.step()) return makeError(GameErrorCode::NotFound, MSG_GONE);   // also stops a double decision
     name = agent.columnText(0);
+    auto proposer = db_.prepare("SELECT proposed_by_id FROM agent WHERE id = ?");
+    proposer.bind(1, agentId);
+    proposerId = proposer.step() ? proposer.columnOptText(0) : std::nullopt;
     db_.prepare("UPDATE agent SET status = ?, updated_at = ? WHERE id = ?")
         .bind(1, approve ? "APPROVED" : "REJECTED")
         .bind(2, core::formatIso8601(now))
         .bind(3, agentId)
         .run();
+    if (approve && proposerId) {   // 500 XP to whoever proposed it, committed with the approval
+      auto proposerRow = db_.prepare("SELECT 1 FROM user WHERE id = ? AND kind <> 'NPC'");
+      proposerRow.bind(1, *proposerId);
+      if (proposerRow.step()) {
+        auto g = xp_.award(*proposerId, domain::XpReason::AgentApproved, agentId, domain::XP_REWARDS.agentApproved);
+        if (!g) return tl::unexpected(g.error());
+        grantOut = std::move(*g);
+      }
+    }
     tx.commit();
     return {};
   });
   if (!result) return result;
   bus_.publish(app::AgentChanged{agentId});
+  if (proposerId) publishGrant(bus_, activity_, *proposerId, grantOut);
   if (approve) {
     // A separate transaction after the approval commits: if the feed write fails, the approval still stands.
     (void)activity_.post(ActivityKind::AgentApproved, name + " has joined the Grand Codex.");

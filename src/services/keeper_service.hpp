@@ -11,10 +11,11 @@
 #include "db/database.hpp"
 #include "services/activity_service.hpp"
 #include "services/codex_store.hpp"
+#include "services/xp_service.hpp"
 
 namespace as::services {
 
-enum class ReportTarget { Note, Agent };
+enum class ReportTarget { Note, Agent, QuestLog };
 
 struct ReportView {
   std::string id;
@@ -56,13 +57,13 @@ inline constexpr std::size_t MAX_REPORT_REASON = 200;
 class KeeperService {
  public:
   KeeperService(db::Database& db, const core::Clock& clock, core::Rng& rng, app::EventBus& bus)
-      : db_(db), clock_(clock), rng_(rng), bus_(bus), activity_(db, clock, bus) {}
+      : db_(db), clock_(clock), rng_(rng), bus_(bus), activity_(db, clock, bus), xp_(db, clock, rng, activity_) {}
 
   // Turns the Keeper tools on or off for the user (KEEPER / USER). NPCs can't hold the role.
   Result<void> setKeeper(const std::string& userId, bool on);
   Result<bool> isKeeper(const std::string& userId);
 
-  // Anyone can report a visible Note or an approved Agent once. The reason is plain text, 3..200 characters.
+  // Anyone can report a visible Note, a visible Quest Log or an approved Agent once. The reason is plain text, 3..200 characters.
   Result<void> reportContent(const std::string& userId, ReportTarget target, const std::string& targetId,
                              const std::string& reason);
 
@@ -79,6 +80,7 @@ class KeeperService {
   core::Rng& rng_;
   app::EventBus& bus_;
   ActivityService activity_;   // its own writer: it only needs the db, clock and bus
+  XpService xp_;               // an approved proposal earns its proposer 500 XP
 };
 
 }  // namespace as::services

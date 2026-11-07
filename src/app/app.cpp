@@ -194,7 +194,22 @@ void App::openStore(bool resetData) {
                              services::NoteService{store_->db, clock_, rng_, bus_},
                              services::AgentService{store_->db, clock_, rng_, bus_},
                              services::KeeperService{store_->db, clock_, rng_, bus_},
-                             services::ProvingService{store_->db, clock_}});
+                             services::ProvingService{store_->db, clock_},
+                             services::QuestService{store_->db, clock_, rng_, bus_}});
+  // An idle Guest's content leaves the Codex through the normal delete paths, not by cascade (quest-logs Req 9.2).
+  services_->profile.setBeforeGuestDelete([this](const std::string& userId) {
+    if (auto r = services_->quests.purgeUser(userId); !r) logError("Purge Guest quest logs", r.error());
+    if (auto r = services_->notes.retractAllVotes(userId); !r) logError("Purge Guest note votes", r.error());
+  });
+  if (config_.repairXp) {
+    // total_xp is a cache of the ledger; this recomputes it (quest-logs design: --repair-xp).
+    services::XpService repair{store_->db, clock_, rng_, services_->activity};
+    if (auto fixed = repair.repairTotals()) {
+      SDL_Log("Repaired total XP for %d user(s)", *fixed);
+    } else {
+      logError("Repair XP", fixed.error());
+    }
+  }
   chatbox_.emplace(bus_);
   onStoreReady();
   dataState_ = DataState::Ready;

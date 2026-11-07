@@ -30,6 +30,23 @@ domain::ChatMessage toChatMessage(const ActivityEvent& event) {
   return {"act-" + std::to_string(event.id), event.at, domain::Channel::Tavern, event.text};
 }
 
+void ActivityService::announce(const ActivityEvent& event) { bus_.publish(app::ActivityPosted{toChatMessage(event)}); }
+
+Result<ActivityEvent> ActivityService::record(ActivityKind kind, const std::string& text) {
+  if (!db_.inTransaction()) {
+    return makeError(GameErrorCode::Internal, "Something went wrong. Nothing was saved.", "record() needs the caller's transaction");
+  }
+  return db::guarded([&]() -> ActivityEvent {
+    const auto now = clock_.now();
+    db_.prepare("INSERT INTO activity_event(kind, text, created_at) VALUES (?, ?, ?)")
+        .bind(1, activityKindToDb(kind))
+        .bind(2, text)
+        .bind(3, core::formatIso8601(now))
+        .run();
+    return ActivityEvent{db_.lastInsertRowId(), kind, text, now};
+  });
+}
+
 Result<ActivityEvent> ActivityService::post(ActivityKind kind, const std::string& text) {
   auto result = db::guarded([&]() -> ActivityEvent {
     const auto now = clock_.now();
