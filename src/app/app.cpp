@@ -16,6 +16,8 @@
 #include "platform/accessibility.hpp"
 #include "platform/paths.hpp"
 #include "platform/web_url.hpp"
+#include "screens/codex/codex_card_screen.hpp"
+#include "screens/codex/codex_screen.hpp"
 #include "screens/costumer/costumer_screen.hpp"
 #include "screens/login/login_screen.hpp"
 #include "screens/world/world_screen.hpp"
@@ -182,7 +184,8 @@ void App::openStore(bool resetData) {
   persistence_.requestFlush();  // migrations/seed on a new web save
   services_.emplace(Services{services::ProfileService{store_->db, clock_, rng_},
                              services::ActivityService{store_->db, clock_, bus_},
-                             services::AdventurerService{store_->db, clock_, rng_}});
+                             services::AdventurerService{store_->db, clock_, rng_},
+                             services::CodexService{store_->db, codexCache_}});
   chatbox_.emplace(bus_);
   onStoreReady();
   dataState_ = DataState::Ready;
@@ -265,6 +268,8 @@ void App::registerScreens() {
   screens_.registerScreen(ScreenId::Login, [] { return std::make_unique<screens::LoginScreen>(); });
   screens_.registerScreen(ScreenId::World, [] { return std::make_unique<screens::WorldScreen>(); });
   screens_.registerScreen(ScreenId::Costumer, [] { return std::make_unique<screens::CostumerScreen>(); });
+  screens_.registerScreen(ScreenId::Codex, [] { return std::make_unique<screens::CodexScreen>(); });
+  screens_.registerScreen(ScreenId::CodexCard, [] { return std::make_unique<screens::CodexCardScreen>(); });
 #ifdef AS_ENABLE_DEV_SCREENS
   screens_.registerScreen(ScreenId::DevGallery, [] { return std::make_unique<screens::UiGalleryScreen>(); });
   screens_.registerScreen(ScreenId::DevAvatars, [] { return std::make_unique<screens::AvatarGalleryScreen>(); });
@@ -281,6 +286,16 @@ void App::registerScreens() {
         const std::string name = tab;
         if (name == "costumer-gear") postLoginParams_["tab"] = "gear";
         if (name == "costumer-adventurers") postLoginParams_["tab"] = "adventurers";
+      }
+    }
+    for (const char* name : {"codex", "codex-table", "codex-search", "codex-card", "codex-card-debug"}) {
+      if (*config_.startScreen == name) {
+        const std::string n = name;
+        postLoginScreen_ = n == "codex-card" || n == "codex-card-debug" ? ScreenId::CodexCard : ScreenId::Codex;
+        if (n == "codex-table") postLoginParams_["view"] = "table";
+        if (n == "codex-search") postLoginParams_["q"] = "lanternfold";
+        if (n.rfind("codex-card", 0) == 0) postLoginParams_["agent"] = "gryphon";
+        if (n == "codex-card-debug") postLoginParams_["scope"] = "DEBUGGING";
       }
     }
     if (*config_.startScreen == "avatar-looks") {

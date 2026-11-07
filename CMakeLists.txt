@@ -157,6 +157,9 @@ if(AS_BUILD_APP)
     src/render/game_frame.cpp
     src/render/nine_slice.cpp
     src/render/texture_cache.cpp
+    src/screens/codex/codex_card_screen.cpp
+    src/screens/codex/codex_screen.cpp
+    src/screens/codex/codex_widgets.cpp
     src/screens/costumer/costumer_screen.cpp
     src/screens/login/login_screen.cpp
     src/screens/world/world_screen.cpp

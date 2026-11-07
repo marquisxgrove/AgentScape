@@ -28,8 +28,8 @@ void WorldScreen::onEnter(const app::ScreenParams&) { adventurerLoaded_ = false;
 
 void WorldScreen::activate(app::FrameCtx& ctx, const game::Hotspot& h) {
   // Screens that exist open; the rest are narrated until their own specs land.
-  if (h.screen == app::ScreenId::Costumer && ctx.nav != nullptr) {
-    ctx.nav->navigate(app::ScreenId::Costumer);
+  if ((h.screen == app::ScreenId::Costumer || h.screen == app::ScreenId::Codex) && ctx.nav != nullptr) {
+    ctx.nav->navigate(h.screen);
     return;
   }
   ui::pushGameMessage(std::string(h.defaultAction) + " " + std::string(h.name) + "...");
