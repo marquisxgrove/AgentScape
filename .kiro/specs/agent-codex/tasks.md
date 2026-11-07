@@ -2,15 +2,15 @@
 
 > Depends on: `game-shell` (tasks 1–8). Coordinates with `quest-logs` through `applyRatingDelta`.
 
-- [ ] 1. Implement scoring domain
-  - [ ] 1.1 Implement `skills`: Skill and Quest_Type constants, `aggOf`, `mergeAgg`, `skillLevel`, `totalLevel`.
+- [x] 1. Implement scoring domain
+  - [x] 1.1 Implement `skills`: Skill and Quest_Type constants, `aggOf`, `mergeAgg`, `skillLevel`, `totalLevel`.
     - _Requirements: 3.1–3.5_
-  - [ ]* 1.2 Write property tests for level bounds, order independence, monotonicity, and scope additivity (Properties 1–4).
+  - [x]* 1.2 Write property tests for level bounds, order independence, monotonicity, and scope additivity (Properties 1–4).
     - **Property 1: Level bounds and ranking threshold** / **Property 2: Order independence** / **Property 3: Monotonicity** / **Property 4: Scope additivity**
     - **Validates: Requirements 3.1–3.5**
-  - [ ] 1.3 Implement `voting` (`wilsonLowerBound`, `applyVote`, `tally`), `slug`, and `rate_limit`.
+  - [x] 1.3 Implement `voting` (`wilsonLowerBound`, `applyVote`, `tally`), `slug`, and `rate_limit`.
     - _Requirements: 4.2, 4.3, 5.2–5.5_
-  - [ ]* 1.4 Write property tests for Wilson, the vote model, slugs, and rate limits (Properties 5–8).
+  - [x]* 1.4 Write property tests for Wilson, the vote model, slugs, and rate limits (Properties 5–8).
     - **Property 5: Wilson bounds and ordering** / **Property 6: Vote model** / **Property 7: Slug normalization** / **Property 8: Rate limit**
     - **Validates: Requirements 4.2, 4.3, 5.2–5.5**
 

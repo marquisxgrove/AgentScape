@@ -45,6 +45,10 @@ add_library(as_domain STATIC
   src/domain/items.cpp
   src/domain/loadout.cpp
   src/domain/palette.cpp
+  src/domain/rate_limit.cpp
+  src/domain/skills.cpp
+  src/domain/slug.cpp
+  src/domain/voting.cpp
   src/domain/wardrobe.cpp
   src/domain/guest_name.cpp
   src/domain/kiroween.cpp
@@ -200,6 +204,7 @@ if(AS_BUILD_TESTS)
     tests/unit/avatar_render_test.cpp
     tests/unit/costumer_draft_test.cpp
     tests/unit/civil_time_test.cpp
+    tests/unit/codex_scoring_test.cpp
     tests/unit/config_test.cpp
     tests/unit/core_test.cpp
     tests/unit/context_menu_test.cpp
@@ -224,7 +229,8 @@ if(AS_BUILD_TESTS)
   add_executable(property_tests
     tests/property/game_shell_props.cpp
     tests/property/character_creator_props.cpp
-    tests/property/loadout_props.cpp)
+    tests/property/loadout_props.cpp
+    tests/property/agent_codex_props.cpp)
   target_link_libraries(property_tests PRIVATE as_domain Catch2::Catch2WithMain rapidcheck)
   target_include_directories(property_tests PRIVATE tests)
   as_enable_warnings(property_tests)
