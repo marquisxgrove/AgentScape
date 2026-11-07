@@ -39,6 +39,7 @@ struct FrameCtx {
   // Guests start at 13, everyone else at 1).
   std::string userId;
   int userLevel = 1;
+  bool isKeeper = false;  // the user holds the KEEPER role (Settings > Codex Keeper tools)
   // Starts a 4x transparent PNG export of a look (desktop save dialog / web download).
   std::function<void(const domain::Appearance&, const domain::Loadout&, domain::Facing, const std::string& name)>
       exportPortrait;

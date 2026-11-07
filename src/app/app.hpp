@@ -91,6 +91,7 @@ class App {
   std::optional<std::string> currentUserId_;
   ScreenParams postLoginParams_;
   std::optional<ScreenId> postLoginScreen_;  // dev: --screen=costumer opens this right after sign-in
+  bool isKeeper_ = false;  // cached KEEPER role of the signed-in user
   int currentLevel_ = 1;  // placeholder until quest-logs provides real Questing levels
   domain::Settings settings_;
   std::optional<LocalStoreError> loadError_;

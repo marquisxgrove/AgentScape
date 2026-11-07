@@ -163,6 +163,9 @@ void CodexScreen::drawControls(app::FrameCtx& ctx) {
     dirty_ = true;
   }
   if (codex::flowButton(shelf_ ? "View: Shelf" : "View: Table", "view", first)) shelf_ = !shelf_;
+  if (ctx.isKeeper && codex::flowButton("Keeper queue", "keeper", first) && ctx.nav != nullptr) {
+    ctx.nav->navigate(app::ScreenId::Keeper);
+  }
   if (codex::flowButton("Propose a familiar", "propose", first) && ctx.nav != nullptr) ctx.nav->navigate(app::ScreenId::Propose);
   ImGui::Spacing();
 }
