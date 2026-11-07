@@ -296,6 +296,13 @@ if(AS_BUILD_TESTS)
         -P ${CMAKE_SOURCE_DIR}/cmake/RunSmokeCostumer.cmake)
     set_tests_properties(smoke_costumer PROPERTIES LABELS "smoke"
       ENVIRONMENT "SDL_VIDEO_DRIVER=dummy;SDL_RENDER_DRIVER=software")
+    add_test(NAME smoke_codex
+      COMMAND ${CMAKE_COMMAND}
+        -DAGENTSCAPE=$<TARGET_FILE:agentscape>
+        -DOUTDIR=${CMAKE_BINARY_DIR}/smoke-codex
+        -P ${CMAKE_SOURCE_DIR}/cmake/RunSmokeCodex.cmake)
+    set_tests_properties(smoke_codex PROPERTIES LABELS "smoke"
+      ENVIRONMENT "SDL_VIDEO_DRIVER=dummy;SDL_RENDER_DRIVER=software")
   endif()
 endif()
 

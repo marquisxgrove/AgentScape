@@ -48,6 +48,8 @@ Config parseConfig(const ConfigSources& sources) {
       cfg.smokeCostumerDir = std::string(arg.substr(std::string_view{"--smoke-costumer="}.size()));
     } else if (startsWith(arg, "--smoke-phase=")) {
       cfg.smokePhase = arg.substr(std::string_view{"--smoke-phase="}.size()) == "2" ? 2 : 1;
+    } else if (startsWith(arg, "--smoke-codex=")) {
+      cfg.smokeCodexDir = std::string(arg.substr(std::string_view{"--smoke-codex="}.size()));
     } else if (startsWith(arg, "--smoke-demo=")) {
       cfg.smokeDemoDir = std::string(arg.substr(std::string_view{"--smoke-demo="}.size()));
     } else if (startsWith(arg, "-psn_")) {

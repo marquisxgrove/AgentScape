@@ -52,6 +52,7 @@ class App {
   void adoptUser(const std::string& userId, const domain::Settings& settings);
   // Scripted demo path for the headless smoke test (--smoke-demo). Returns true when finished.
   bool runDemoStep();
+  bool runCodexStep();     // --smoke-codex: the agent-codex flow end to end (steps are listed in app.cpp)
   bool runCostumerStep();  // --smoke-costumer: create, claim, equip, save; phase 2 verifies after a restart
   void snapshotTo(const std::string& file);
   void registerScreens();
