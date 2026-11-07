@@ -1,0 +1,132 @@
+{
+ "_note": "Neutral, factual descriptions. No logos or vendor imagery. Names identify the product only.",
+ "snapshotAt": "2026-10-01T00:00:00Z",
+ "agents": [
+  {
+   "slug": "claude",
+   "name": "Claude",
+   "vendor": "Anthropic",
+   "kind": "MODEL",
+   "examine": "A family of large language models from Anthropic.",
+   "about": "Claude models are offered through Anthropic's apps and API. Capabilities differ between versions.",
+   "website": "https://www.anthropic.com"
+  },
+  {
+   "slug": "gpt",
+   "name": "GPT",
+   "vendor": "OpenAI",
+   "kind": "MODEL",
+   "examine": "A family of large language models from OpenAI.",
+   "about": "GPT models are offered through OpenAI's products and API. Capabilities differ between versions.",
+   "website": "https://openai.com"
+  },
+  {
+   "slug": "gemini",
+   "name": "Gemini",
+   "vendor": "Google",
+   "kind": "MODEL",
+   "examine": "A family of multimodal large language models from Google.",
+   "about": "Gemini models are offered through Google's apps and API. Capabilities differ between versions.",
+   "website": "https://gemini.google.com"
+  },
+  {
+   "slug": "llama",
+   "name": "Llama",
+   "vendor": "Meta",
+   "kind": "MODEL",
+   "examine": "A family of openly available large language models from Meta.",
+   "about": "Llama model weights are published by Meta and can be run by anyone under the published license terms.",
+   "website": "https://www.llama.com"
+  },
+  {
+   "slug": "mistral",
+   "name": "Mistral",
+   "vendor": "Mistral AI",
+   "kind": "MODEL",
+   "examine": "A family of large language models from Mistral AI.",
+   "about": "Mistral AI publishes some models openly and offers others through its API.",
+   "website": "https://mistral.ai"
+  },
+  {
+   "slug": "deepseek",
+   "name": "DeepSeek",
+   "vendor": "DeepSeek",
+   "kind": "MODEL",
+   "examine": "A family of large language models from DeepSeek.",
+   "about": "DeepSeek publishes model weights and offers an app and an API.",
+   "website": "https://www.deepseek.com"
+  },
+  {
+   "slug": "grok",
+   "name": "Grok",
+   "vendor": "xAI",
+   "kind": "MODEL",
+   "examine": "A family of large language models from xAI.",
+   "about": "Grok models are offered through xAI's products and API.",
+   "website": "https://x.ai"
+  },
+  {
+   "slug": "qwen",
+   "name": "Qwen",
+   "vendor": "Alibaba Cloud",
+   "kind": "MODEL",
+   "examine": "A family of large language models from Alibaba Cloud.",
+   "about": "Qwen publishes many model sizes, several with open weights.",
+   "website": "https://qwenlm.github.io"
+  },
+  {
+   "slug": "kiro",
+   "name": "Kiro",
+   "vendor": "AWS",
+   "kind": "TOOL",
+   "examine": "An agentic coding tool and editor built around specs, steering files and hooks.",
+   "about": "Kiro turns prompts into requirements, designs and task lists, then works through them with the developer.",
+   "website": "https://kiro.dev"
+  },
+  {
+   "slug": "github-copilot",
+   "name": "GitHub Copilot",
+   "vendor": "GitHub",
+   "kind": "TOOL",
+   "examine": "An AI coding assistant for editors and the command line.",
+   "about": "GitHub Copilot offers code suggestions, chat and agent modes inside popular editors.",
+   "website": "https://github.com/features/copilot"
+  },
+  {
+   "slug": "cursor",
+   "name": "Cursor",
+   "vendor": "Anysphere",
+   "kind": "TOOL",
+   "examine": "A code editor with built-in AI assistance.",
+   "about": "Cursor is an editor with AI chat, code completion and agent features.",
+   "website": "https://cursor.com"
+  },
+  {
+   "slug": "chatgpt",
+   "name": "ChatGPT",
+   "vendor": "OpenAI",
+   "kind": "TOOL",
+   "examine": "OpenAI's conversational assistant app.",
+   "about": "ChatGPT is a chat app that can answer questions, write, analyse files and use connected tools.",
+   "website": "https://chatgpt.com"
+  },
+  {
+   "slug": "perplexity",
+   "name": "Perplexity",
+   "vendor": "Perplexity AI",
+   "kind": "TOOL",
+   "examine": "An AI answer engine that cites its web sources.",
+   "about": "Perplexity answers questions by searching the web and linking the sources it used.",
+   "website": "https://www.perplexity.ai"
+  },
+  {
+   "slug": "v0",
+   "name": "v0",
+   "vendor": "Vercel",
+   "kind": "TOOL",
+   "examine": "A tool that generates web interface code from prompts.",
+   "about": "v0 turns text prompts into user-interface code that can be edited and deployed.",
+   "website": "https://v0.dev"
+  }
+ ]
+}

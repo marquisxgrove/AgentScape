@@ -24,6 +24,14 @@ struct XpChanged {
   int oldLevel = 1;
   int newLevel = 1;
 };
+// An Agent was added, approved, rejected or edited (the Codex list must refresh).
+struct AgentChanged {
+  std::string agentId;
+};
+// A Note was added, voted on, hidden or unhidden (rankings and the Graveyard must refresh).
+struct NotesChanged {
+  std::string agentId;
+};
 struct ItemUnlocked {
   std::string userId;
   std::string itemId;
@@ -32,7 +40,7 @@ struct GameMessage {
   std::string text;
 };
 
-using Event = std::variant<ActivityPosted, RatingsChanged, XpChanged, ItemUnlocked, GameMessage>;
+using Event = std::variant<ActivityPosted, RatingsChanged, XpChanged, ItemUnlocked, GameMessage, AgentChanged, NotesChanged>;
 
 // Synchronous publish/subscribe. Handlers subscribed during a publish are not called for that event;
 // handlers unsubscribed during a publish are skipped.

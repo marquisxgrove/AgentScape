@@ -39,6 +39,7 @@ add_library(as_domain STATIC
   src/domain/context_menu.cpp
   src/domain/adventurer_name.cpp
   src/domain/appearance.cpp
+  src/domain/codex_validation.cpp
   src/domain/device_flow.cpp
   src/domain/frame.cpp
   src/domain/geometry.cpp
@@ -48,6 +49,7 @@ add_library(as_domain STATIC
   src/domain/rate_limit.cpp
   src/domain/skills.cpp
   src/domain/slug.cpp
+  src/domain/stat_table.cpp
   src/domain/voting.cpp
   src/domain/wardrobe.cpp
   src/domain/guest_name.cpp
@@ -70,7 +72,7 @@ add_library(as_db STATIC
   ${AS_EMBEDDED_MIGRATIONS}
   ${AS_EMBEDDED_SEED})
 target_include_directories(as_db PUBLIC src)
-target_link_libraries(as_db PUBLIC as_core SQLiteLib::SQLite3 PRIVATE nlohmann_json::nlohmann_json)
+target_link_libraries(as_db PUBLIC as_core SQLiteLib::SQLite3 PRIVATE as_domain nlohmann_json::nlohmann_json)
 as_enable_warnings(as_db)
 as_enable_sanitizers(as_db)
 
@@ -116,6 +118,8 @@ as_enable_sanitizers(as_events)
 add_library(as_services STATIC
   src/services/activity_service.cpp
   src/services/adventurer_service.cpp
+  src/services/codex_cache.cpp
+  src/services/codex_store.cpp
   src/services/profile_service.cpp)
 target_include_directories(as_services PUBLIC src)
 target_link_libraries(as_services PUBLIC as_events as_db as_domain)
@@ -205,6 +209,7 @@ if(AS_BUILD_TESTS)
     tests/unit/costumer_draft_test.cpp
     tests/unit/civil_time_test.cpp
     tests/unit/codex_scoring_test.cpp
+    tests/unit/codex_validation_test.cpp
     tests/unit/config_test.cpp
     tests/unit/core_test.cpp
     tests/unit/context_menu_test.cpp
@@ -240,9 +245,11 @@ if(AS_BUILD_TESTS)
   add_executable(integration_tests
     tests/integration/activity_service_test.cpp
     tests/integration/adventurer_service_test.cpp
+    tests/integration/codex_store_test.cpp
     tests/integration/db_test.cpp
     tests/integration/local_store_test.cpp
     tests/integration/profile_service_test.cpp
+    tests/integration/seed_codex_test.cpp
     tests/integration/seed_test.cpp)
   target_link_libraries(integration_tests PRIVATE as_app_core as_services as_db Catch2::Catch2WithMain)
   as_enable_warnings(integration_tests)
