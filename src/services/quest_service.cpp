@@ -86,7 +86,7 @@ void publish(app::EventBus& bus, ActivityService& activity, Pending& p) {
 
 constexpr const char* ROW_COLUMNS =
     "q.id, q.author_id, u.name, q.agent_id, a.name, q.agent_version, q.quest_type, q.overall, q.ratings, q.title, q.body, "
-    "q.recommend, q.tags, q.snapshot, q.helpful_count, q.hidden, q.excluded, q.created_at, q.updated_at, a.slug";
+    "q.recommend, q.tags, q.snapshot, q.helpful_count, q.hidden, q.excluded, q.created_at, q.updated_at, a.slug, q.seeded";
 
 QuestLogRecord readRecord(const db::Statement& st) {
   QuestLogRecord r;
@@ -110,6 +110,7 @@ QuestLogRecord readRecord(const db::Statement& st) {
   r.createdAt = core::parseIso8601(st.columnText(17)).value_or(std::chrono::sys_seconds{});
   r.updatedAt = core::parseIso8601(st.columnText(18)).value_or(std::chrono::sys_seconds{});
   r.agentSlug = st.columnText(19);
+  r.seeded = st.columnInt(20) == 1;
   return r;
 }
 
@@ -221,10 +222,11 @@ Result<void, QuestError> QuestService::updateQuestLog(const std::string& userId,
     try {
       const auto now = clock_.now();
       db::Transaction tx{db_};
-      auto row = db_.prepare("SELECT author_id, agent_id, agent_version, quest_type, overall, ratings, excluded FROM quest_log WHERE id = ?");
+      auto row = db_.prepare("SELECT author_id, agent_id, agent_version, quest_type, overall, ratings, excluded, seeded FROM quest_log WHERE id = ?");
       row.bind(1, questLogId);
       if (!row.step()) return tl::unexpected(fail(GameErrorCode::NotFound, MSG_GONE));
-      if (row.columnText(0) != userId) return tl::unexpected(fail(GameErrorCode::Forbidden, MSG_NOT_ALLOWED));
+      // A sample log is nobody's to edit, not even its (NPC) author's.
+      if (row.columnText(0) != userId || row.columnInt(7) == 1) return tl::unexpected(fail(GameErrorCode::Forbidden, MSG_NOT_ALLOWED));
       if (row.columnText(1) != in.agentId || row.columnText(2) != in.version) {
         QuestError e = fail(GameErrorCode::InvalidInput, "A quest scroll can't change which familiar or version it is about.");
         e.fields.push_back({"agent", e.error.message});
@@ -263,10 +265,10 @@ Result<void> QuestService::deleteQuestLog(const std::string& userId, const std::
   Pending pending;
   auto result = db::guarded([&]() -> Result<void> {
     db::Transaction tx{db_};
-    auto row = db_.prepare("SELECT author_id, agent_id, quest_type, overall, ratings, excluded FROM quest_log WHERE id = ?");
+    auto row = db_.prepare("SELECT author_id, agent_id, quest_type, overall, ratings, excluded, seeded FROM quest_log WHERE id = ?");
     row.bind(1, questLogId);
     if (!row.step()) return makeError(GameErrorCode::NotFound, MSG_GONE);
-    if (row.columnText(0) != userId) return makeError(GameErrorCode::Forbidden, MSG_NOT_ALLOWED);
+    if (row.columnText(0) != userId || row.columnInt(6) == 1) return makeError(GameErrorCode::Forbidden, MSG_NOT_ALLOWED);
     const std::string agentId = row.columnText(1);
     const auto before = ratingSetOfRow(row, 2);
 
@@ -344,10 +346,12 @@ Result<void> QuestService::setQuestLogModeration(const std::string& keeperId, co
   auto result = db::guarded([&]() -> Result<void> {
     db::Transaction tx{db_};
     if (!isKeeper(db_, keeperId)) return makeError(GameErrorCode::Forbidden, "Only a Codex Keeper can do that.");
-    auto row = db_.prepare("SELECT agent_id, quest_type, overall, ratings, excluded FROM quest_log WHERE id = ?");
+    auto row = db_.prepare("SELECT agent_id, quest_type, overall, ratings, excluded, seeded FROM quest_log WHERE id = ?");
     row.bind(1, questLogId);
     if (!row.step()) return makeError(GameErrorCode::NotFound, MSG_GONE);
     const std::string agentId = row.columnText(0);
+    // A sample log's ratings are already in the sample baseline, so it can be hidden but never counted in.
+    if (row.columnInt(5) == 1) excluded = true;
     const auto before = ratingSetOfRow(row, 1);
     auto after = before;
     after.excluded = excluded;

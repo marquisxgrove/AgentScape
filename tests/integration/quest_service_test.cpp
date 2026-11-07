@@ -50,6 +50,9 @@ struct Fixture {
   Fixture()
       : db(open()), activity(db, clock, bus), adventurers(db, clock, rng), xp(db, clock, rng, activity),
         quests(db, clock, rng, bus) {
+    // The app ships with sample Quest Logs from the townsfolk; these tests are about the logs they write themselves, so
+    // start without them (the sample logs have their own tests, which seed them back).
+    db.exec("DELETE FROM quest_log WHERE seeded = 1");
     player("alice", "Alice", true);
     player("bob", "Bobby", true);
     player("carol", "Carol", false);   // no Adventurer
@@ -951,4 +954,169 @@ TEST_CASE("the NPC townsfolk's names are taken, so a player can't be an NPC", "[
     CHECK(r.error().message == "That name is not available.");
   }
   CHECK(f.adventurers.createAdventurer("dana", "Danas Hero").has_value());
+}
+
+// --- The sample Quest Logs that ship with the app (display-only) -----------------------------------------------------
+
+#include <functional>
+#include <nlohmann/json.hpp>
+
+namespace {
+Result<db::SeedReport> seedWithQuestLogs(db::Database& db, const std::function<void(nlohmann::json&)>& edit) {
+  std::string text;
+  for (const auto& f : db::embeddedSeedFiles()) {
+    if (f.name == "quest_logs.json") text = std::string(f.json);
+  }
+  auto doc = nlohmann::json::parse(text);
+  edit(doc);
+  text = doc.dump();
+  std::vector<db::SeedFile> files;
+  for (const auto& f : db::embeddedSeedFiles()) files.push_back(f.name == "quest_logs.json" ? db::SeedFile{f.name, text} : f);
+  return db::runSeed(db, files, NOW);
+}
+}  // namespace
+
+TEST_CASE("the app ships with sample Quest Logs from the townsfolk", "[integration][quests][seed]") {
+  Fixture f;
+  REQUIRE(db::runSeed(f.db, NOW).has_value());   // the fixture removes them; put them back
+  CHECK(f.scalar("SELECT COUNT(*) FROM quest_log WHERE seeded = 1") == 12);
+  CHECK(f.scalar("SELECT COUNT(*) FROM quest_log WHERE seeded = 1 AND author_id LIKE 'seed:npc:%'") == 12);
+  CHECK(f.scalar("SELECT COUNT(*) FROM quest_log WHERE seeded = 1 AND hidden = 0") == 12);
+
+  const auto board = f.quests.list({}, "alice");
+  REQUIRE(board.has_value());
+  CHECK(board->total == 12);
+  for (const auto& l : board->logs) {
+    CHECK(l.seeded);
+    CHECK(l.excluded);
+    CHECK(domain::snapshotFromJson(l.snapshot).has_value());   // the NPC's look, so the note gets its thumbnail
+  }
+  CHECK(f.quests.topHelpful("seed:agent:gryphon")->size() >= 1);
+}
+
+TEST_CASE("sample logs never touch the rating aggregates, and cost no XP", "[integration][quests][seed]") {
+  Fixture f;
+  const auto statsBefore = f.scalar("SELECT COALESCE(SUM(sum), 0) * 1000 + COALESCE(SUM(count), 0) FROM agent_skill_stat");
+  const auto xpBefore = f.scalar("SELECT COALESCE(SUM(total_xp), 0) FROM user");
+  REQUIRE(db::runSeed(f.db, NOW).has_value());
+  CHECK(f.scalar("SELECT COALESCE(SUM(sum), 0) * 1000 + COALESCE(SUM(count), 0) FROM agent_skill_stat") == statsBefore);
+  CHECK(f.scalar("SELECT COALESCE(SUM(total_xp), 0) FROM user") == xpBefore);
+  f.checkInvariants();   // stored player-added aggregates equal a recompute that skips excluded logs
+}
+
+TEST_CASE("a Keeper can hide a sample log but cannot count its ratings in", "[integration][quests][seed]") {
+  Fixture f;
+  REQUIRE(db::runSeed(f.db, NOW).has_value());
+  const auto id = std::string("seed:quest:mossbeard-gryphon");
+  const auto agg = f.storedAggregates();
+
+  REQUIRE(f.quests.setQuestLogModeration("kay", id, false, false).has_value());   // "include its ratings"
+  CHECK((**f.quests.get(id)).excluded);                                            // refused: still excluded
+  CHECK(f.storedAggregates() == agg);
+  f.checkInvariants();
+
+  REQUIRE(f.quests.setQuestLogModeration("kay", id, true, false).has_value());     // hide
+  CHECK((**f.quests.get(id)).hidden);
+  CHECK(f.quests.list({}, "")->total == 11);
+  CHECK(f.storedAggregates() == agg);
+  REQUIRE(f.quests.setQuestLogModeration("kay", id, false, false).has_value());    // unhide
+  CHECK(f.quests.list({}, "")->total == 12);
+}
+
+TEST_CASE("a player can mark a sample log helpful, and the NPC author is paid like anyone", "[integration][quests][seed]") {
+  Fixture f;
+  REQUIRE(db::runSeed(f.db, NOW).has_value());
+  const auto id = std::string("seed:quest:mossbeard-gryphon");
+  const auto before = f.totalXp("seed:npc:mossbeard");
+  const auto countBefore = (**f.quests.get(id)).helpfulCount;
+  REQUIRE(f.quests.toggleHelpful("alice", id).value());
+  CHECK((**f.quests.get(id)).helpfulCount == countBefore + 1);
+  CHECK(f.totalXp("seed:npc:mossbeard") == before + 25);
+  f.checkInvariants();   // the NPC's total_xp still equals its ledger
+  REQUIRE_FALSE(f.quests.toggleHelpful("alice", id).value());   // withdraw
+  CHECK((**f.quests.get(id)).helpfulCount == countBefore);
+  CHECK(f.totalXp("seed:npc:mossbeard") == before);
+}
+
+TEST_CASE("nobody can edit or delete a sample log", "[integration][quests][seed]") {
+  Fixture f;
+  REQUIRE(db::runSeed(f.db, NOW).has_value());
+  const auto id = std::string("seed:quest:mossbeard-gryphon");
+  auto in = (**f.quests.get(id)).input;
+  CHECK(f.quests.updateQuestLog("alice", id, in).error().error.code == GameErrorCode::Forbidden);
+  in.title = "Edited by its own author";
+  CHECK(f.quests.updateQuestLog("seed:npc:mossbeard", id, in).error().error.code == GameErrorCode::Forbidden);   // even the NPC author
+  CHECK((**f.quests.get(id)).input.title != "Edited by its own author");
+  CHECK(f.quests.deleteQuestLog("alice", id).error().code == GameErrorCode::Forbidden);
+  CHECK(f.quests.deleteQuestLog("seed:npc:mossbeard", id).error().code == GameErrorCode::Forbidden);   // an NPC has no session either: not a player
+  CHECK(f.scalar("SELECT COUNT(*) FROM quest_log WHERE id = '" + id + "'") == 1);
+}
+
+TEST_CASE("reseeding refreshes sample logs but keeps votes and a Keeper's hide", "[integration][quests][seed]") {
+  Fixture f;
+  REQUIRE(db::runSeed(f.db, NOW).has_value());
+  const auto kept = std::string("seed:quest:quillwright-quillback");
+  const auto hidden = std::string("seed:quest:tokenmancer-spellforge");
+  REQUIRE(f.quests.toggleHelpful("alice", kept).value());
+  REQUIRE(f.quests.setQuestLogModeration("kay", hidden, true, true).has_value());
+  const auto votes = (**f.quests.get(kept)).helpfulCount;
+
+  REQUIRE(seedWithQuestLogs(f.db, [](nlohmann::json& j) { j["questLogs"][1]["title"] = "A retitled sample log"; }).has_value());
+  CHECK((**f.quests.get(kept)).input.title == "A retitled sample log");   // text refreshed
+  CHECK((**f.quests.get(kept)).helpfulCount == votes);                    // votes kept
+  CHECK(*f.quests.hasVoted("alice", kept));
+  CHECK((**f.quests.get(hidden)).hidden);                                 // the Keeper's hide stands
+  CHECK((**f.quests.get(kept)).excluded);
+  CHECK(f.scalar("SELECT COUNT(*) FROM quest_log WHERE seeded = 1") == 12);
+  f.checkInvariants();
+}
+
+TEST_CASE("a sample log that leaves the seed is hidden, not deleted", "[integration][quests][seed]") {
+  Fixture f;
+  REQUIRE(db::runSeed(f.db, NOW).has_value());
+  REQUIRE(seedWithQuestLogs(f.db, [](nlohmann::json& j) { j["questLogs"].erase(j["questLogs"].begin()); }).has_value());
+  CHECK(f.scalar("SELECT COUNT(*) FROM quest_log WHERE seeded = 1") == 12);   // still there
+  CHECK(f.scalar("SELECT COUNT(*) FROM quest_log WHERE seeded = 1 AND hidden = 1") == 1);
+  CHECK(f.quests.list({}, "")->total == 11);
+}
+
+TEST_CASE("sample logs of an Agent a player already owns are skipped", "[integration][quests][seed]") {
+  auto d = db::Database::open(":memory:");
+  REQUIRE(d.has_value());
+  REQUIRE(db::applyMigrations(*d).has_value());
+  d->exec("INSERT INTO user(id, name, kind, created_at, last_seen_at) VALUES ('p1', 'Marquis', 'PLAYER', 't', 't')");
+  d->exec("INSERT INTO agent(id, slug, name, vendor, kind, examine, status, proposed_by_id, created_at, updated_at) "
+          "VALUES ('01PLAYERGRYPHON', 'gryphon', 'Gryphon', 'Me', 'TOOL', 'Mine.', 'APPROVED', 'p1', 't', 't')");
+  const auto report = db::runSeed(*d, NOW);
+  REQUIRE(report.has_value());
+  auto st = d->prepare("SELECT COUNT(*) FROM quest_log WHERE agent_id = '01PLAYERGRYPHON'");
+  REQUIRE(st.step());
+  CHECK(st.columnInt(0) == 0);   // nobody wrote about the player's Agent
+  auto total = d->prepare("SELECT COUNT(*) FROM quest_log");
+  REQUIRE(total.step());
+  CHECK(total.columnInt(0) == 11);   // the one Gryphon log was skipped; the other eleven are there
+}
+
+TEST_CASE("a bad sample Quest Log is refused and nothing is written", "[integration][quests][seed]") {
+  const auto refuses = [](const std::function<void(nlohmann::json&)>& edit) {
+    auto d = db::Database::open(":memory:");
+    REQUIRE(d.has_value());
+    REQUIRE(db::applyMigrations(*d).has_value());
+    CHECK_FALSE(seedWithQuestLogs(*d, edit).has_value());
+    auto st = d->prepare("SELECT COUNT(*) FROM quest_log");
+    REQUIRE(st.step());
+    CHECK(st.columnInt(0) == 0);
+    auto users = d->prepare("SELECT COUNT(*) FROM user");
+    REQUIRE(users.step());
+    CHECK(users.columnInt(0) == 0);
+  };
+  refuses([](nlohmann::json& j) { j["questLogs"][0]["overall"] = 9; });                       // not 1..5
+  refuses([](nlohmann::json& j) { j["questLogs"][0]["title"] = "no"; });                      // too short
+  refuses([](nlohmann::json& j) { j["questLogs"][0]["pros"] = {"Not a tag"}; });              // not on the list
+  refuses([](nlohmann::json& j) { j["questLogs"][0]["agent"] = "no-such-agent"; });           // unknown agent
+  refuses([](nlohmann::json& j) { j["questLogs"][0]["author"] = "seed:npc:nobody"; });        // unknown author
+  refuses([](nlohmann::json& j) { j["questLogs"][0]["questType"] = "FLYING"; });              // unknown type
+  refuses([](nlohmann::json& j) { j["questLogs"][0]["skills"] = {{"CODING", 9}}; });          // rating out of range
+  refuses([](nlohmann::json& j) { j["questLogs"][1]["id"] = j["questLogs"][0]["id"]; });      // duplicate id
+  refuses([](nlohmann::json& j) { j["questLogs"][0]["id"] = "not-a-seed-id"; });              // bad id
 }

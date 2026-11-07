@@ -124,7 +124,7 @@ bool questCard(const char* id, const services::QuestLogRecord& log, const std::o
   const float textW = width - 60.0F;
   dl->PushClipRect({x, p0.y}, {p1.x - 3.0F, p1.y - 2.0F}, true);
   float y = p0.y + 8.0F;
-  const std::string head = log.agentName + (log.input.version.empty() ? "" : " " + log.input.version);
+  const std::string head = log.agentName + (log.input.version.empty() ? "" : " " + log.input.version) + (log.seeded ? "  [sample]" : "");
   dl->AddText(font, fs, {x, y}, ink, head.c_str());
   y += fs + 3.0F;
   dl->AddText(font, fs, {x, y}, dark, domain::displayName(log.input.questType));

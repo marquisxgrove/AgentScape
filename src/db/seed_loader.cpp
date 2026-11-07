@@ -12,6 +12,8 @@
 #include "domain/codex_validation.hpp"
 #include "domain/items.hpp"
 #include "domain/loadout_json.hpp"
+#include "domain/ratings.hpp"
+#include "domain/snapshot.hpp"
 #include "domain/skills.hpp"
 #include "domain/slug.hpp"
 
@@ -54,6 +56,15 @@ struct NoteSeed {
   std::int64_t disagree = 0;
 };
 
+struct QuestLogSeed {
+  std::string id;        // seed:quest:<slug>
+  std::string authorId;  // seed:npc:<slug>
+  std::string agentSlug;
+  domain::QuestLogInput input;   // agentId holds the slug here; the real id is derived when it is written
+  std::string createdAt;
+  std::int64_t helpful = 0;
+};
+
 struct ParsedSeed {
   std::string snapshotAt;  // ISO-8601, used as created_at/last_seen_at for NPC rows
   std::vector<NpcSeed> npcs;
@@ -62,12 +73,14 @@ struct ParsedSeed {
   std::vector<StatSeed> stats;
   std::string notesAt;
   std::vector<NoteSeed> notes;
+  std::string questLogsAt;
+  std::vector<QuestLogSeed> questLogs;
 };
 
 // Files are applied in this order (later files reference earlier ones: quest logs need NPCs and
 // Agents). New seed files are added here as their specs land (agent-codex: agents.json, notes.json;
 // quest-logs: quest_logs.json).
-constexpr std::array<std::string_view, 4> KNOWN_FILES{"npcs.json", "agents.json", "ratings.json", "notes.json"};
+constexpr std::array<std::string_view, 5> KNOWN_FILES{"npcs.json", "agents.json", "ratings.json", "notes.json", "quest_logs.json"};
 
 Result<void> invalid(std::string_view file, std::string_view detail) {
   return makeError(GameErrorCode::InvalidInput, "Your save could not be loaded.",
@@ -253,6 +266,66 @@ Result<void> parseNotes(std::string_view file, const json& doc, ParsedSeed& out)
   return {};
 }
 
+Result<void> parseQuestLogs(std::string_view file, const json& doc, ParsedSeed& out) {
+  auto snap = snapshotOf(file, doc);
+  if (!snap) return tl::unexpected(snap.error());
+  out.questLogsAt = *snap;
+  const auto list = doc.find("questLogs");
+  if (list == doc.end() || !list->is_array()) return invalid(file, "questLogs must be an array");
+
+  std::vector<std::string> seen;
+  for (const auto& item : *list) {
+    if (!item.is_object()) return invalid(file, "each Quest Log must be an object");
+    const auto id = stringField(item, "id");
+    const auto author = stringField(item, "author");
+    const auto agent = stringField(item, "agent");
+    const auto qt = stringField(item, "questType");
+    const auto title = stringField(item, "title");
+    const auto body = stringField(item, "body");
+    const auto created = stringField(item, "createdAt");
+    const auto overall = intField(item, "overall");
+    const auto helpful = intField(item, "helpful");
+    if (!id || !author || !agent || !qt || !title || !body || !created || !overall || !helpful || !item.contains("recommend") ||
+        !item["recommend"].is_boolean()) {
+      return invalid(file, "each Quest Log needs id, author, agent, questType, overall, title, body, recommend, createdAt and helpful");
+    }
+    if (!validSeedId(*id, "quest")) return invalid(file, "bad Quest Log id '" + *id + "' (want seed:quest:<slug>)");
+    if (*helpful < 0 || *helpful > 100000) return invalid(file, "helpful count out of range: " + *id);
+    if (!core::parseIso8601(*created)) return invalid(file, "createdAt must be an ISO-8601 UTC timestamp: " + *id);
+    const auto questType = domain::questTypeFromStorage(*qt);
+    if (!questType) return invalid(file, "unknown quest type '" + *qt + "': " + *id);
+
+    domain::QuestLogInput in;
+    in.agentId = *agent;   // the slug; the validator only needs it to be non-empty
+    in.version = stringField(item, "version").value_or("");
+    in.questType = *questType;
+    in.overall = static_cast<int>(*overall);
+    in.title = *title;
+    in.body = *body;
+    in.recommend = item["recommend"].get<bool>();
+    if (item.contains("skills")) {
+      if (!item["skills"].is_object()) return invalid(file, "skills must be an object: " + *id);
+      in.skills = domain::ratingsFromJson(item["skills"].dump());
+      if (in.skills.size() != item["skills"].size()) return invalid(file, "bad skill rating: " + *id);
+    }
+    for (const char* key : {"pros", "cons"}) {
+      if (!item.contains(key)) continue;
+      if (!item[key].is_array()) return invalid(file, std::string(key) + " must be an array: " + *id);
+      auto& side = std::string_view(key) == "pros" ? in.pros : in.cons;
+      for (const auto& t : item[key]) {
+        if (!t.is_string()) return invalid(file, std::string(key) + " must hold strings: " + *id);
+        side.push_back(t.get<std::string>());
+      }
+    }
+    auto cleaned = domain::validateQuestLogInput(in);
+    if (!cleaned) return invalid(file, "Quest Log " + *id + ": " + cleaned.error().front().message);
+    if (std::find(seen.begin(), seen.end(), *id) != seen.end()) return invalid(file, "duplicate Quest Log " + *id);
+    seen.push_back(*id);
+    out.questLogs.push_back({*id, *author, *agent, std::move(*cleaned), *created, *helpful});
+  }
+  return {};
+}
+
 // References between files must resolve, so a typo can't silently drop data.
 Result<void> checkReferences(const ParsedSeed& p) {
   const auto hasAgent = [&](const std::string& slug) {
@@ -265,6 +338,12 @@ Result<void> checkReferences(const ParsedSeed& p) {
     if (!hasAgent(n.agentSlug)) return invalid("notes.json", "note " + n.id + " has unknown agent '" + n.agentSlug + "'");
     if (std::none_of(p.npcs.begin(), p.npcs.end(), [&](const NpcSeed& npc) { return npc.id == n.authorId; })) {
       return invalid("notes.json", "note " + n.id + " has unknown author '" + n.authorId + "'");
+    }
+  }
+  for (const auto& q : p.questLogs) {
+    if (!hasAgent(q.agentSlug)) return invalid("quest_logs.json", "Quest Log " + q.id + " has unknown agent '" + q.agentSlug + "'");
+    if (std::none_of(p.npcs.begin(), p.npcs.end(), [&](const NpcSeed& npc) { return npc.id == q.authorId; })) {
+      return invalid("quest_logs.json", "Quest Log " + q.id + " has unknown author '" + q.authorId + "'");
     }
   }
   return {};
@@ -291,6 +370,7 @@ Result<ParsedSeed> parseAll(std::span<const SeedFile> files, std::vector<std::st
     if (known == "agents.json") r = parseAgents(known, doc, parsed);
     if (known == "ratings.json") r = parseRatings(known, doc, parsed);
     if (known == "notes.json") r = parseNotes(known, doc, parsed);
+    if (known == "quest_logs.json") r = parseQuestLogs(known, doc, parsed);
     if (!r) return tl::unexpected(r.error());
     order.emplace_back(known);
   }
@@ -481,6 +561,60 @@ Result<SeedReport> runSeed(Database& db, std::span<const SeedFile> files, std::c
           .run();
       upsertNote.reset();
       ++report.notesUpserted;
+    }
+
+    // Sample Quest Logs: display-only. Their ratings are already in the sample baseline above, so they are stored
+    // seeded AND excluded (and the services keep them that way). Text and look are refreshed; the Helpful count and
+    // a Keeper's hide are left alone after the first insert, because players' votes and moderation live there.
+    auto upsertLog = db.prepare(
+        "INSERT INTO quest_log(id, author_id, agent_id, agent_version, quest_type, overall, ratings, title, body, recommend, tags, "
+        "snapshot, helpful_count, hidden, excluded, seeded, created_at, updated_at) "
+        "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 0, 1, 1, ?, ?) "
+        "ON CONFLICT(id) DO UPDATE SET agent_version = excluded.agent_version, quest_type = excluded.quest_type, "
+        "overall = excluded.overall, ratings = excluded.ratings, title = excluded.title, body = excluded.body, "
+        "recommend = excluded.recommend, tags = excluded.tags, snapshot = excluded.snapshot, excluded = 1, seeded = 1, "
+        "created_at = excluded.created_at, updated_at = excluded.updated_at");
+    std::vector<std::string> currentLogIds;
+    for (const auto& q : parsed->questLogs) {
+      if (isSkipped(q.agentSlug)) continue;
+      const auto npc = std::find_if(parsed->npcs.begin(), parsed->npcs.end(), [&](const NpcSeed& n) { return n.id == q.authorId; });
+      domain::AdventurerSnapshot look;
+      look.name = npc->name;
+      if (npc->appearance) {
+        if (auto parsedLook = domain::snapshotFromParts(npc->name, *npc->appearance, npc->loadout)) look = *parsedLook;
+      }
+      upsertLog.bind(1, q.id)
+          .bind(2, q.authorId)
+          .bind(3, agentId(q.agentSlug))
+          .bind(4, q.input.version)
+          .bind(5, domain::storageName(q.input.questType))
+          .bind(6, q.input.overall)
+          .bind(7, domain::ratingsToJson(q.input.skills))
+          .bind(8, q.input.title)
+          .bind(9, q.input.body)
+          .bind(10, q.input.recommend ? 1 : 0)
+          .bind(11, domain::tagsToJson(q.input.pros, q.input.cons))
+          .bind(12, domain::snapshotToJson(look))
+          .bind(13, q.helpful)
+          .bind(14, q.createdAt)
+          .bind(15, q.createdAt)
+          .run();
+      upsertLog.reset();
+      currentLogIds.push_back(q.id);
+      ++report.questLogsUpserted;
+    }
+    {
+      // A sample log that left the seed is hidden, never deleted (players may have voted on it).
+      std::vector<std::string> stale;
+      auto all = db.prepare("SELECT id FROM quest_log WHERE seeded = 1 AND hidden = 0");
+      while (all.step()) {
+        if (std::find(currentLogIds.begin(), currentLogIds.end(), all.columnText(0)) == currentLogIds.end()) stale.push_back(all.columnText(0));
+      }
+      auto hide = db.prepare("UPDATE quest_log SET hidden = 1 WHERE id = ?");
+      for (const auto& id : stale) {
+        hide.bind(1, id).run();
+        hide.reset();
+      }
     }
 
     setAppState(db, "seed_version", std::to_string(SEED_VERSION));
