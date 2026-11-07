@@ -74,6 +74,8 @@ std::vector<std::pair<T, int>> competitionRank(std::vector<T> rows, Score score,
 
 ### Services
 
+> Implementation notes (Hiscores slice): the NPC townsfolk in `data/seed/npcs.json` now carry sample Questing XP (one `SEED` ledger row each) and an active Adventurer (look and gear), so the Adventurer Hiscores and thumbnails are alive on first run (SEED_VERSION 4). A player who already took an NPC's name keeps it; that NPC just has no thumbnail. `HiscoresService` builds its own `CodexService` (sharing the `CodexCache`) rather than holding a reference into the moved `Services` bundle; Adventurers are ranked straight from the database each time (cheap), Agents from the cached rating tables. The Total board leaves off an Agent with no ranked Skill (otherwise every unrated Agent would sit on a floor of 10).
+
 > Implementation notes (services slice): `QuestService`, `NoteService` and `KeeperService` each build the small services they use (`ActivityService`, `XpService`, `AdventurerService`) from the same db, clock, rng and bus instead of taking references. The App's `Services` bundle is moved after construction, so references into it would dangle. Quest Logs add `ReportTarget::QuestLog`. `ProfileService::setBeforeGuestDelete` lets an idle Guest's content leave through `QuestService::purgeUser` and `NoteService::retractAllVotes` (cascade alone would orphan ratings and leave vote counts inflated).
 
 - `QuestService`: `createQuestLog`, `updateQuestLog`, `deleteQuestLog`, `toggleHelpful`, `setQuestLogModeration({ hidden, excluded })` (Keeper only). Reports use the shared `reportContent`.

@@ -85,6 +85,9 @@ class CodexService {
   // with at least 3 votes, best Note_Score first.
   Result<std::vector<Tombstone>> tombstones();
 
+  // Every approved Agent with its levels in `scope`, by name. For the Hiscores, which rank them.
+  Result<std::vector<CodexRow>> allLevels(std::optional<domain::QuestType> scope);
+
   // Every approved Agent, by name (for pickers).
   Result<std::vector<Agent>> approvedAgents();
 

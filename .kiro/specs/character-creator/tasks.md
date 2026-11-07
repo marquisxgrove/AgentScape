@@ -69,4 +69,4 @@
 - [x] 7. Checkpoint
   - Extend the smoke test: create an Adventurer → claim and equip Jack-o'-Lantern Mask + Reaper's Scythe (Guest users start at level 13) → Save → restart the `App` on the same database → still equipped.
   - Make sure all tests pass, and ask the user if questions arise.
-  - _Note: `ctest -L smoke` runs `smoke_costumer` (cmake/RunSmokeCostumer.cmake): phase 1 creates "Mossbeard" as a Guest, claims and equips the Jack-o'-Lantern Mask and Reaper's Scythe, and saves; phase 2 is a separate app process on the same database and asserts the gear is still equipped. Mutation-checked (skipping Save fails it)._
+  - _Note: `ctest -L smoke` runs `smoke_costumer` (cmake/RunSmokeCostumer.cmake): phase 1 creates "Wanderer" as a Guest (the NPC townsfolk names are reserved), claims and equips the Jack-o'-Lantern Mask and Reaper's Scythe, and saves; phase 2 is a separate app process on the same database and asserts the gear is still equipped. Mutation-checked (skipping Save fails it)._

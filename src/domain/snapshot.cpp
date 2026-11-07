@@ -16,23 +16,29 @@ std::string snapshotToJson(const AdventurerSnapshot& snapshot) {
   return j.dump();
 }
 
-std::optional<AdventurerSnapshot> snapshotFromJson(std::string_view text) {
-  const auto j = nlohmann::json::parse(text.begin(), text.end(), nullptr, /*allow_exceptions=*/false);
-  if (!j.is_object() || !j.contains("name") || !j["name"].is_string() || !j.contains("appearance")) return std::nullopt;
+std::optional<AdventurerSnapshot> snapshotFromParts(std::string_view name, std::string_view appearanceJson,
+                                                    std::string_view loadoutJson) {
   AdventurerSnapshot out;
-  out.name = j["name"].get<std::string>();
-  const auto appearance = parseAppearance(j["appearance"].dump());
+  out.name = std::string(name);
+  const auto appearance = parseAppearance(appearanceJson);
   if (!appearance || !validateAppearance(*appearance)) return std::nullopt;
   out.appearance = *appearance;
-  if (j.contains("loadout")) {
+  const auto loadout = nlohmann::json::parse(loadoutJson.begin(), loadoutJson.end(), nullptr, /*allow_exceptions=*/false);
+  if (loadout.is_object()) {
     Loadout raw;
-    from_json(j["loadout"], raw);   // skips unknown slot names
+    from_json(loadout, raw);   // skips unknown slot names
     for (const auto& [slot, id] : raw) {
       const Item* item = findItem(id);
       if (item != nullptr && item->slot == slot) out.loadout[slot] = id;
     }
   }
   return out;
+}
+
+std::optional<AdventurerSnapshot> snapshotFromJson(std::string_view text) {
+  const auto j = nlohmann::json::parse(text.begin(), text.end(), nullptr, /*allow_exceptions=*/false);
+  if (!j.is_object() || !j.contains("name") || !j["name"].is_string() || !j.contains("appearance")) return std::nullopt;
+  return snapshotFromParts(j["name"].get<std::string>(), j["appearance"].dump(), j.contains("loadout") ? j["loadout"].dump() : "{}");
 }
 
 }  // namespace as::domain

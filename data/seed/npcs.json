@@ -1,13 +1,210 @@
 {
-  "snapshotAt": "2026-10-01T00:00:00Z",
-  "npcs": [
-    { "id": "seed:npc:mossbeard", "name": "Mossbeard" },
-    { "id": "seed:npc:quillwright", "name": "Quillwright" },
-    { "id": "seed:npc:tokenmancer", "name": "Tokenmancer" },
-    { "id": "seed:npc:lady-lambda", "name": "Lady Lambda" },
-    { "id": "seed:npc:stacktrace", "name": "Cpt Stacktrace" },
-    { "id": "seed:npc:hexlint", "name": "Hexlint" },
-    { "id": "seed:npc:brambleprompt", "name": "Brambleprompt" },
-    { "id": "seed:npc:nullwyn", "name": "Nullwyn" }
-  ]
+ "snapshotAt": "2026-10-01T00:00:00Z",
+ "_note": "FICTIONAL townsfolk. Their XP and looks are sample data so the Hiscores and the Tavern are alive on first run. Names are reserved: they count as taken Adventurer names.",
+ "npcs": [
+  {
+   "id": "seed:npc:mossbeard",
+   "name": "Mossbeard",
+   "xp": 53258,
+   "appearance": {
+    "bodyType": "A",
+    "hair": 3,
+    "facialHair": 5,
+    "torso": 2,
+    "arms": 1,
+    "legs": 3,
+    "colors": {
+     "hair": 4,
+     "torso": 9,
+     "legs": 3,
+     "feet": 2,
+     "skin": 2
+    }
+   },
+   "loadout": {
+    "Cape": "keepers_cape",
+    "Weapon": "prompt_staff",
+    "Body": "scholar_robe",
+    "Hands": "leather_gloves",
+    "Feet": "leather_boots",
+    "Head": "wizard_hat"
+   }
+  },
+  {
+   "id": "seed:npc:quillwright",
+   "name": "Quillwright",
+   "xp": 43027,
+   "appearance": {
+    "bodyType": "B",
+    "hair": 7,
+    "facialHair": 0,
+    "torso": 4,
+    "arms": 2,
+    "legs": 1,
+    "colors": {
+     "hair": 8,
+     "torso": 5,
+     "legs": 7,
+     "feet": 1,
+     "skin": 5
+    }
+   },
+   "loadout": {
+    "Weapon": "quill_sword",
+    "Shield": "codex_tome",
+    "Body": "scholar_robe",
+    "Legs": "scholar_skirt",
+    "Neck": "token_amulet"
+   }
+  },
+  {
+   "id": "seed:npc:tokenmancer",
+   "name": "Tokenmancer",
+   "xp": 33746,
+   "appearance": {
+    "bodyType": "A",
+    "hair": 1,
+    "facialHair": 2,
+    "torso": 1,
+    "arms": 0,
+    "legs": 2,
+    "colors": {
+     "hair": 1,
+     "torso": 12,
+     "legs": 10,
+     "feet": 4,
+     "skin": 1
+    }
+   },
+   "loadout": {
+    "Head": "apprentice_hood",
+    "Neck": "token_amulet",
+    "Weapon": "wooden_stick",
+    "Cape": "travellers_cape"
+   }
+  },
+  {
+   "id": "seed:npc:lady-lambda",
+   "name": "Lady Lambda",
+   "xp": 25448,
+   "appearance": {
+    "bodyType": "B",
+    "hair": 9,
+    "facialHair": 0,
+    "torso": 5,
+    "arms": 3,
+    "legs": 5,
+    "colors": {
+     "hair": 11,
+     "torso": 2,
+     "legs": 14,
+     "feet": 0,
+     "skin": 6
+    }
+   },
+   "loadout": {
+    "Body": "scholar_robe",
+    "Legs": "scholar_skirt",
+    "Hands": "leather_gloves",
+    "Feet": "leather_boots",
+    "Shield": "codex_tome"
+   }
+  },
+  {
+   "id": "seed:npc:stacktrace",
+   "name": "Cpt Stacktrace",
+   "xp": 17221,
+   "appearance": {
+    "bodyType": "A",
+    "hair": 5,
+    "facialHair": 7,
+    "torso": 3,
+    "arms": 1,
+    "legs": 4,
+    "colors": {
+     "hair": 6,
+     "torso": 14,
+     "legs": 6,
+     "feet": 3,
+     "skin": 3
+    }
+   },
+   "loadout": {
+    "Cape": "travellers_cape",
+    "Weapon": "quill_sword",
+    "Feet": "leather_boots"
+   }
+  },
+  {
+   "id": "seed:npc:hexlint",
+   "name": "Hexlint",
+   "xp": 11974,
+   "appearance": {
+    "bodyType": "B",
+    "hair": 2,
+    "facialHair": 0,
+    "torso": 0,
+    "arms": 2,
+    "legs": 0,
+    "colors": {
+     "hair": 3,
+     "torso": 0,
+     "legs": 1,
+     "feet": 5,
+     "skin": 0
+    }
+   },
+   "loadout": {
+    "Head": "wizard_hat",
+    "Weapon": "wooden_stick"
+   }
+  },
+  {
+   "id": "seed:npc:brambleprompt",
+   "name": "Brambleprompt",
+   "xp": 5693,
+   "appearance": {
+    "bodyType": "A",
+    "hair": 8,
+    "facialHair": 4,
+    "torso": 2,
+    "arms": 3,
+    "legs": 3,
+    "colors": {
+     "hair": 9,
+     "torso": 7,
+     "legs": 5,
+     "feet": 2,
+     "skin": 7
+    }
+   },
+   "loadout": {
+    "Hands": "leather_gloves",
+    "Feet": "leather_boots"
+   }
+  },
+  {
+   "id": "seed:npc:nullwyn",
+   "name": "Nullwyn",
+   "xp": 1522,
+   "appearance": {
+    "bodyType": "B",
+    "hair": 4,
+    "facialHair": 0,
+    "torso": 3,
+    "arms": 0,
+    "legs": 2,
+    "colors": {
+     "hair": 0,
+     "torso": 10,
+     "legs": 12,
+     "feet": 1,
+     "skin": 4
+    }
+   },
+   "loadout": {
+    "Head": "apprentice_hood"
+   }
+  }
+ ]
 }

@@ -19,6 +19,9 @@ struct AdventurerSnapshot {
   bool operator==(const AdventurerSnapshot&) const = default;
 };
 
+// The same defensive reading for an Adventurer stored as separate columns (name, appearance JSON, loadout JSON).
+std::optional<AdventurerSnapshot> snapshotFromParts(std::string_view name, std::string_view appearanceJson, std::string_view loadoutJson);
+
 std::string snapshotToJson(const AdventurerSnapshot& snapshot);
 
 // Reads a stored snapshot defensively: nullopt if it is not a JSON object with a name and a valid Appearance. A
