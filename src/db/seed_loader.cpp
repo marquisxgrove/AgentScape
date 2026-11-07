@@ -332,6 +332,23 @@ Result<SeedReport> runSeed(Database& db, std::span<const SeedFile> files, std::c
       upsertAgent.reset();
       ++report.agentsUpserted;
     }
+    // Retire seed Agents that are no longer in the seed (an older seed version shipped different ones). They are
+    // marked REJECTED, never deleted, so nothing a player attached to them is lost.
+    {
+      auto seedIds = db.prepare("SELECT id FROM agent WHERE id LIKE 'seed:agent:%' AND status <> 'REJECTED'");
+      std::vector<std::string> stale;
+      while (seedIds.step()) {
+        const std::string id = seedIds.columnText(0);
+        const bool current = std::any_of(parsed->agents.begin(), parsed->agents.end(),
+                                         [&](const auto& a) { return a.id == id; });
+        if (!current) stale.push_back(id);
+      }
+      auto retire = db.prepare("UPDATE agent SET status = 'REJECTED' WHERE id = ?");
+      for (const auto& id : stale) {
+        retire.bind(1, id).run();
+        retire.reset();
+      }
+    }
     const auto isSkipped = [&](const std::string& slug) {
       return std::find(skipped.begin(), skipped.end(), slug) != skipped.end();
     };

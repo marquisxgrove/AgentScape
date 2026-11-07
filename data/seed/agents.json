@@ -1,132 +1,132 @@
 {
- "_note": "Neutral, factual descriptions. No logos or vendor imagery. Names identify the product only.",
+ "_note": "FICTIONAL agents and vendors invented for the demo. They describe no real product.",
  "snapshotAt": "2026-10-01T00:00:00Z",
  "agents": [
   {
-   "slug": "claude",
-   "name": "Claude",
-   "vendor": "Anthropic",
+   "slug": "quillback",
+   "name": "Quillback",
+   "vendor": "Hollowmere Labs",
    "kind": "MODEL",
-   "examine": "A family of large language models from Anthropic.",
-   "about": "Claude models are offered through Anthropic's apps and API. Capabilities differ between versions.",
-   "website": "https://www.anthropic.com"
+   "examine": "A well-read language model that never leaves home without a spare quill.",
+   "about": "Quillback answers questions and drafts text for Hollowmere Labs customers. Made-up for the AgentScape demo.",
+   "website": "https://quillback.example"
   },
   {
-   "slug": "gpt",
-   "name": "GPT",
-   "vendor": "OpenAI",
+   "slug": "gryphon",
+   "name": "Gryphon",
+   "vendor": "Lanternfold",
    "kind": "MODEL",
-   "examine": "A family of large language models from OpenAI.",
-   "about": "GPT models are offered through OpenAI's products and API. Capabilities differ between versions.",
-   "website": "https://openai.com"
+   "examine": "A sharp-eyed language model that circles a problem before it strikes.",
+   "about": "Gryphon is the flagship model of Lanternfold. Made-up for the AgentScape demo.",
+   "website": "https://gryphon.example"
   },
   {
-   "slug": "gemini",
-   "name": "Gemini",
-   "vendor": "Google",
+   "slug": "twinwick",
+   "name": "Twinwick",
+   "vendor": "Ashgrove Systems",
    "kind": "MODEL",
-   "examine": "A family of multimodal large language models from Google.",
-   "about": "Gemini models are offered through Google's apps and API. Capabilities differ between versions.",
-   "website": "https://gemini.google.com"
+   "examine": "A two-flame model that reads pictures as well as words.",
+   "about": "Twinwick is a multimodal model from Ashgrove Systems. Made-up for the AgentScape demo.",
+   "website": "https://twinwick.example"
   },
   {
-   "slug": "llama",
-   "name": "Llama",
-   "vendor": "Meta",
+   "slug": "mossling",
+   "name": "Mossling",
+   "vendor": "Fen Commons",
    "kind": "MODEL",
-   "examine": "A family of openly available large language models from Meta.",
-   "about": "Llama model weights are published by Meta and can be run by anyone under the published license terms.",
-   "website": "https://www.llama.com"
+   "examine": "A small, open-handed model that anyone may carry and run.",
+   "about": "Mossling is published by the Fen Commons collective for anyone to run. Made-up for the AgentScape demo.",
+   "website": "https://mossling.example"
   },
   {
-   "slug": "mistral",
-   "name": "Mistral",
-   "vendor": "Mistral AI",
+   "slug": "mistwren",
+   "name": "Mistwren",
+   "vendor": "Brindle Co",
    "kind": "MODEL",
-   "examine": "A family of large language models from Mistral AI.",
-   "about": "Mistral AI publishes some models openly and offers others through its API.",
-   "website": "https://mistral.ai"
+   "examine": "A quick little model that flits between tasks.",
+   "about": "Mistwren comes in several sizes from Brindle Co. Made-up for the AgentScape demo.",
+   "website": "https://mistwren.example"
   },
   {
-   "slug": "deepseek",
-   "name": "DeepSeek",
-   "vendor": "DeepSeek",
+   "slug": "deepwell",
+   "name": "Deepwell",
+   "vendor": "Underhill Research",
    "kind": "MODEL",
-   "examine": "A family of large language models from DeepSeek.",
-   "about": "DeepSeek publishes model weights and offers an app and an API.",
-   "website": "https://www.deepseek.com"
+   "examine": "A patient model that likes to think a question all the way down.",
+   "about": "Deepwell is a reasoning-focused model from Underhill Research. Made-up for the AgentScape demo.",
+   "website": "https://deepwell.example"
   },
   {
-   "slug": "grok",
-   "name": "Grok",
-   "vendor": "xAI",
+   "slug": "grimble",
+   "name": "Grimble",
+   "vendor": "Cinderpost",
    "kind": "MODEL",
-   "examine": "A family of large language models from xAI.",
-   "about": "Grok models are offered through xAI's products and API.",
-   "website": "https://x.ai"
+   "examine": "A cheeky model with strong opinions and a short fuse.",
+   "about": "Grimble is the chatty model from Cinderpost. Made-up for the AgentScape demo.",
+   "website": "https://grimble.example"
   },
   {
-   "slug": "qwen",
-   "name": "Qwen",
-   "vendor": "Alibaba Cloud",
+   "slug": "quartzen",
+   "name": "Quartzen",
+   "vendor": "Tallow Cloud",
    "kind": "MODEL",
-   "examine": "A family of large language models from Alibaba Cloud.",
-   "about": "Qwen publishes many model sizes, several with open weights.",
-   "website": "https://qwenlm.github.io"
+   "examine": "A many-faceted model offered in a great range of sizes.",
+   "about": "Quartzen is a family of models from Tallow Cloud. Made-up for the AgentScape demo.",
+   "website": "https://quartzen.example"
   },
   {
-   "slug": "kiro",
-   "name": "Kiro",
-   "vendor": "AWS",
+   "slug": "spellforge",
+   "name": "Spellforge",
+   "vendor": "Anvilworks",
    "kind": "TOOL",
-   "examine": "An agentic coding tool and editor built around specs, steering files and hooks.",
-   "about": "Kiro turns prompts into requirements, designs and task lists, then works through them with the developer.",
-   "website": "https://kiro.dev"
+   "examine": "An agentic coding editor that plans before it hammers.",
+   "about": "Spellforge turns a request into a plan and a task list, then works through it with you. Made-up for the AgentScape demo.",
+   "website": "https://spellforge.example"
   },
   {
-   "slug": "github-copilot",
-   "name": "GitHub Copilot",
-   "vendor": "GitHub",
+   "slug": "pocket-familiar",
+   "name": "Pocket Familiar",
+   "vendor": "Hearthbyte",
    "kind": "TOOL",
-   "examine": "An AI coding assistant for editors and the command line.",
-   "about": "GitHub Copilot offers code suggestions, chat and agent modes inside popular editors.",
-   "website": "https://github.com/features/copilot"
+   "examine": "A little coding companion that sits in your editor and mutters suggestions.",
+   "about": "Pocket Familiar offers completions, chat and helper modes inside popular editors. Made-up for the AgentScape demo.",
+   "website": "https://pocket-familiar.example"
   },
   {
-   "slug": "cursor",
-   "name": "Cursor",
-   "vendor": "Anysphere",
+   "slug": "cairn",
+   "name": "Cairn",
+   "vendor": "Pebblecraft",
    "kind": "TOOL",
-   "examine": "A code editor with built-in AI assistance.",
-   "about": "Cursor is an editor with AI chat, code completion and agent features.",
-   "website": "https://cursor.com"
+   "examine": "A code editor that stacks AI help one stone at a time.",
+   "about": "Cairn is an editor with chat, completion and agent features. Made-up for the AgentScape demo.",
+   "website": "https://cairn.example"
   },
   {
-   "slug": "chatgpt",
-   "name": "ChatGPT",
-   "vendor": "OpenAI",
+   "slug": "gryphon-chat",
+   "name": "Gryphon Chat",
+   "vendor": "Lanternfold",
    "kind": "TOOL",
-   "examine": "OpenAI's conversational assistant app.",
-   "about": "ChatGPT is a chat app that can answer questions, write, analyse files and use connected tools.",
-   "website": "https://chatgpt.com"
+   "examine": "The conversational assistant app built on Gryphon.",
+   "about": "Gryphon Chat answers questions, drafts text and analyses files. Made-up for the AgentScape demo.",
+   "website": "https://gryphon-chat.example"
   },
   {
-   "slug": "perplexity",
-   "name": "Perplexity",
-   "vendor": "Perplexity AI",
+   "slug": "pathfinder",
+   "name": "Pathfinder",
+   "vendor": "Wayfarer Labs",
    "kind": "TOOL",
-   "examine": "An AI answer engine that cites its web sources.",
-   "about": "Perplexity answers questions by searching the web and linking the sources it used.",
-   "website": "https://www.perplexity.ai"
+   "examine": "An answer engine that shows the trail it followed.",
+   "about": "Pathfinder searches the web and links the sources it used. Made-up for the AgentScape demo.",
+   "website": "https://pathfinder.example"
   },
   {
-   "slug": "v0",
-   "name": "v0",
-   "vendor": "Vercel",
+   "slug": "sketchling",
+   "name": "Sketchling",
+   "vendor": "Pebblecraft",
    "kind": "TOOL",
-   "examine": "A tool that generates web interface code from prompts.",
-   "about": "v0 turns text prompts into user-interface code that can be edited and deployed.",
-   "website": "https://v0.dev"
+   "examine": "A tool that sketches web interfaces from a few words.",
+   "about": "Sketchling turns text prompts into interface code you can edit. Made-up for the AgentScape demo.",
+   "website": "https://sketchling.example"
   }
  ]
 }

@@ -17,7 +17,7 @@ struct SeedFile {
 };
 
 // Bump whenever the content of data/seed/ changes, so existing saves pick up the new snapshot.
-inline constexpr int SEED_VERSION = 2;
+inline constexpr int SEED_VERSION = 3;
 
 // Prefix of every seeded row id. Generated ids are ULIDs (Crockford base32, never ':'),
 // so seed ids can never collide with rows the player created.

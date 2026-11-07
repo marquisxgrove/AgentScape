@@ -84,18 +84,18 @@ TEST_CASE("only approved Agents are listed or have a card", "[integration][codex
   CHECK(page->total == 14);
   CHECK(f.svc.card("pending-thing", std::nullopt)->has_value() == false);
   CHECK(f.svc.card("rejected-thing", std::nullopt)->has_value() == false);
-  CHECK(f.svc.card("kiro", std::nullopt)->has_value());
+  CHECK(f.svc.card("spellforge", std::nullopt)->has_value());
   CHECK_FALSE(f.svc.card("no-such-agent", std::nullopt)->has_value());
 }
 
 TEST_CASE("search, filters and sorting reach the service", "[integration][codex-service]") {
   Fixture f;
   ListQuery q;
-  q.text = "openai";
+  q.text = "lanternfold";
   auto page = f.svc.list(q, std::nullopt);
   auto got = slugs(*page);
   std::sort(got.begin(), got.end());
-  CHECK(got == std::vector<std::string>{"chatgpt", "gpt"});
+  CHECK(got == std::vector<std::string>{"gryphon", "gryphon-chat"});
 
   q = {};
   q.kind = domain::AgentKind::Tool;
@@ -106,8 +106,8 @@ TEST_CASE("search, filters and sorting reach the service", "[integration][codex-
   q = {};
   q.sort = SortKey::Name;
   page = f.svc.list(q, std::nullopt);
-  CHECK(page->rows.front().agent.name == "ChatGPT");
-  CHECK(page->rows.back().agent.name == "v0");
+  CHECK(page->rows.front().agent.name == "Cairn");
+  CHECK(page->rows.back().agent.name == "Twinwick");
 
   q = {};
   q.sort = SortKey::Skill;
@@ -164,10 +164,10 @@ TEST_CASE("pages hold 20 Agents each", "[integration][codex-service]") {
 TEST_CASE("the examine card ranks Boons and Banes by Wilson score, then newest", "[integration][codex-service]") {
   Fixture f;
   f.db.exec("INSERT INTO user(id, name, kind, created_at, last_seen_at) VALUES ('u1', 'Ann', 'PLAYER', 't', 't')");
-  f.db.exec("DELETE FROM note WHERE agent_id = 'seed:agent:kiro'");
+  f.db.exec("DELETE FROM note WHERE agent_id = 'seed:agent:spellforge'");
   const auto add = [&](const std::string& id, int agree, int disagree, const std::string& at, int hidden = 0) {
     f.db.prepare("INSERT INTO note(id, agent_id, author_id, kind, text, agree, disagree, hidden, created_at) "
-                 "VALUES (?, 'seed:agent:kiro', 'u1', 'BOON', ?, ?, ?, ?, ?)")
+                 "VALUES (?, 'seed:agent:spellforge', 'u1', 'BOON', ?, ?, ?, ?, ?)")
         .bind(1, id).bind(2, "Note text for " + id).bind(3, agree).bind(4, disagree).bind(5, hidden).bind(6, at).run();
   };
   add("few-votes", 2, 0, "2026-11-01T00:00:00Z");        // perfect ratio, but only 2 votes
@@ -175,9 +175,9 @@ TEST_CASE("the examine card ranks Boons and Banes by Wilson score, then newest",
   add("same-old", 8, 2, "2026-10-01T00:00:00Z");
   add("same-new", 8, 2, "2026-11-02T00:00:00Z");          // identical score, newer
   add("hidden-star", 900, 0, "2026-11-03T00:00:00Z", 1);  // hidden: must never appear
-  f.bus.publish(app::NotesChanged{"seed:agent:kiro"});
+  f.bus.publish(app::NotesChanged{"seed:agent:spellforge"});
 
-  const auto card = f.svc.card("kiro", std::nullopt);
+  const auto card = f.svc.card("spellforge", std::nullopt);
   REQUIRE(card->has_value());
   const auto& boons = (*card)->boons;
   REQUIRE(boons.size() == 4);
@@ -196,23 +196,23 @@ TEST_CASE("the card shows only the top five of each, but reports how many exist"
   f.db.exec("INSERT INTO user(id, name, kind, created_at, last_seen_at) VALUES ('u1', 'Ann', 'PLAYER', 't', 't')");
   for (int i = 0; i < 9; ++i) {
     f.db.prepare("INSERT INTO note(id, agent_id, author_id, kind, text, agree, disagree, created_at) "
-                 "VALUES (?, 'seed:agent:claude', 'u1', 'BANE', ?, ?, 0, 't')")
+                 "VALUES (?, 'seed:agent:quillback', 'u1', 'BANE', ?, ?, 0, 't')")
         .bind(1, "extra-" + std::to_string(i)).bind(2, "An extra bane number " + std::to_string(i)).bind(3, 10 + i).run();
   }
-  f.bus.publish(app::NotesChanged{"seed:agent:claude"});
-  const auto card = f.svc.card("claude", std::nullopt);
+  f.bus.publish(app::NotesChanged{"seed:agent:quillback"});
+  const auto card = f.svc.card("quillback", std::nullopt);
   REQUIRE(card->has_value());
   CHECK((*card)->banes.size() == 5);
   CHECK((*card)->baneTotal >= 9 + 1);                       // the seeded Bane(s) plus nine more
   CHECK((*card)->banes.front().id == "extra-8");            // most agreed first
-  CHECK(f.svc.notes("seed:agent:claude", NoteKind::Bane)->size() == (*card)->baneTotal);   // "view all"
-  CHECK(f.svc.notes("seed:agent:claude", NoteKind::Bane, 3)->size() == 3);
+  CHECK(f.svc.notes("seed:agent:quillback", NoteKind::Bane)->size() == (*card)->baneTotal);   // "view all"
+  CHECK(f.svc.notes("seed:agent:quillback", NoteKind::Bane, 3)->size() == 3);
 }
 
 TEST_CASE("the card's levels follow the chosen Quest Type", "[integration][codex-service]") {
   Fixture f;
-  const auto all = f.svc.card("gpt", std::nullopt);
-  const auto debug = f.svc.card("gpt", QuestType::Debugging);
+  const auto all = f.svc.card("gryphon", std::nullopt);
+  const auto debug = f.svc.card("gryphon", QuestType::Debugging);
   REQUIRE(all->has_value());
   REQUIRE(debug->has_value());
   CHECK((*all)->levels.overallCount > (*debug)->levels.overallCount);
