@@ -3,6 +3,8 @@
 #include <imgui.h>
 
 #include "app/services.hpp"
+#include "ui/layout.hpp"
+#include "ui/ui_context.hpp"
 #include "domain/settings.hpp"
 #include "ui/widgets.hpp"
 
@@ -42,6 +44,18 @@ void LoginScreen::afterSignIn(app::FrameCtx& ctx, const services::User& user, bo
 
 void LoginScreen::draw(app::FrameCtx& ctx) {
   if (!loaded_) refreshUsers(ctx);
+
+  // Kiroween bats drift across the whole viewport behind the login panel.
+  if (ctx.kiroween) {
+    if (!batsInit_) {
+      bats_.initBats(static_cast<float>(ui::VIEWPORT.w), static_cast<float>(ui::VIEWPORT.h), 7);
+      batsInit_ = true;
+    }
+    bats_.step(ctx.dt, ctx.reduceMotion);
+    // Draw bats on the foreground list so they fly over the stone panel (atmosphere).
+    const ImVec2 origin{static_cast<float>(ui::VIEWPORT.x), static_cast<float>(ui::VIEWPORT.y)};
+    bats_.drawBats(ImGui::GetForegroundDrawList(), ui::ctx().mapTextures(), origin);
+  }
 
   ui::StonePanel panel{"##login", "Welcome to AgentScape"};
   if (githubActive_) {

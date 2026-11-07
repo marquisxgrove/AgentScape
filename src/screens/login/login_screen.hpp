@@ -5,6 +5,7 @@
 #include <vector>
 
 #include "app/screen_stack.hpp"
+#include "game/kiroween_layer.hpp"
 #include "platform/github_device_flow.hpp"
 #include "services/profile_service.hpp"
 
@@ -26,6 +27,8 @@ class LoginScreen : public app::Screen {
   void drawChoices(app::FrameCtx& ctx);
   std::unique_ptr<platform::GitHubDeviceFlow> github_;
   bool githubActive_ = false;
+  game::KiroweenLayer bats_;
+  bool batsInit_ = false;
 
   void refreshUsers(app::FrameCtx& ctx);
   void afterSignIn(app::FrameCtx& ctx, const services::User& user, bool remember);

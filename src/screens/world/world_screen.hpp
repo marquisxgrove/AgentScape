@@ -2,6 +2,7 @@
 
 #include "app/screen_stack.hpp"
 #include "game/hotspots.hpp"
+#include "game/kiroween_layer.hpp"
 
 namespace as::screens {
 
@@ -18,6 +19,8 @@ class WorldScreen : public app::Screen {
   void openMenu(app::FrameCtx& ctx, const game::Hotspot& h, float frameX, float frameY);
 
   int listFocus_ = 0;  // index into the visible hotspot list (keyboard/gamepad)
+  game::KiroweenLayer kiroween_;
+  bool kiroweenInit_ = false;
 };
 
 }  // namespace as::screens

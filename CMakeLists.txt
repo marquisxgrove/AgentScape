@@ -76,11 +76,12 @@ as_enable_sanitizers(as_platform_core)
 
 # Pure UI logic (palette, markup parser): no ImGui, unit-testable.
 add_library(as_ui_core STATIC
+  src/game/kiroween_fx.cpp
   src/ui/chat_model.cpp
   src/ui/context_menu_model.cpp
   src/ui/markup.cpp)
 target_include_directories(as_ui_core PUBLIC src)
-target_link_libraries(as_ui_core PUBLIC as_domain)
+target_link_libraries(as_ui_core PUBLIC as_core as_domain)
 as_enable_warnings(as_ui_core)
 as_enable_sanitizers(as_ui_core)
 
@@ -123,6 +124,7 @@ if(AS_BUILD_APP)
     src/platform/github_device_flow.cpp
     src/platform/web_url.cpp
     src/game/hotspots.cpp
+    src/game/kiroween_layer.cpp
     src/render/game_frame.cpp
     src/render/nine_slice.cpp
     src/render/texture_cache.cpp
@@ -185,6 +187,7 @@ if(AS_BUILD_TESTS)
     tests/unit/chatbox_test.cpp
     tests/unit/flush_scheduler_test.cpp
     tests/unit/geometry_test.cpp
+    tests/unit/kiroween_fx_test.cpp
     tests/unit/markup_test.cpp
     tests/unit/regressions_game_shell.cpp
     tests/unit/screen_stack_test.cpp)

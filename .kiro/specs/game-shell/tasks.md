@@ -83,9 +83,10 @@
     - _Requirements: 3.6, 7.3, 7.4_
     - _Note: the Places list (right column of the viewport) is driven by the same hotspot data; each entry offers the default action and opens the menu via Menu/Shift+F10/gamepad Y. Graveyard appears only during Kiroween._
 
-- [ ] 10. Add Kiroween mode
+- [x] 10. Add Kiroween mode
   - Add jack-o'-lantern overlays, the fog overlay (static when "Reduce motion" is on), the Graveyard hotspot, and accent palette swaps.
   - _Requirements: 6.1–6.5_
+  - _Note: pure `game::kiroween_fx` (fog drift, bat flight, pumpkin flicker; reduce-motion = static) is unit-tested; `game::KiroweenLayer` renders fog + pumpkins on the World map and bats on the login screen. Graveyard hotspot + accent theme already wired (tasks 9 and 5). Resolution/precedence was task 4 (Property 2)._
 
 - [ ] 11. Checkpoint: shell smoke test
   - Add the headless smoke test: guest login → World → open the Tavern hotspot's context menu → Enter. Save screen snapshots.

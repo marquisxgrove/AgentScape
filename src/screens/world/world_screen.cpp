@@ -50,6 +50,17 @@ void WorldScreen::draw(app::FrameCtx& ctx) {
     dl->AddRectFilled(mapOrigin, {mapOrigin.x + MAP_W, mapOrigin.y + MAP_H}, ui::toU32(ui::PaletteColor::Stone));
   }
 
+  // Kiroween overlays: jack-o'-lanterns at the doorways, drifting fog over the whole map.
+  if (ctx.kiroween) {
+    if (!kiroweenInit_) {
+      kiroween_.initWorld({{128, 128}, {296, 128}, {60, 118}, {340, 118}});
+      kiroweenInit_ = true;
+    }
+    kiroween_.step(ctx.dt, ctx.reduceMotion);
+    kiroween_.drawPumpkins(dl, textures, mapOrigin);
+    kiroween_.drawFog(dl, textures, mapOrigin, {mapOrigin.x + MAP_W, mapOrigin.y + MAP_H});
+  }
+
   // Invisible button over the map captures clicks and hover without stealing nav from the list.
   ImGui::InvisibleButton("##map", {MAP_W, MAP_H}, ImGuiButtonFlags_MouseButtonLeft | ImGuiButtonFlags_MouseButtonRight);
   const bool mapHovered = ImGui::IsItemHovered();

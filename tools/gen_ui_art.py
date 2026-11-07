@@ -132,3 +132,71 @@ def main():
 
 if __name__ == "__main__":
     main()
+
+
+# --- Kiroween overlays (appended; call gen_kiroween() or just run this file) ------------------
+def gen_kiroween():
+    import os as _os
+    sprites = _os.path.join(ROOT, "assets", "sprites")
+    _os.makedirs(sprites, exist_ok=True)
+
+    # Jack-o'-lantern, 16x16, 8-bit-ish palette, transparent background.
+    PUMPKIN = hex_rgb("#ff7518"); PUMPKIN_D = hex_rgb("#c8560f"); STEM = hex_rgb("#4a5d32")
+    GLOW = hex_rgb("#ffd84a"); OUTLINE = hex_rgb("#1e1912")
+    S = 16
+    px = [[(0, 0, 0, 0) for _ in range(S)] for _ in range(S)]
+    def disc(cx, cy, r, c):
+        for y in range(S):
+            for x in range(S):
+                if (x - cx) ** 2 + (y - cy) ** 2 <= r * r:
+                    px[y][x] = c + (255,)
+    disc(7.5, 9, 6.6, OUTLINE)
+    disc(7.5, 9, 5.8, PUMPKIN)
+    for x in range(S):  # vertical ribs
+        for y in range(S):
+            if px[y][x][3] and ((x in (4, 11)) ):
+                px[y][x] = PUMPKIN_D + (255,)
+    px[2][7] = STEM + (255,); px[3][7] = STEM + (255,); px[3][8] = STEM + (255,)
+    # face: two eyes + grin in glow
+    for (x, y) in [(5, 7), (6, 7), (9, 7), (10, 7)]:
+        px[y][x] = GLOW + (255,)
+    for (x, y) in [(5, 10), (6, 11), (7, 11), (8, 11), (9, 11), (10, 10)]:
+        px[y][x] = GLOW + (255,)
+    write_png(_os.path.join(sprites, "pumpkin.png"), S, S, px)
+
+    # Fog tile: 64x64 soft translucent blobs, tiles seamlessly, grey-white.
+    F = 64
+    rng = Lcg(99)
+    fog = [[(200, 205, 215, 0) for _ in range(F)] for _ in range(F)]
+    for _ in range(14):
+        cx = rng.next() % F; cy = rng.next() % F; r = 8 + rng.next() % 14
+        for y in range(F):
+            for x in range(F):
+                # wrap-aware distance so the tile is seamless
+                dx = min(abs(x - cx), F - abs(x - cx)); dy = min(abs(y - cy), F - abs(y - cy))
+                d = (dx * dx + dy * dy) ** 0.5
+                if d < r:
+                    a = int(40 * (1 - d / r))
+                    r0, g0, b0, a0 = fog[y][x]
+                    fog[y][x] = (r0, g0, b0, min(90, a0 + a))
+    write_png(_os.path.join(sprites, "fog.png"), F, F, fog)
+
+    # Bat: 12x8, two implicit frames side by side (so 24x8), transparent bg, near-black.
+    B = hex_rgb("#1a1522")
+    bw, bh = 24, 8
+    bat = [[(0, 0, 0, 0) for _ in range(bw)] for _ in range(bh)]
+    def wing(ox, up):
+        body = [(5, 3), (6, 3), (5, 4), (6, 4)]
+        if up:
+            pts = [(1, 1), (2, 2), (3, 3), (4, 3), (7, 3), (8, 3), (9, 2), (10, 1)]
+        else:
+            pts = [(1, 5), (2, 4), (3, 3), (4, 3), (7, 3), (8, 3), (9, 4), (10, 5)]
+        for (x, y) in body + pts:
+            bat[y][ox + x] = B + (255,)
+    wing(0, True); wing(12, False)
+    write_png(_os.path.join(sprites, "bat.png"), bw, bh, bat)
+    print("wrote kiroween sprites in", sprites)
+
+
+if __name__ == "__main__" and os.environ.get("AS_KIROWEEN"):
+    gen_kiroween()
