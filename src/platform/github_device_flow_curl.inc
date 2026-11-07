@@ -2,6 +2,7 @@
 // set (desktop with a configured client id). Kept in a .inc so the curl headers never leak into the
 // no-curl translation unit.
 #include <curl/curl.h>
+#include <nlohmann/json.hpp>
 
 #include <atomic>
 #include <chrono>
@@ -28,7 +29,23 @@ std::size_t writeCb(char* ptr, std::size_t size, std::size_t nmemb, void* userda
 struct HttpResult {
   bool ok = false;  // transport-level success (got any response)
   std::string body;
+  long status = 0;  // HTTP status, when there was a response
 };
+
+// GitHub's OAuth "error" code from a response body ("incorrect_client_credentials", "device_flow_disabled", ...).
+// Only this field is ever logged: a response body can hold a device code or an access token.
+std::string githubError(const std::string& body) {
+  const auto j = nlohmann::json::parse(body, nullptr, /*allow_exceptions=*/false);
+  if (!j.is_object()) return "unreadable response";
+  const auto it = j.find("error");
+  return it != j.end() && it->is_string() ? it->get<std::string>() : std::string("no error field");
+}
+
+// The player only ever sees "You can't reach GitHub right now."; the log says which step failed and why.
+void logFailure(const char* step, const HttpResult& r) {
+  if (!r.ok) return;  // a transport failure was already logged by http()
+  SDL_Log("GitHub sign-in: %s failed (HTTP %ld, %s)", step, r.status, githubError(r.body).c_str());
+}
 
 // Minimal POST/GET returning the body. Always asks for JSON. header is optional (e.g. auth).
 HttpResult http(const std::string& url, const std::string& postFields, const std::string& bearer) {
@@ -53,9 +70,12 @@ HttpResult http(const std::string& url, const std::string& postFields, const std
     curl_easy_setopt(curl, CURLOPT_POSTFIELDS, postFields.c_str());
   }
   const CURLcode rc = curl_easy_perform(curl);
+  long status = 0;
+  curl_easy_getinfo(curl, CURLINFO_RESPONSE_CODE, &status);
   curl_slist_free_all(headers);
   curl_easy_cleanup(curl);
-  return {rc == CURLE_OK, std::move(body)};
+  if (rc != CURLE_OK) SDL_Log("GitHub sign-in: request to %s failed: %s", url.c_str(), curl_easy_strerror(rc));
+  return {rc == CURLE_OK, std::move(body), status};
 }
 
 std::string formField(const std::string& k, const std::string& v) {
@@ -93,6 +113,7 @@ struct GitHubDeviceFlow::Impl {
     auto codeResp = http(DEVICE_CODE_URL, formField("client_id", client) + "&" + formField("scope", SCOPE), "");
     auto code = codeResp.ok ? domain::parseDeviceCode(codeResp.body) : std::nullopt;
     if (!code) {
+      logFailure("requesting a device code", codeResp);
       set({DeviceFlowState::Failed, "", "", std::nullopt, "You can't reach GitHub right now."});
       running = false;
       return;
@@ -136,6 +157,7 @@ struct GitHubDeviceFlow::Impl {
         if (profile) {
           set({DeviceFlowState::Succeeded, "", "", profile, ""});
         } else {
+          if (userResp.ok) SDL_Log("GitHub sign-in: reading the profile failed (HTTP %ld)", userResp.status);
           set({DeviceFlowState::Failed, "", "", std::nullopt, "You can't reach GitHub right now."});
         }
         running = false;
@@ -149,6 +171,7 @@ struct GitHubDeviceFlow::Impl {
         continue;
       }
       // Terminal error (denied, expired, or other).
+      if (std::holds_alternative<domain::TokenError>(poll)) logFailure("polling for the token", tokenResp);
       set({DeviceFlowState::Failed, "", "", std::nullopt, std::string(domain::deviceFlowMessage(poll))});
       running = false;
       return;

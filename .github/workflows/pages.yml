@@ -1,12 +1,16 @@
 name: Deploy web build
 
-# Publishes the WebAssembly build to GitHub Pages on every push to main (and on demand). The judging build has the
+# Publishes the WebAssembly build to GitHub Pages once CI has passed on main (and on demand). The judging build has the
 # Kiroween layer forced on, so the spooky town is visible whatever the date.
 #
-# One-time setup: repository Settings -> Pages -> Build and deployment -> Source: "GitHub Actions".
+# One-time setup: repository Settings -> Pages -> Build and deployment -> Source: "GitHub Actions". Left on "Deploy
+# from a branch", Pages serves the repository root (the README) and the deploy job below fails with a 404.
 
 on:
-  push:
+  # After CI finishes on main: a commit whose tests fail is never published.
+  workflow_run:
+    workflows: [CI]
+    types: [completed]
     branches: [main]
   workflow_dispatch:
 
@@ -21,11 +25,18 @@ concurrency:
 
 jobs:
   build:
+    # Only a green CI run of a push to main (not a pull request that happens to target main).
+    if: >-
+      github.event_name == 'workflow_dispatch' ||
+      (github.event.workflow_run.conclusion == 'success' && github.event.workflow_run.event == 'push')
     runs-on: ubuntu-24.04
     timeout-minutes: 30
     steps:
       - uses: actions/checkout@v5
-      - uses: mymindstorm/setup-emsdk@v14
+        with:
+          # The exact commit CI tested, not whatever main points at by now.
+          ref: ${{ github.event.workflow_run.head_sha || github.sha }}
+      - uses: emscripten-core/setup-emsdk@v16
         with:
           version: 4.0.8
       - run: sudo apt-get update && sudo apt-get install -y ninja-build
@@ -39,9 +50,8 @@ jobs:
           mkdir -p site
           cp build/web/agentscape.html site/index.html
           cp build/web/agentscape.js build/web/agentscape.wasm build/web/agentscape.data site/
-          touch site/.nojekyll
           ls -la site
-      - uses: actions/upload-pages-artifact@v3
+      - uses: actions/upload-pages-artifact@v5
         with:
           path: site
 
@@ -53,4 +63,4 @@ jobs:
       url: ${{ steps.deployment.outputs.page_url }}
     steps:
       - id: deployment
-        uses: actions/deploy-pages@v4
+        uses: actions/deploy-pages@v5

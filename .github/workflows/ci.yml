@@ -44,7 +44,7 @@ jobs:
         run: ctest --preset dev --timeout 300
       - name: Upload smoke snapshots
         if: always() && runner.os == 'Linux'
-        uses: actions/upload-artifact@v5
+        uses: actions/upload-artifact@v7
         with:
           name: smoke-snapshots-${{ matrix.name }}
           path: |
@@ -75,7 +75,7 @@ jobs:
     name: web
     steps:
       - uses: actions/checkout@v5
-      - uses: mymindstorm/setup-emsdk@v14
+      - uses: emscripten-core/setup-emsdk@v16
         with:
           version: 4.0.8
       - run: sudo apt-get update && sudo apt-get install -y ninja-build

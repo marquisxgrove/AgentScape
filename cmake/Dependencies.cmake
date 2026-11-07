@@ -45,17 +45,15 @@ if(AS_BUILD_TESTS)
   FetchContent_Declare(rapidcheck
     GIT_REPOSITORY https://github.com/emil-e/rapidcheck.git
     GIT_TAG        2c3c4365aca21ef4e612768fdc95b1ce8b39a651
-    GIT_SUBMODULES "")
+    GIT_SUBMODULES ""
+    # RapidCheck's own CMakeLists unconditionally adds ext/ (git submodules). Pointing SOURCE_SUBDIR at a folder with
+    # no CMakeLists.txt makes FetchContent_MakeAvailable only download the sources; the targets are defined below.
+    SOURCE_SUBDIR  no-cmake)
   set(CATCH_INSTALL_DOCS OFF CACHE BOOL "" FORCE)
-  FetchContent_MakeAvailable(Catch2)
+  FetchContent_MakeAvailable(Catch2 rapidcheck)
   list(APPEND CMAKE_MODULE_PATH ${catch2_SOURCE_DIR}/extras)
 
-  # RapidCheck's own CMakeLists unconditionally adds ext/ (git submodules), so populate the
-  # sources and define the two targets we need (library + Catch2 integration) ourselves.
-  FetchContent_GetProperties(rapidcheck)
-  if(NOT rapidcheck_POPULATED)
-    FetchContent_Populate(rapidcheck)
-  endif()
+  # The two RapidCheck targets we need (library + Catch2 integration), defined here; see SOURCE_SUBDIR above.
   file(GLOB_RECURSE RC_SOURCES CONFIGURE_DEPENDS ${rapidcheck_SOURCE_DIR}/src/*.cpp)
   add_library(rapidcheck STATIC ${RC_SOURCES})
   target_include_directories(rapidcheck SYSTEM PUBLIC ${rapidcheck_SOURCE_DIR}/include)
@@ -113,6 +111,15 @@ if(AS_BUILD_APP)
     set(CURL_DISABLE_TESTS ON CACHE BOOL "" FORCE)
     set(CURL_USE_LIBPSL OFF CACHE BOOL "" FORCE)
     set(CURL_ENABLE_EXPORT_TARGET OFF CACHE BOOL "" FORCE)
+    set(HTTP_ONLY ON CACHE BOOL "" FORCE)            # the device flow speaks HTTPS to github.com, nothing else
+    # curl enables no TLS library on its own, and without one every request to GitHub fails. Use the platform's.
+    if(WIN32)
+      set(CURL_USE_SCHANNEL ON CACHE BOOL "" FORCE)
+    elseif(APPLE)
+      set(CURL_USE_SECTRANSP ON CACHE BOOL "" FORCE)
+    else()
+      set(CURL_USE_OPENSSL ON CACHE BOOL "" FORCE)  # needs libssl-dev
+    endif()
     FetchContent_Declare(curl
       GIT_REPOSITORY https://github.com/curl/curl.git
       GIT_TAG        curl-8_10_1
