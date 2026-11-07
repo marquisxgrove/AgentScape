@@ -32,6 +32,7 @@ struct QuestLogRecord {
   int helpfulCount = 0;
   bool hidden = false;
   bool excluded = false;
+  bool seeded = false;             // a sample log that ships with the app: display-only, never counted in the Codex
   std::chrono::sys_seconds createdAt;
   std::chrono::sys_seconds updatedAt;
 };

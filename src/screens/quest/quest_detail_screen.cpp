@@ -104,7 +104,11 @@ void QuestDetailScreen::draw(app::FrameCtx& ctx) {
   ui::ShadowText(std::to_string(log.helpfulCount) + (log.helpfulCount == 1 ? " adventurer" : " adventurers") + " found this helpful.",
                  ui::PaletteColor::Parchment);
   if (log.hidden) ui::ShadowText("Hidden from the board by a Codex Keeper.", ui::PaletteColor::TextOrange);
-  if (log.excluded) ui::ShadowText("Its ratings are not counted in the Codex.", ui::PaletteColor::TextOrange);
+  if (log.seeded) {
+    ui::ShadowText("A sample quest from the town's archives: a fictional adventurer and a fictional familiar.", ui::PaletteColor::Parchment);
+  } else if (log.excluded) {
+    ui::ShadowText("Its ratings are not counted in the Codex.", ui::PaletteColor::TextOrange);
+  }
 
   bool first = true;
   if (!agentSlug_.empty() && codex::flowButton("Examine " + log.agentName, "examine", first) && ctx.nav != nullptr) {
@@ -149,7 +153,8 @@ void QuestDetailScreen::draw(app::FrameCtx& ctx) {
       if (!r) ui::pushGameMessage(r.error().message);
       dirty_ = true;
     }
-    if (codex::flowButton(log.excluded ? "Include ratings" : "Exclude ratings", "exclude", first)) {
+    // A sample log's ratings are already in the sample baseline, so only real logs can be counted in or out.
+    if (!log.seeded && codex::flowButton(log.excluded ? "Include ratings" : "Exclude ratings", "exclude", first)) {
       auto r = ctx.services->quests.setQuestLogModeration(ctx.userId, log.id, log.hidden, !log.excluded);
       if (!r) ui::pushGameMessage(r.error().message);
       dirty_ = true;

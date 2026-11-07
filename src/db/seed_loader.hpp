@@ -17,7 +17,7 @@ struct SeedFile {
 };
 
 // Bump whenever the content of data/seed/ changes, so existing saves pick up the new snapshot.
-inline constexpr int SEED_VERSION = 4;
+inline constexpr int SEED_VERSION = 5;
 
 // Prefix of every seeded row id. Generated ids are ULIDs (Crockford base32, never ':'),
 // so seed ids can never collide with rows the player created.
@@ -31,6 +31,7 @@ struct SeedReport {
   int agentsSkipped = 0;   // a seed Agent whose slug a player already took (the player's Agent wins)
   int statRows = 0;        // rating aggregates whose seeded baseline was written
   int notesUpserted = 0;
+  int questLogsUpserted = 0;     // sample Quest Logs written (display-only)
   std::vector<std::string> files;  // files applied, in application order
 };
 
