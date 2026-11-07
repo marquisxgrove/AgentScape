@@ -39,6 +39,7 @@ add_library(as_domain STATIC
   src/domain/context_menu.cpp
   src/domain/adventurer_name.cpp
   src/domain/appearance.cpp
+  src/domain/codex_query.cpp
   src/domain/codex_validation.cpp
   src/domain/device_flow.cpp
   src/domain/frame.cpp
@@ -119,6 +120,7 @@ add_library(as_services STATIC
   src/services/activity_service.cpp
   src/services/adventurer_service.cpp
   src/services/codex_cache.cpp
+  src/services/codex_service.cpp
   src/services/codex_store.cpp
   src/services/profile_service.cpp)
 target_include_directories(as_services PUBLIC src)
@@ -208,6 +210,7 @@ if(AS_BUILD_TESTS)
     tests/unit/avatar_render_test.cpp
     tests/unit/costumer_draft_test.cpp
     tests/unit/civil_time_test.cpp
+    tests/unit/codex_query_test.cpp
     tests/unit/codex_scoring_test.cpp
     tests/unit/codex_validation_test.cpp
     tests/unit/config_test.cpp
@@ -245,6 +248,7 @@ if(AS_BUILD_TESTS)
   add_executable(integration_tests
     tests/integration/activity_service_test.cpp
     tests/integration/adventurer_service_test.cpp
+    tests/integration/codex_service_test.cpp
     tests/integration/codex_store_test.cpp
     tests/integration/db_test.cpp
     tests/integration/local_store_test.cpp

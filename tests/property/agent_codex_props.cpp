@@ -196,3 +196,85 @@ TEST_CASE("Property 8: Rate limit", "[property][agent-codex]") {
                                }
                              });
 }
+
+#include "domain/codex_query.hpp"
+
+namespace {
+std::vector<Candidate> randomCandidates(std::uint64_t seed, std::size_t n) {
+  std::mt19937_64 gen(seed);
+  static const char* vendors[] = {"Anthropic", "OpenAI", "Google", "Meta", "AWS"};
+  std::vector<Candidate> out;
+  for (std::size_t i = 0; i < n; ++i) {
+    Candidate c;
+    c.name = "Agent" + std::to_string(gen() % 30);   // duplicates on purpose: ties
+    c.vendor = vendors[gen() % 5];
+    c.kind = gen() % 2 ? AgentKind::Tool : AgentKind::Model;
+    c.levels.total = 10 + static_cast<int>(gen() % 500);
+    c.levels.overallCount = static_cast<std::int64_t>(gen() % 50);
+    for (auto& s : c.levels.skills) {
+      if (gen() % 3) s = 1 + static_cast<int>(gen() % 99);
+    }
+    out.push_back(std::move(c));
+  }
+  return out;
+}
+}  // namespace
+
+// Validates: agent-codex Requirements 1.1-1.4
+TEST_CASE("Property 9: Codex listing is a sorted, filtered permutation", "[property][agent-codex]") {
+  as::testing::checkProperty("a permutation of the filtered set, sorted, unranked last, pages cover it once",
+                             [](const std::uint64_t seed, const int rawSort, const bool reversed, const int rawSkill) {
+                               const auto cands = randomCandidates(seed, 1 + seed % 70);
+                               ListQuery q;
+                               q.sort = static_cast<SortKey>(std::abs(rawSort) % 4);
+                               q.reversed = reversed;
+                               q.skill = SKILLS[static_cast<std::size_t>(std::abs(rawSkill) % 10)];
+                               q.kind = seed % 3 == 0 ? std::optional<AgentKind>{AgentKind::Tool} : std::nullopt;
+                               const auto idx = selectAndSort(cands, q);
+
+                               // Exactly the candidates that pass the filter, each once.
+                               std::vector<std::size_t> sorted = idx;
+                               std::sort(sorted.begin(), sorted.end());
+                               RC_ASSERT(std::adjacent_find(sorted.begin(), sorted.end()) == sorted.end());
+                               std::size_t expected = 0;
+                               for (const auto& c : cands) expected += (!q.kind || c.kind == *q.kind);
+                               RC_ASSERT(idx.size() == expected);
+
+                               // Ordered by the chosen key; unranked Skills last.
+                               const auto skillIdx = static_cast<std::size_t>(std::find(SKILLS.begin(), SKILLS.end(), q.skill) - SKILLS.begin());
+                               const bool natAsc = q.sort == SortKey::Name;
+                               const bool asc = natAsc != q.reversed;
+                               bool seenUnranked = false;
+                               for (std::size_t i = 0; i + 1 < idx.size(); ++i) {
+                                 const auto& a = cands[idx[i]];
+                                 const auto& b = cands[idx[i + 1]];
+                                 if (q.sort == SortKey::Skill) {
+                                   const auto& la = a.levels.skills[skillIdx];
+                                   const auto& lb = b.levels.skills[skillIdx];
+                                   if (!la) seenUnranked = true;
+                                   if (seenUnranked) RC_ASSERT(!lb.has_value());      // nothing ranked after an unranked
+                                   if (la && lb) {
+                                     const bool inOrder = asc ? *la <= *lb : *la >= *lb;
+                                     RC_ASSERT(inOrder);
+                                   }
+                                 } else if (q.sort == SortKey::Total) {
+                                   const bool inOrder = asc ? a.levels.total <= b.levels.total : a.levels.total >= b.levels.total;
+                                   RC_ASSERT(inOrder);
+                                 } else if (q.sort == SortKey::QuestLogs) {
+                                   const bool inOrder = asc ? a.levels.overallCount <= b.levels.overallCount
+                                                            : a.levels.overallCount >= b.levels.overallCount;
+                                   RC_ASSERT(inOrder);
+                                 }
+                               }
+
+                               // Walking every page shows each result exactly once.
+                               std::size_t shown = 0;
+                               const auto pages = paginate(idx.size(), 0).pages;
+                               for (std::size_t p = 0; p < pages; ++p) {
+                                 const auto s = paginate(idx.size(), p);
+                                 RC_ASSERT(s.count <= CODEX_PAGE_SIZE);
+                                 shown += s.count;
+                               }
+                               RC_ASSERT(shown == idx.size());
+                             });
+}
