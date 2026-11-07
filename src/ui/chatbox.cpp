@@ -38,10 +38,7 @@ void Chatbox::append(const domain::ChatMessage& message) {
 void Chatbox::draw() {
   StonePanel panel{"##chatbox", ""};
   const auto tabButton = [&](const char* label, ChatTab t) {
-    const bool on = tab_ == t;
-    if (on) ImGui::PushStyleColor(ImGuiCol_Text, toVec4(PaletteColor::TextOrange));
-    if (PixelButton(label, {72, 0})) tab_ = t;
-    if (on) ImGui::PopStyleColor();
+    if (TabButton(label, tab_ == t, {72, 0})) tab_ = t;
   };
   tabButton("All##tab", ChatTab::All);
   ImGui::SameLine();

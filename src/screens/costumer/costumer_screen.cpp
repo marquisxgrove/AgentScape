@@ -71,17 +71,20 @@ void CostumerScreen::draw(app::FrameCtx& ctx) {
     return;
   }
 
-  // Left: the live preview. Right: the tabbed controls.
+  // Left: the live preview. Right: the tabbed controls, with the save bar pinned under them. The
+  // columns stop short of the panel bottom so the bar always fits (a full-height child pushed it out).
+  const float barH = tab_ != Tab::Adventurers ? ui::ButtonHeight() + ImGui::GetStyle().ItemSpacing.y : 0.0F;
   ImGui::BeginChild("##preview", {150, 0});
   drawPreview(ctx);
   ImGui::EndChild();
   ImGui::SameLine();
-  ImGui::BeginChild("##controls", {0, 0});
-  if (ui::PixelButton("Look", {90, 0})) tab_ = Tab::Look;
+  ImGui::BeginGroup();
+  ImGui::BeginChild("##controls", {0, -barH});
+  if (ui::TabButton("Look", tab_ == Tab::Look, {90, 0})) tab_ = Tab::Look;
   ImGui::SameLine();
-  if (ui::PixelButton("Gear", {90, 0})) tab_ = Tab::Gear;
+  if (ui::TabButton("Gear", tab_ == Tab::Gear, {90, 0})) tab_ = Tab::Gear;
   ImGui::SameLine();
-  if (ui::PixelButton("Adventurers", {130, 0})) tab_ = Tab::Adventurers;
+  if (ui::TabButton("Adventurers", tab_ == Tab::Adventurers, {130, 0})) tab_ = Tab::Adventurers;
   ImGui::Spacing();
   switch (tab_) {
     case Tab::Look: drawLook(); break;
@@ -90,23 +93,33 @@ void CostumerScreen::draw(app::FrameCtx& ctx) {
   }
   ImGui::EndChild();
 
-  // Save bar (shared).
+  // Save bar (shared by Look and Gear).
   if (tab_ != Tab::Adventurers) {
     if (draft_.dirty()) {
       if (ui::PixelButton("Save", {90, 0})) save(ctx);
       ImGui::SameLine();
+      ui::AlignTextToButton();
       ui::ShadowText("Unsaved changes", ui::PaletteColor::TextOrange);
     } else {
-      ui::ShadowText("Saved.", ui::PaletteColor::Parchment);
+      ui::AlignTextToButton();
+      ui::ShadowText("All changes saved.", ui::PaletteColor::Parchment);
     }
   }
+  ImGui::EndGroup();
 }
 
 void CostumerScreen::drawCreate(app::FrameCtx& ctx) {
   ui::ShadowText("Name your first Adventurer:", ui::PaletteColor::Parchment);
+  const float rowY = ImGui::GetCursorPosY();  // the box is nudged to centre on the button; the button isn't
   ImGui::SetNextItemWidth(160);
-  ImGui::InputText("##name", nameBuf_.data(), nameBuf_.size());
-  if (ui::PixelButton("Create", {100, 0})) create(ctx);
+  ui::AlignFrameToButton();
+  const bool entered =
+      ImGui::InputText("##name", nameBuf_.data(), nameBuf_.size(), ImGuiInputTextFlags_EnterReturnsTrue);
+  ImGui::SameLine();
+  ImGui::SetCursorPosY(rowY);
+  if (ui::PixelButton("Create", {100, 0}) || entered) create(ctx);
+  ui::ShadowText("Up to 12 letters or numbers; single spaces, - or _ between them.", ui::PaletteColor::Parchment);
+  ui::ShadowText("You can change their look and gear once they exist.", ui::PaletteColor::Parchment);
 }
 
 void CostumerScreen::drawPreview(app::FrameCtx& ctx) {
@@ -130,6 +143,7 @@ void CostumerScreen::drawPreview(app::FrameCtx& ctx) {
     draft_.rotate(1);
   }
   ImGui::SameLine();
+  ui::AlignTextToButton();
   ui::Toggle("Describe", &describe_);
   if (ctx.exportPortrait && ui::PixelButton("Export", {78, 0})) {
     ctx.exportPortrait(draft_.appearance(), draft_.loadout(), draft_.facing(), active_->name);
@@ -146,6 +160,7 @@ void CostumerScreen::drawLook() {
     ImGui::PushID(label);
     if (ui::PixelButton("<", {28, 0})) draft_.cycle(o, -1);
     ImGui::SameLine();
+    ui::AlignTextToButton();
     ui::ShadowText(label + std::string(" ") + std::to_string(draft_.value(o) + 1) + "/" +
                    std::to_string(draft_.count(o)));
     ImGui::SameLine(150);
@@ -215,6 +230,7 @@ void CostumerScreen::drawGear(app::FrameCtx& ctx) {
   ImGui::Separator();
 
   // Wardrobe filters.
+  ui::AlignTextToButton();
   ui::Toggle("Owned only", &ownedOnly_);
   ImGui::SameLine();
   const std::string filterLabel = std::string("Slot: ") + (slotFilter_ ? domain::slotName(*slotFilter_) : "All");
@@ -252,11 +268,13 @@ void CostumerScreen::drawGear(app::FrameCtx& ctx) {
           if (auto err = draft_.equip(e.item->id)) ui::pushGameMessage(*err);
         }
         ImGui::SameLine();
+        ui::AlignTextToButton();
         ui::ShadowText(std::string(e.item->name), color);
         break;
       case S::Claimable:
         if (ui::PixelButton((std::string("Claim##") + std::string(e.item->id)).c_str(), {70, 0})) claim(ctx, *e.item);
         ImGui::SameLine();
+        ui::AlignTextToButton();
         ui::ShadowText(std::string(e.item->name), color);
         break;
       default:
@@ -273,6 +291,7 @@ void CostumerScreen::drawAdventurers(app::FrameCtx& ctx) {
   for (const auto& a : list_) {
     ImGui::PushID(a.id.c_str());
     if (a.isActive) {
+      ui::AlignTextToButton();
       ui::ShadowText(a.name + "  (active)", ui::PaletteColor::TextGreen);
     } else {
       if (ui::PixelButton(("Play##" + a.id).c_str(), {70, 0})) {
@@ -283,6 +302,7 @@ void CostumerScreen::drawAdventurers(app::FrameCtx& ctx) {
         }
       }
       ImGui::SameLine();
+      ui::AlignTextToButton();
       ui::ShadowText(a.name, ui::PaletteColor::TextCyan);
     }
     ImGui::SameLine(260);
@@ -312,9 +332,14 @@ void CostumerScreen::drawAdventurers(app::FrameCtx& ctx) {
   ImGui::Spacing();
   if (static_cast<int>(list_.size()) < services::MAX_ADVENTURERS) {
     ui::ShadowText("New Adventurer:", ui::PaletteColor::Parchment);
+    const float rowY = ImGui::GetCursorPosY();
     ImGui::SetNextItemWidth(160);
-    ImGui::InputText("##newname", nameBuf_.data(), nameBuf_.size());
-    if (ui::PixelButton("Create", {90, 0})) create(ctx);
+    ui::AlignFrameToButton();
+    const bool entered =
+        ImGui::InputText("##newname", nameBuf_.data(), nameBuf_.size(), ImGuiInputTextFlags_EnterReturnsTrue);
+    ImGui::SameLine();
+    ImGui::SetCursorPosY(rowY);
+    if (ui::PixelButton("Create", {90, 0}) || entered) create(ctx);
   }
 }
 

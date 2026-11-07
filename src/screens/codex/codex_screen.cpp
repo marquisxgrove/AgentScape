@@ -225,20 +225,26 @@ void CodexScreen::drawTable(app::FrameCtx& ctx) {
   for (const auto& row : page_->rows) {
     ImGui::TableNextRow();
     ImGui::TableSetColumnIndex(0);
+    // The selectable spans the row for click/nav; the cells draw shadowed text like the rest of the UI.
     ImGui::PushID(row.agent.slug.c_str());
-    if (ImGui::Selectable(row.agent.name.c_str(), false, ImGuiSelectableFlags_SpanAllColumns)) open(ctx, row);
-    if (ImGui::IsItemHovered() || ImGui::IsItemFocused()) {
-      ui::setHoverText(ui::hoverText("Examine", row.agent.name, ui::PaletteColor::TextCyan, 0));
-    }
+    const ImVec2 cell = ImGui::GetCursorPos();
+    const bool clicked =
+        ImGui::Selectable("##row", false, ImGuiSelectableFlags_SpanAllColumns | ImGuiSelectableFlags_AllowOverlap,
+                          {0, ImGui::GetFontSize() + 2});
+    const bool active = ImGui::IsItemHovered() || ImGui::IsItemFocused();
+    if (active) ui::setHoverText(ui::hoverText("Examine", row.agent.name, ui::PaletteColor::TextCyan, 0));
     ImGui::PopID();
+    ImGui::SetCursorPos(cell);
+    ui::ShadowText(row.agent.name, ui::PaletteColor::TextCyan);
     ImGui::TableSetColumnIndex(1);
-    ImGui::TextUnformatted(row.agent.vendor.c_str());
+    ui::ShadowText(row.agent.vendor);
     ImGui::TableSetColumnIndex(2);
-    ImGui::TextUnformatted(services::kindDisplay(row.agent.kind));
+    ui::ShadowText(services::kindDisplay(row.agent.kind));
     ImGui::TableSetColumnIndex(3);
-    ImGui::TextUnformatted(std::to_string(row.levels.total).c_str());
+    ui::ShadowText(std::to_string(row.levels.total));
     ImGui::TableSetColumnIndex(4);
-    ImGui::TextUnformatted(std::to_string(row.levels.overallCount).c_str());
+    ui::ShadowText(std::to_string(row.levels.overallCount));
+    if (clicked) open(ctx, row);
   }
   ImGui::EndTable();
 }
@@ -253,6 +259,7 @@ void CodexScreen::drawPaging() {
   }
   ImGui::EndDisabled();
   ImGui::SameLine();
+  ui::AlignTextToButton();
   ui::ShadowText("Page " + std::to_string(s.page + 1) + "/" + std::to_string(s.pages) + "  (" +
                      std::to_string(page_->total) + " familiars)",
                  ui::PaletteColor::Parchment);

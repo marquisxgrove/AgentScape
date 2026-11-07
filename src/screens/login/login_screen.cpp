@@ -2,6 +2,8 @@
 
 #include <imgui.h>
 
+#include <cmath>
+
 #include "app/services.hpp"
 #include "ui/layout.hpp"
 #include "ui/ui_context.hpp"
@@ -9,6 +11,10 @@
 #include "ui/widgets.hpp"
 
 namespace as::screens {
+
+namespace {
+constexpr float COLUMN_W = 210.0F;  // the centred login column
+}  // namespace
 
 LoginScreen::LoginScreen() : github_(std::make_unique<platform::GitHubDeviceFlow>()) {}
 LoginScreen::~LoginScreen() = default;
@@ -60,11 +66,17 @@ void LoginScreen::draw(app::FrameCtx& ctx) {
   }
 
   ui::StonePanel panel{"##login", "Welcome to AgentScape"};
+  // Centre a fixed-width column a little above the middle of the panel, like a classic login box.
+  const ImVec2 avail = ImGui::GetContentRegionAvail();
+  ImGui::SetCursorPos({ImGui::GetCursorPosX() + std::floor((avail.x - COLUMN_W) / 2),
+                       ImGui::GetCursorPosY() + std::floor(avail.y * 0.22F)});
+  ImGui::BeginGroup();
   if (githubActive_) {
     drawGitHubFlow(ctx);
   } else {
     drawChoices(ctx);
   }
+  ImGui::EndGroup();
 }
 
 void LoginScreen::drawGitHubFlow(app::FrameCtx& ctx) {
@@ -117,11 +129,15 @@ void LoginScreen::drawGitHubFlow(app::FrameCtx& ctx) {
 }
 
 void LoginScreen::drawChoices(app::FrameCtx& ctx) {
-  ui::ShadowText("Choose how to enter Promptmoor.", ui::PaletteColor::Parchment);
+  ui::ShadowText("Rate the familiars you quest with,", ui::PaletteColor::Parchment);
+  ui::ShadowText("and learn their Boons and Banes.", ui::PaletteColor::Parchment);
+  ImGui::Spacing();
+  ImGui::Spacing();
+  ui::ShadowText("Choose how to enter Promptmoor:", ui::PaletteColor::TextYellow);
   ImGui::Spacing();
 
   if (platform::githubSignInAvailable()) {
-    if (ui::PixelButton("Sign in with GitHub", {160, 0},
+    if (ui::PixelButton("Sign in with GitHub", {COLUMN_W, 0},
                         ui::hoverText("Sign in", "with GitHub", ui::PaletteColor::TextCyan, 0))) {
       error_.clear();
       github_->start();
@@ -129,7 +145,8 @@ void LoginScreen::drawChoices(app::FrameCtx& ctx) {
     }
   }
 
-  if (ui::PixelButton("Play as Guest", {160, 0}, ui::hoverText("Play", "as Guest", ui::PaletteColor::TextCyan, 0))) {
+  if (ui::PixelButton("Play as Guest", {COLUMN_W, 0},
+                      ui::hoverText("Play", "as Guest", ui::PaletteColor::TextCyan, 0))) {
     domain::Settings guestDefaults;
     guestDefaults.reduceMotion = ctx.reduceMotionDefault;
     auto guest = ctx.services->profile.createGuest(guestDefaults);
@@ -145,7 +162,7 @@ void LoginScreen::drawChoices(app::FrameCtx& ctx) {
     ui::ShadowText("Or continue as:", ui::PaletteColor::Parchment);
     for (const auto& user : users_) {
       const std::string label = user.name + "##user-" + user.id;
-      if (ui::PixelButton(label.c_str(), {160, 0},
+      if (ui::PixelButton(label.c_str(), {COLUMN_W, 0},
                           ui::hoverText("Play as", user.name, ui::PaletteColor::TextCyan, 0))) {
         afterSignIn(ctx, user, /*remember=*/true);
         return;
@@ -155,7 +172,8 @@ void LoginScreen::drawChoices(app::FrameCtx& ctx) {
 
   if (!error_.empty()) {
     ImGui::Spacing();
-    ui::RichText(std::string("<col=red>") + ui::escapeMarkup(error_) + "</col>");
+    ui::RichText(std::string("<col=red>") + ui::escapeMarkup(error_) + "</col>", ui::PaletteColor::TextYellow,
+                 COLUMN_W);
   }
 }
 
