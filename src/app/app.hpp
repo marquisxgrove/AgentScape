@@ -55,6 +55,9 @@ class App {
   void onStoreReady();
   void signInRemembered();
   void adoptUser(const std::string& userId, const domain::Settings& settings);
+  // Credits the signed-in user's running coding session (coding-sessions Requirement 2.3). `away`: on sign-in, so
+  // the time spent away is reported in the Chatbox.
+  void settleCoding(bool away);
   // Scripted smoke runs (smoke_runs.cpp), picked by a --smoke-* flag. Each step returns true when the run is over.
   const std::optional<std::string>& smokeDir() const;  // the selected run's snapshot directory; nullopt = no run
   bool runSmokeStep();     // the selected run's next step
@@ -111,6 +114,7 @@ class App {
   std::optional<ScreenId> postLoginScreen_;  // dev: --screen=costumer opens this right after sign-in
   bool isKeeper_ = false;  // cached KEEPER role of the signed-in user
   bool isGuest_ = false;   // the signed-in user is a Guest (Log out asks first)
+  double codingSettleIn_ = 0;   // seconds until the next coding-session settle
   int currentLevel_ = 1;               // the signed-in user's Questing level, from their XP
   std::int64_t totalXp_ = 0;           // and their total XP (kept in step by XpChanged events)
   game::Effects effects_;              // floating "+N XP" drops and level-up fireworks

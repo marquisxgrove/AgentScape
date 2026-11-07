@@ -15,13 +15,16 @@ const std::vector<Hotspot>& table() {
        {{250, 55}, {350, 55}, {350, 143}, {250, 143}}},
       {"hiscores", "Hiscores Obelisk", "Read", app::ScreenId::Hiscores,
        "A black stone that remembers every champion's name.", false,
-       {{178, 34}, {212, 34}, {212, 129}, {178, 129}}},
+       {{175, 34}, {209, 34}, {209, 129}, {175, 129}}},
       {"costumer", "The Costumer", "Enter", app::ScreenId::Costumer,
        "Racks of tunics, hoods, and the occasional cursed hat.", false,
        {{55, 180}, {155, 180}, {155, 265}, {55, 265}}},
       {"graveyard", "Graveyard", "Enter", app::ScreenId::Graveyard,
        "The Hall of Hallucinations. Here lie the community's most-agreed failures.", true,
        {{240, 178}, {350, 178}, {350, 266}, {240, 266}}},
+      {"wilds", "The Wilds", "Travel to", app::ScreenId::Wilds,
+       "The road south. Beyond it, bugs to squash and trees to fell while you code.", false,
+       {{170, 262}, {232, 262}, {232, 298}, {170, 298}}},
   };
   return HOTSPOTS;
 }

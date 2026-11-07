@@ -18,8 +18,8 @@ const std::array<std::int64_t, MAX_QUESTING_LEVEL + 1>& xpTable();
 // The largest level L in [1, 99] with xpTable()[L] <= xp. Negative XP counts as 0.
 int levelForXp(std::int64_t xp);
 
-enum class XpReason { QuestLog, Note, HelpfulReceived, AgentApproved, Seed };
-const char* xpReasonToDb(XpReason reason);   // "QUEST_LOG", "NOTE", "HELPFUL_RECEIVED", "AGENT_APPROVED", "SEED"
+enum class XpReason { QuestLog, Note, HelpfulReceived, AgentApproved, Seed, Coding };
+const char* xpReasonToDb(XpReason reason);   // "QUEST_LOG", "NOTE", "HELPFUL_RECEIVED", "AGENT_APPROVED", "SEED", "CODING"
 
 struct XpRewards {
   int questLog = 250;
