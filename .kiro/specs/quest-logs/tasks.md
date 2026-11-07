@@ -40,7 +40,7 @@
   - Build the 3-step quest scroll screen with an Agent picker, gem rating radio groups, skill icons, quick tags, and the existing-log redirect. The Codex card button pre-selects the Agent.
   - _Requirements: 1.1–1.6_
 
-- [ ] 5. Build the Tavern board
+- [x] 5. Build the Tavern board
   - Build the Tavern board (notice board, `QuestLogCard`, filters, sort, pagination), the quest detail screen (helpful, report, edit/delete), and the top-5 slot on the Codex card.
   - Implement `AvatarThumb` on top of the shared `AvatarRenderer` and `TextureCache`.
   - _Requirements: 3.1–3.4, 4.1, 4.2_

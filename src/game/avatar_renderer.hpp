@@ -7,6 +7,7 @@
 #include <optional>
 #include <string>
 #include <unordered_map>
+#include <vector>
 
 #include "core/result.hpp"
 #include "domain/appearance.hpp"
@@ -32,6 +33,9 @@ class AvatarRenderer {
   SDL_Texture* texture(const domain::Appearance& appearance, const domain::Loadout& loadout,
                        domain::Facing facing, int idleFrame);
 
+  // Call once per frame AFTER the frame has been rendered: frees textures that a full cache retired during it.
+  void endFrame();
+
   // The composited frame scaled up `scale` times with nearest-neighbour filtering (default 4x, the
   // portrait export size). The caller owns the surface (SDL_DestroySurface).
   SDL_Surface* exportSurface(const domain::Appearance& appearance, const domain::Loadout& loadout,
@@ -48,6 +52,7 @@ class AvatarRenderer {
   SDL_Renderer* renderer_;
   render::AvatarAtlas atlas_;
   std::unordered_map<std::string, SDL_Texture*> cache_;
+  std::vector<SDL_Texture*> retired_;   // evicted this frame, destroyed by endFrame()
 };
 
 }  // namespace as::game

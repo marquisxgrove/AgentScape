@@ -64,11 +64,22 @@ Result<std::unique_ptr<AvatarRenderer>> AvatarRenderer::create(SDL_Renderer* ren
   return std::unique_ptr<AvatarRenderer>(new AvatarRenderer(renderer, std::move(atlas)));
 }
 
-AvatarRenderer::~AvatarRenderer() { clearCache(); }
+AvatarRenderer::~AvatarRenderer() {
+  clearCache();
+  endFrame();
+}
 
+// Textures are drawn at the END of the frame (ImGui records draw commands that point at them), so a full cache
+// must not destroy what earlier code in the same frame has already handed to the draw list. They are retired here
+// and destroyed by endFrame() once the frame has been rendered.
 void AvatarRenderer::clearCache() {
-  for (auto& [key, tex] : cache_) SDL_DestroyTexture(tex);
+  for (auto& [key, tex] : cache_) retired_.push_back(tex);
   cache_.clear();
+}
+
+void AvatarRenderer::endFrame() {
+  for (SDL_Texture* tex : retired_) SDL_DestroyTexture(tex);
+  retired_.clear();
 }
 
 SDL_Texture* AvatarRenderer::texture(const domain::Appearance& appearance, const domain::Loadout& loadout,

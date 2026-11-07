@@ -780,3 +780,164 @@ TEST_CASE("a user's XP is read back from the profile, and a Guest starts at leve
   CHECK(profile.getUser(guest->id)->totalXp == domain::guestSeedXp());
   CHECK(domain::levelForXp(profile.getUser(guest->id)->totalXp) == 13);
 }
+
+// --- The Tavern board and the card's top logs ---------------------------------------------------------------------------
+
+#include "domain/snapshot.hpp"
+
+namespace {
+// 16 logs from four authors, one every minute: the oldest is "log00".
+struct Board {
+  Fixture f;
+  std::vector<std::string> ids;   // oldest first
+  Board() {
+    for (int u = 0; u < 4; ++u) f.player("w" + std::to_string(u), "Writer" + std::to_string(u), true);
+    for (int i = 0; i < 16; ++i) {
+      auto in = Fixture::input(i % 2 == 0 ? GRYPHON : CAIRN, "v" + std::to_string(i));
+      in.questType = i % 4 == 0 ? QuestType::Writing : QuestType::Coding;
+      in.title = "Quest log number " + std::string(i < 10 ? "0" : "") + std::to_string(i);
+      const auto r = f.quests.createQuestLog("w" + std::to_string(i % 4), in);
+      REQUIRE(r.has_value());
+      ids.push_back(r->questLogId);
+      f.clock.advance(std::chrono::minutes{1});
+    }
+  }
+  std::vector<std::string> titles(const QuestPage& p) {
+    std::vector<std::string> out;
+    for (const auto& l : p.logs) out.push_back(l.input.title);
+    return out;
+  }
+};
+}  // namespace
+
+TEST_CASE("the board lists newest first, twelve to a page", "[integration][quests][board]") {
+  Board b;
+  const auto p1 = b.f.quests.list({}, "alice");
+  REQUIRE(p1.has_value());
+  CHECK(p1->total == 16);
+  CHECK(p1->logs.size() == 12);
+  CHECK(p1->slice.pages == 2);
+  CHECK(p1->logs.front().input.title == "Quest log number 15");
+  CHECK(p1->logs.back().input.title == "Quest log number 04");
+  QuestListQuery q;
+  q.page = 1;
+  const auto p2 = b.f.quests.list(q, "alice");
+  REQUIRE(p2.has_value());
+  CHECK(p2->logs.size() == 4);
+  CHECK(p2->logs.front().input.title == "Quest log number 03");
+  CHECK(p2->logs.back().input.title == "Quest log number 00");
+  q.page = 99;   // past the end: the last page
+  const auto clamped = b.f.quests.list(q, "alice");
+  CHECK(clamped->slice.page == 1);
+  CHECK(clamped->logs.size() == 4);
+}
+
+TEST_CASE("the board filters by Agent and Quest Type", "[integration][quests][board]") {
+  Board b;
+  QuestListQuery q;
+  q.agentId = GRYPHON;
+  const auto gryphon = b.f.quests.list(q, "");
+  REQUIRE(gryphon.has_value());
+  CHECK(gryphon->total == 8);
+  for (const auto& l : gryphon->logs) CHECK(l.input.agentId == GRYPHON);
+  q = {};
+  q.questType = QuestType::Writing;
+  CHECK(b.f.quests.list(q, "")->total == 4);   // i = 0, 4, 8, 12
+  q.agentId = CAIRN;
+  CHECK(b.f.quests.list(q, "")->total == 0);   // those are all Gryphon logs
+  q.agentId = GRYPHON;
+  CHECK(b.f.quests.list(q, "")->total == 4);
+  q = {};
+  q.questType = QuestType::Debugging;
+  const auto none = b.f.quests.list(q, "");
+  REQUIRE(none.has_value());
+  CHECK(none->total == 0);
+  CHECK(none->logs.empty());
+  CHECK(none->slice.pages == 1);   // an empty board still has one (empty) page
+}
+
+TEST_CASE("most helpful comes first, ties newest first", "[integration][quests][board]") {
+  Board b;
+  b.f.player("fan1", "Fan1", false);
+  b.f.player("fan2", "Fan2", false);
+  REQUIRE(b.f.quests.toggleHelpful("fan1", b.ids[3]).has_value());
+  REQUIRE(b.f.quests.toggleHelpful("fan2", b.ids[3]).has_value());
+  REQUIRE(b.f.quests.toggleHelpful("fan1", b.ids[7]).has_value());
+  REQUIRE(b.f.quests.toggleHelpful("fan1", b.ids[1]).has_value());
+  QuestListQuery q;
+  q.sort = QuestSort::MostHelpful;
+  const auto p = b.f.quests.list(q, "fan1");
+  REQUIRE(p.has_value());
+  CHECK(p->logs[0].id == b.ids[3]);   // two votes
+  CHECK(p->logs[1].id == b.ids[7]);   // one vote, newer
+  CHECK(p->logs[2].id == b.ids[1]);   // one vote, older
+  CHECK(p->logs[3].id == b.ids[15]);  // then nobody voted: newest first
+  CHECK(p->helpedByViewer == std::set<std::string>{b.ids[3], b.ids[7], b.ids[1]});
+  CHECK(b.f.quests.list(q, "fan2")->helpedByViewer == std::set<std::string>{b.ids[3]});
+  CHECK(b.f.quests.list(q, "")->helpedByViewer.empty());   // no viewer
+}
+
+TEST_CASE("hidden logs and logs of Agents that left the Codex are not on the board", "[integration][quests][board]") {
+  Board b;
+  REQUIRE(b.f.quests.setQuestLogModeration("kay", b.ids[15], true, false).has_value());
+  auto p = b.f.quests.list({}, "");
+  CHECK(p->total == 15);
+  CHECK(p->logs.front().input.title == "Quest log number 14");
+  b.f.db.exec("UPDATE agent SET status = 'REJECTED' WHERE id = '" + CAIRN + "'");
+  p = b.f.quests.list({}, "");
+  CHECK(p->total == 8);   // only the 8 Gryphon logs remain (the hidden one, number 15, was Cairn's anyway)
+  for (const auto& l : p->logs) CHECK(l.input.agentId == GRYPHON);
+}
+
+TEST_CASE("an excluded log is still on the board; only hiding removes it", "[integration][quests][board]") {
+  Board b;
+  REQUIRE(b.f.quests.setQuestLogModeration("kay", b.ids[15], false, true).has_value());
+  CHECK(b.f.quests.list({}, "")->total == 16);
+}
+
+TEST_CASE("an Agent's card shows its five most helpful logs", "[integration][quests][board]") {
+  Board b;
+  for (int i = 0; i < 6; ++i) b.f.player("fan" + std::to_string(i), "Fan" + std::to_string(i), false);
+  // Gryphon logs are the even ones. Give ids[0] three votes, ids[2] two, ids[4] one; ids[6..14] none.
+  for (int v = 0; v < 3; ++v) REQUIRE(b.f.quests.toggleHelpful("fan" + std::to_string(v), b.ids[0]).has_value());
+  for (int v = 0; v < 2; ++v) REQUIRE(b.f.quests.toggleHelpful("fan" + std::to_string(v), b.ids[2]).has_value());
+  REQUIRE(b.f.quests.toggleHelpful("fan0", b.ids[4]).has_value());
+  REQUIRE(b.f.quests.toggleHelpful("fan0", b.ids[5]).has_value());   // a Cairn log: must not appear for Gryphon
+
+  const auto top = b.f.quests.topHelpful(GRYPHON);
+  REQUIRE(top.has_value());
+  REQUIRE(top->size() == 5);
+  CHECK((*top)[0].id == b.ids[0]);
+  CHECK((*top)[1].id == b.ids[2]);
+  CHECK((*top)[2].id == b.ids[4]);
+  CHECK((*top)[3].id == b.ids[14]);   // no votes left: newest first
+  CHECK((*top)[4].id == b.ids[12]);
+  for (const auto& l : *top) CHECK(l.input.agentId == GRYPHON);
+
+  REQUIRE(b.f.quests.setQuestLogModeration("kay", b.ids[0], true, false).has_value());   // hidden: gone from the top
+  CHECK((*b.f.quests.topHelpful(GRYPHON))[0].id == b.ids[2]);
+  CHECK(b.f.quests.topHelpful(GRYPHON, 2)->size() == 2);
+  CHECK(b.f.quests.topHelpful("seed:agent:mossling")->empty());
+}
+
+TEST_CASE("whether you marked a log Helpful can be asked directly", "[integration][quests][board]") {
+  Board b;
+  b.f.player("fan", "Fan", false);
+  CHECK_FALSE(*b.f.quests.hasVoted("fan", b.ids[0]));
+  REQUIRE(b.f.quests.toggleHelpful("fan", b.ids[0]).has_value());
+  CHECK(*b.f.quests.hasVoted("fan", b.ids[0]));
+  CHECK_FALSE(*b.f.quests.hasVoted("w1", b.ids[0]));
+}
+
+TEST_CASE("a saved snapshot draws the author's Adventurer as they were", "[integration][quests][board]") {
+  Fixture f;
+  auto adventurer = *f.adventurers.getActive("alice");
+  REQUIRE(adventurer.has_value());
+  const auto made = f.quests.createQuestLog("alice", Fixture::input());
+  REQUIRE(made.has_value());
+  const auto snap = domain::snapshotFromJson((**f.quests.get(made->questLogId)).snapshot);
+  REQUIRE(snap.has_value());
+  CHECK(snap->name == "Alice");
+  CHECK(snap->appearance == adventurer->appearance);
+  CHECK(snap->loadout == adventurer->loadout);
+}

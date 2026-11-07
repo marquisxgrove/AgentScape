@@ -54,6 +54,7 @@ add_library(as_domain STATIC
   src/domain/rate_limit.cpp
   src/domain/skills.cpp
   src/domain/slug.cpp
+  src/domain/snapshot.cpp
   src/domain/stat_table.cpp
   src/domain/voting.cpp
   src/domain/wardrobe.cpp
@@ -179,7 +180,9 @@ if(AS_BUILD_APP)
     src/screens/costumer/costumer_screen.cpp
     src/screens/graveyard/graveyard_screen.cpp
     src/screens/login/login_screen.cpp
+    src/screens/quest/quest_detail_screen.cpp
     src/screens/quest/quest_scroll_screen.cpp
+    src/screens/quest/tavern_screen.cpp
     src/screens/quest/quest_widgets.cpp
     src/screens/world/world_screen.cpp
     src/ui/chatbox.cpp

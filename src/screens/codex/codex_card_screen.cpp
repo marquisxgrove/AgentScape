@@ -12,6 +12,7 @@
 #include "screens/codex/codex_widgets.hpp"
 #include "ui/chatbox.hpp"
 #include "ui/theme.hpp"
+#include "ui/ui_context.hpp"
 #include "ui/widgets.hpp"
 
 namespace as::screens {
@@ -46,6 +47,7 @@ void CodexCardScreen::reload(app::FrameCtx& ctx) {
   allBoons_.clear();
   allBanes_.clear();
   myVotes_.clear();
+  topLogs_.clear();
   if (ctx.services == nullptr) return;
   auto card = ctx.services->codex.card(slug_, scope_);
   if (!card) {
@@ -58,6 +60,7 @@ void CodexCardScreen::reload(app::FrameCtx& ctx) {
   }
   card_ = std::move(**card);
   if (auto votes = ctx.services->notes.myVotes(ctx.userId, card_->agent.id)) myVotes_ = std::move(*votes);
+  if (auto logs = ctx.services->quests.topHelpful(card_->agent.id, 5)) topLogs_ = std::move(*logs);
   if (showAllBoons_) {
     if (auto n = ctx.services->codex.notes(card_->agent.id, services::NoteKind::Boon)) allBoons_ = *n;
   }
@@ -90,6 +93,7 @@ void CodexCardScreen::draw(app::FrameCtx& ctx) {
   ImGui::BeginChild("##cardbody", {0, 0});
   drawHeader(ctx);
   drawSkills();
+  drawQuestLogs(ctx);
   drawNotes(ctx, "Boons (what players praise)", services::NoteKind::Boon);
   drawNotes(ctx, "Banes (what players warn about)", services::NoteKind::Bane);
   drawCompose(ctx);
@@ -177,6 +181,30 @@ void CodexCardScreen::drawSkills() {
     ImGui::EndTable();
   }
   ui::ShadowText("A skill needs 3 ratings to rank.", ui::PaletteColor::Parchment);
+  ImGui::Spacing();
+}
+
+void CodexCardScreen::drawQuestLogs(app::FrameCtx& ctx) {
+  ui::ShadowText("Helpful Quest Logs (what adventurers did with it)", ui::PaletteColor::TextOrange);
+  if (topLogs_.empty()) {
+    ui::ShadowText("Nobody has logged a quest with it yet.", ui::PaletteColor::Parchment);
+  }
+  for (const auto& log : topLogs_) {
+    ImGui::PushID(log.id.c_str());
+    // One selectable row per log: title, the gems as a number (never colour alone), who and how helpful.
+    const std::string row = log.input.title + "   " + std::to_string(log.input.overall) + "/5   by " + log.authorName + "   (" +
+                            std::to_string(log.helpfulCount) + " helpful)";
+    if (ImGui::Selectable((row + "##row").c_str(), false) && ctx.nav != nullptr) {
+      ctx.nav->navigate(app::ScreenId::QuestDetail, {{"id", log.id}});
+    }
+    if (ImGui::IsItemHovered() || ImGui::IsItemFocused()) {
+      ui::setHoverText(ui::hoverText("Read", log.input.title, ui::PaletteColor::TextCyan, 0));
+    }
+    ImGui::PopID();
+  }
+  if (ui::PixelButton("View all Quest Logs##tavern", {0, 0}) && ctx.nav != nullptr) {
+    ctx.nav->navigate(app::ScreenId::Tavern, {{"agent", card_->agent.slug}});
+  }
   ImGui::Spacing();
 }
 

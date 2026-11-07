@@ -2,6 +2,7 @@
 
 #include <chrono>
 #include <optional>
+#include <set>
 #include <string>
 #include <vector>
 
@@ -9,6 +10,7 @@
 #include "core/result.hpp"
 #include "core/rng.hpp"
 #include "db/database.hpp"
+#include "domain/codex_query.hpp"
 #include "domain/ratings.hpp"
 #include "services/activity_service.hpp"
 #include "services/adventurer_service.hpp"
@@ -25,12 +27,32 @@ struct QuestLogRecord {
   std::string authorName;
   domain::QuestLogInput input;     // agentId, version, quest type, ratings, text, tags
   std::string agentName;
+  std::string agentSlug;           // to open the Agent's card
   std::string snapshot;            // JSON Adventurer_Snapshot, frozen when the log was written
   int helpfulCount = 0;
   bool hidden = false;
   bool excluded = false;
   std::chrono::sys_seconds createdAt;
   std::chrono::sys_seconds updatedAt;
+};
+
+inline constexpr std::size_t QUEST_PAGE_SIZE = 12;   // notes per page on the Tavern board (Requirement 3.1)
+
+enum class QuestSort { Newest, MostHelpful };
+
+// What the Tavern board shows: non-hidden Quest Logs of approved Agents, filtered and sorted, one page at a time.
+struct QuestListQuery {
+  std::optional<std::string> agentId;
+  std::optional<domain::QuestType> questType;
+  QuestSort sort = QuestSort::Newest;
+  std::size_t page = 0;   // zero-based; clamped to the last page
+};
+
+struct QuestPage {
+  std::vector<QuestLogRecord> logs;          // this page only
+  std::size_t total = 0;                     // matches across all pages
+  domain::PageSlice slice;
+  std::set<std::string> helpedByViewer;      // ids on this page that the viewer has marked Helpful
 };
 
 // What the screen turns into chatbox lines, the "+N XP" drop, fireworks and unlock messages.
@@ -85,6 +107,16 @@ class QuestService {
   // (taking back the XP those paid) and deletes their own logs through the normal path, so the aggregates stay
   // equal to a recompute. Returns how many Quest Logs were removed.
   Result<int> purgeUser(const std::string& userId);
+
+  // The Tavern board. Newest = latest first; MostHelpful = most Helpful votes first, then latest. Ties end on the id,
+  // so the order is total. Hidden logs and logs of Agents that are no longer approved are left out.
+  Result<QuestPage> list(const QuestListQuery& query, const std::string& viewerId);
+
+  // An Agent's most helpful logs, for its examine card (Requirement 3.3), best first.
+  Result<std::vector<QuestLogRecord>> topHelpful(const std::string& agentId, std::size_t limit = 5);
+
+  // Whether this user has marked the log Helpful.
+  Result<bool> hasVoted(const std::string& userId, const std::string& questLogId);
 
   Result<std::optional<QuestLogRecord>> get(const std::string& questLogId);
   // The user's own log for this Agent and version, if any.
