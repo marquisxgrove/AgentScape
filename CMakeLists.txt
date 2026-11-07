@@ -214,7 +214,17 @@ if(AS_BUILD_TESTS)
   as_enable_sanitizers(integration_tests)
   catch_discover_tests(integration_tests PROPERTIES LABELS "integration")
 
-  # smoke_test (headless demo path) is added with the login and world screens (task 11).
+  # Smoke test: drives the real app (SDL dummy video + software renderer) through the demo path and
+  # saves a screen snapshot per step. Only when the app is built.
+  if(AS_BUILD_APP AND NOT EMSCRIPTEN)
+    add_test(NAME smoke_demo
+      COMMAND ${CMAKE_COMMAND}
+        -DAGENTSCAPE=$<TARGET_FILE:agentscape>
+        -DOUTDIR=${CMAKE_BINARY_DIR}/smoke
+        -P ${CMAKE_SOURCE_DIR}/cmake/RunSmoke.cmake)
+    set_tests_properties(smoke_demo PROPERTIES LABELS "smoke"
+      ENVIRONMENT "SDL_VIDEO_DRIVER=dummy;SDL_RENDER_DRIVER=software")
+  endif()
 endif()
 
 # ---------------------------------------------------------------------------

@@ -35,6 +35,13 @@ jobs:
         run: cmake --build --preset dev
       - name: Test
         run: ctest --preset dev
+      - name: Upload smoke snapshots
+        if: always() && runner.os == 'Linux'
+        uses: actions/upload-artifact@v4
+        with:
+          name: smoke-snapshots-${{ matrix.name }}
+          path: build/dev/smoke/*.png
+          if-no-files-found: ignore
 
   asan:
     runs-on: ubuntu-24.04

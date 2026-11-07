@@ -21,6 +21,9 @@ class ContextMenuHost {
   // frame (never "cancel"); std::nullopt otherwise. Closing with Escape/outside yields nullopt.
   std::optional<domain::MenuAction> draw();
 
+  // Confirms the currently-selected item programmatically (used by the headless smoke test).
+  std::optional<domain::MenuAction> confirmSelected() { return model_.confirm(); }
+
  private:
   ContextMenuModel model_;
   bool justOpened_ = false;

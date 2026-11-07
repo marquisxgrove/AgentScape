@@ -48,6 +48,9 @@ class App {
   void onStoreReady();
   void signInRemembered();
   void adoptUser(const std::string& userId, const domain::Settings& settings);
+  // Scripted demo path for the headless smoke test (--smoke-demo). Returns true when finished.
+  bool runDemoStep();
+  void snapshotTo(const std::string& file);
   void registerScreens();
   void applySettings(const domain::Settings& settings);
   void drawShell();
@@ -66,6 +69,8 @@ class App {
   bool kiroween_ = false;
   int framesRendered_ = 0;
   bool quitRequested_ = false;
+  int demoStep_ = 0;   // index into the --smoke-demo sequence
+  bool demoFailed_ = false;
 
   core::SystemRng rng_;
   core::SystemClock clock_;
