@@ -23,6 +23,19 @@ void drawSpans(ImDrawList* dl, ImVec2 pos, const std::vector<TextSpan>& spans);
 // hoverMarkup, if given, becomes the frame's hover text while the button is hovered.
 bool PixelButton(const char* label, ImVec2 size = {0, 0}, std::string_view hoverMarkup = {});
 
+// A PixelButton for picking one of several tabs/views: the selected one stays pressed with an orange label.
+bool TabButton(const char* label, bool selected, ImVec2 size = {0, 0}, std::string_view hoverMarkup = {});
+
+// Height of a PixelButton sized {x, 0}.
+float ButtonHeight();
+
+// Nudges the cursor down so the next ShadowText/RichText line is vertically centred on a row of
+// default-height buttons (the text counterpart of ImGui::AlignTextToFramePadding).
+void AlignTextToButton();
+
+// The same for the next ImGui framed widget (InputText etc.) on a row of default-height buttons.
+void AlignFrameToButton();
+
 // Retro check box with a shadowed label. Flips *value and returns true when activated (mouse,
 // keyboard or gamepad). hoverMarkup becomes the frame's hover text while hovered.
 bool Toggle(const char* label, bool* value, std::string_view hoverMarkup = {});

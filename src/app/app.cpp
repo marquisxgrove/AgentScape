@@ -64,7 +64,8 @@ Config configFromProcess(int argc, char** argv) {
   ConfigSources sources;
   sources.args = args;
   sources.env = [](std::string_view name) -> std::optional<std::string> {
-    const char* v = std::getenv(std::string(name).c_str());
+    // SDL_getenv rather than std::getenv: MSVC deprecates the latter (C4996, fatal under /WX).
+    const char* v = SDL_getenv(std::string(name).c_str());
     return v != nullptr ? std::optional<std::string>{v} : std::nullopt;
   };
   sources.urlKiroween = platform::urlQueryParam("kiroween");
@@ -455,6 +456,17 @@ SDL_AppResult App::iterate() {
     }
   }
   ImGui_ImplSDL3_NewFrame();
+  // On Windows, macOS and X11 the SDL3 backend also feeds the OS mouse position every frame while the
+  // window is focused (its "global mouse state" fallback), in raw window pixels. That bypasses the
+  // conversion in handleEvent, so hovers flicker and clicks miss whenever the frame is scaled. Re-feed
+  // the current position in frame pixels; ImGui applies the last position event queued in a frame.
+  if (SDL_GetMouseFocus() == window_) {
+    float mx = 0.0F;
+    float my = 0.0F;
+    SDL_GetMouseState(&mx, &my);
+    const auto p = frame_->toFrame(mx, my);
+    ImGui::GetIO().AddMousePosEvent(p.x, p.y);
+  }
   ImGui::GetIO().DisplaySize = {static_cast<float>(domain::FRAME_W), static_cast<float>(domain::FRAME_H)};
   ImGui::GetIO().DisplayFramebufferScale = {1.0F, 1.0F};
   ImGui::NewFrame();

@@ -2,6 +2,7 @@
 
 #include <imgui.h>
 
+#include <cmath>
 #include <variant>
 
 #include "app/services.hpp"
@@ -21,6 +22,11 @@ void CodexCardScreen::onEnter(const app::ScreenParams& params) {
     scope_.reset();
     if (const auto s = params.find("scope"); s != params.end()) scope_ = domain::questTypeFromStorage(s->second);
     scrollToEnd_ = params.count("scroll") != 0 ? 3 : 0;
+    // A draft belongs to the card it was written on; never carry it over to another familiar.
+    composing_ = false;
+    composeText_.fill('\0');
+    composeVersion_.fill('\0');
+    composeSkill_ = -1;
     if (const auto c = params.find("compose"); c != params.end()) {
       composing_ = true;
       composeKind_ = c->second == "bane" ? services::NoteKind::Bane : services::NoteKind::Boon;
@@ -80,7 +86,7 @@ void CodexCardScreen::draw(app::FrameCtx& ctx) {
   }
 
   ImGui::BeginChild("##cardbody", {0, 0});
-  drawHeader(ctx);
+  drawHeader();
   drawSkills();
   drawNotes(ctx, "Boons (what players praise)", services::NoteKind::Boon);
   drawNotes(ctx, "Banes (what players warn about)", services::NoteKind::Bane);
@@ -92,16 +98,21 @@ void CodexCardScreen::draw(app::FrameCtx& ctx) {
   ImGui::EndChild();
 }
 
-void CodexCardScreen::drawHeader(app::FrameCtx& ctx) {
+void CodexCardScreen::drawHeader() {
   const auto& a = card_->agent;
-  const float w = ImGui::GetContentRegionAvail().x;
-  ui::ShadowText(a.name, ui::PaletteColor::TextYellow);
+  // The panel title already names the familiar; this line says what it is.
   ui::ShadowText(std::string(services::kindDisplay(a.kind)) + " by " + a.vendor + "  -  updated " +
                      core::formatIso8601(a.updatedAt).substr(0, 10),
                  ui::PaletteColor::Parchment);
   {
-    // The card itself: dark ink on parchment (the palette's coloured text doesn't read on it).
-    ui::StonePanel parchment{"##examine", "", {0, 96}, ui::PanelVariant::Parchment};
+    // The card itself: dark ink on parchment (the palette's coloured text doesn't read on it). Sized to
+    // its text, with the same 10 px padding StonePanel uses, so short entries don't float in a big box.
+    constexpr float PAD = 10.0F;
+    const float textW = ImGui::GetContentRegionAvail().x - 2 * PAD;
+    const float textH = ImGui::CalcTextSize(a.examine.c_str(), nullptr, false, textW).y +
+                        ImGui::GetStyle().ItemSpacing.y * 3 +
+                        ImGui::CalcTextSize(a.about.c_str(), nullptr, false, textW).y;
+    ui::StonePanel parchment{"##examine", "", {0, std::floor(textH + 2 * PAD + 2)}, ui::PanelVariant::Parchment};
     ImGui::PushStyleColor(ImGuiCol_Text, ui::toU32(ui::PaletteColor::Ink));
     ImGui::PushTextWrapPos(ImGui::GetCursorPosX() + ImGui::GetContentRegionAvail().x);
     ImGui::TextUnformatted(a.examine.c_str());
@@ -110,7 +121,6 @@ void CodexCardScreen::drawHeader(app::FrameCtx& ctx) {
     ImGui::PopTextWrapPos();
     ImGui::PopStyleColor();
   }
-  (void)w;
 
   if (a.website) {
     if (!confirmLeave_) {
@@ -130,7 +140,6 @@ void CodexCardScreen::drawHeader(app::FrameCtx& ctx) {
   if (ui::PixelButton("Write a Quest Log", {0, 0})) {
     ui::pushGameMessage("The Quest Log scribes aren't open for business yet.");
   }
-  (void)ctx;
   ImGui::Spacing();
 }
 
@@ -240,8 +249,9 @@ void CodexCardScreen::drawCompose(app::FrameCtx& ctx) {
   if (codex::flowButton(skillLabel, "noteskill", first)) {
     composeSkill_ = codex::cycleNext(composeSkill_, static_cast<int>(domain::SKILLS.size()));
   }
-  ImGui::SetNextItemWidth(110);
   ImGui::SameLine();
+  ui::AlignFrameToButton();
+  ImGui::SetNextItemWidth(110);
   ImGui::InputTextWithHint("##noteversion", "Version (optional)", composeVersion_.data(), composeVersion_.size());
   if (ui::PixelButton("Post##note", {0, 0})) {
     services::NewNote n;
@@ -263,6 +273,13 @@ void CodexCardScreen::drawCompose(app::FrameCtx& ctx) {
   }
   ImGui::SameLine();
   if (ui::PixelButton("Cancel##note", {0, 0})) composing_ = false;
+  // Live length, green once it would be accepted (the service still validates the trimmed text).
+  const auto len = domain::utf8Length(composeText_.data()).value_or(0);
+  ImGui::SameLine();
+  ui::AlignTextToButton();
+  ui::ShadowText(
+      std::to_string(len) + "/" + std::to_string(domain::MAX_NOTE),
+      len >= domain::MIN_NOTE && len <= domain::MAX_NOTE ? ui::PaletteColor::TextGreen : ui::PaletteColor::TextOrange);
 }
 
 }  // namespace as::screens

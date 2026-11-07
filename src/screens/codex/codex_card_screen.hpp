@@ -22,7 +22,7 @@ class CodexCardScreen : public app::Screen {
 
  private:
   void reload(app::FrameCtx& ctx);
-  void drawHeader(app::FrameCtx& ctx);
+  void drawHeader();
   void drawSkills();
   void drawNotes(app::FrameCtx& ctx, const char* title, services::NoteKind kind);
   void drawCompose(app::FrameCtx& ctx);

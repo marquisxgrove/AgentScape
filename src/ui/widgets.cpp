@@ -124,17 +124,18 @@ void drawSpans(ImDrawList* dl, ImVec2 pos, const std::vector<TextSpan>& spans) {
   });
 }
 
-bool PixelButton(const char* label, ImVec2 size, std::string_view hoverMarkup) {
+namespace {
+bool stoneButton(const char* label, ImVec2 size, std::string_view hoverMarkup, bool selected) {
   const auto text = visibleLabel(label);
   ImFont* font = ImGui::GetFont();
   const float fontSize = ImGui::GetFontSize();
   const ImVec2 textSize = floorVec(measure(font, fontSize, text));
-  const ImVec2 sz{size.x > 0 ? std::floor(size.x) : textSize.x + 16, size.y > 0 ? std::floor(size.y) : lineHeight() + 8};
+  const ImVec2 sz{size.x > 0 ? std::floor(size.x) : textSize.x + 16, size.y > 0 ? std::floor(size.y) : ButtonHeight()};
 
   ImGui::SetCursorScreenPos(floorVec(ImGui::GetCursorScreenPos()));
   const bool pressed = ImGui::InvisibleButton(label, sz, ImGuiButtonFlags_EnableNav);
   const bool hovered = ImGui::IsItemHovered();
-  const bool held = ImGui::IsItemActive() && hovered;
+  const bool held = (ImGui::IsItemActive() && hovered) || selected;
   const ImVec2 min = ImGui::GetItemRectMin();
   const ImVec2 max = ImGui::GetItemRectMax();
 
@@ -146,11 +147,31 @@ bool PixelButton(const char* label, ImVec2 size, std::string_view hoverMarkup) {
   const float push = held ? 1.0F : 0.0F;
   const ImVec2 textPos{min.x + std::floor((sz.x - textSize.x) / 2) + push,
                        min.y + std::floor((sz.y - fontSize) / 2) + push};
-  drawShadowed(dl, font, fontSize, textPos, PaletteColor::TextYellow, text, Surface::Stone);  // buttons are stone
+  const PaletteColor color = selected ? PaletteColor::TextOrange : PaletteColor::TextYellow;
+  drawShadowed(dl, font, fontSize, textPos, color, text, Surface::Stone);  // buttons are stone
 
   if (hovered && !hoverMarkup.empty()) setHoverText(std::string(hoverMarkup));
   if (pressed && ctx().onClick) ctx().onClick();
   return pressed;
+}
+}  // namespace
+
+float ButtonHeight() { return lineHeight() + 8; }
+
+void AlignTextToButton() {
+  ImGui::SetCursorPosY(ImGui::GetCursorPosY() + std::floor((ButtonHeight() - lineHeight()) / 2));
+}
+
+void AlignFrameToButton() {
+  ImGui::SetCursorPosY(ImGui::GetCursorPosY() + std::floor((ButtonHeight() - ImGui::GetFrameHeight()) / 2));
+}
+
+bool PixelButton(const char* label, ImVec2 size, std::string_view hoverMarkup) {
+  return stoneButton(label, size, hoverMarkup, false);
+}
+
+bool TabButton(const char* label, bool selected, ImVec2 size, std::string_view hoverMarkup) {
+  return stoneButton(label, size, hoverMarkup, selected);
 }
 
 bool Toggle(const char* label, bool* value, std::string_view hoverMarkup) {
