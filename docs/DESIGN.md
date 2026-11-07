@@ -43,6 +43,7 @@ The target **bonus prize** is **Best Demo**: the whole core loop fits in a 3-min
 | **The Tavern** | Tavern | Quest board of Quest Logs (reviews) |
 | **Hiscores Obelisk** | Hiscores | Agent and Adventurer leaderboards |
 | **Hall of Hallucinations** (graveyard, Kiroween only) | Graveyard | Top-voted Banes as tombstones with epitaphs |
+| **The Wilds** (the road south) | Wilds | Coding sessions: passive XP while you code, with the familiar fighting bug monsters beside you |
 
 ## 5. Core loop
 
@@ -78,6 +79,11 @@ flowchart LR
   - 3-step quest scroll with overall and per-Skill gem ratings, quick tags, helpful votes, and the XP ledger.
   - Level-ups with fireworks, Agent and Adventurer Hiscores.
   - Spec: [`quest-logs`](../.kiro/specs/quest-logs/requirements.md)
+
+- **Coding sessions and The Wilds:**
+  - Start a session with a familiar or solo; 1 XP a minute, paid while playing and for time away; at most 4 hours a session and 8 hours a day.
+  - The Adventurer fights original bug monsters with the familiar, or chops, mines and fishes when solo; a summary on Stop offers *Write a Quest Log*.
+  - Spec: [`coding-sessions`](../.kiro/specs/coding-sessions/requirements.md)
 
 ### Stretch (only if time allows)
 
@@ -245,6 +251,7 @@ Property-based tests (RapidCheck) cover every pure domain rule; each spec's `des
 | M3 | Codex | Seeded Agents and NPC adventurers, examine cards, notes and votes, compare view. | Done, plus proposals, Keeper tools and the Hall of Hallucinations. |
 | M4 | Quests | Quest Logs update levels. XP, level-ups, unlocks, Hiscores. | Done, plus sample Quest Logs from the townsfolk. |
 | M5 | Polish and demo | Graveyard, fireworks, art pass, a11y pass, smoke test green, release binaries published, video recorded, submission filed. | Graveyard, fireworks, smoke tests and release workflow done; video, release tag and Devpost form are the remaining manual steps. |
+| M6 | Coding sessions | Start and stop a session, XP while the game is closed, session and daily caps, The Wilds scene. | Done (coding-sessions spec). |
 
 ## 15. Risks and mitigations
 

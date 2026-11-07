@@ -41,4 +41,4 @@ Not art, but shipped content, so it is listed here too. All of it is **fictional
 
 ## Not in the build
 
-`docs/screenshots/` holds screenshots of the app (original, project license) for the README and reviews. They are not shipped.
+`docs/screenshots/readme/` holds the README and Devpost screenshots (original, project license). They are not shipped. Every one is a real render of the app, made headlessly by `tools/render_readme_shots.sh` (plus the level-up frame from the `smoke_demo_path` test), so they can be regenerated after any UI change. Older per-PR captures were removed from the tree once they no longer matched the UI; they remain in git history.

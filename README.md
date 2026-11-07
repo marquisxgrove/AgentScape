@@ -33,6 +33,10 @@ Everything is stored locally in SQLite (in IndexedDB on the web). No server, no 
 | The quest scroll's gem ratings | The Tavern quest board | The Proving Grounds |
 | ![Hiscores](docs/screenshots/readme/09-hiscores.png) | ![Hall of Hallucinations](docs/screenshots/readme/10-hall-of-hallucinations.png) | ![Level-up](docs/screenshots/readme/07-level-up.png) |
 | Hiscores | The Hall of Hallucinations | A Guest's first Quest Log: +250 XP and a level-up |
+| ![The Wilds](docs/screenshots/readme/11-wilds.png) | ![A coding session with a familiar](docs/screenshots/readme/12-wilds-session.png) | ![A solo coding session](docs/screenshots/readme/13-wilds-solo.png) |
+| The Wilds: pick who you're coding with | Coding with Gryphon: bugs squashed while you work | Coding solo: the Adventurer skills instead |
+| ![Login](docs/screenshots/readme/00-login.png) | | |
+| The Kiroween login: Play as Guest or create a profile | | |
 
 ## Playing
 
@@ -86,7 +90,7 @@ emrun build/web/agentscape.html   # add ?kiroween=on to the URL to force Kirowee
 | Command | Description |
 |---|---|
 | `cmake --preset dev` · `cmake --build --preset dev` | Configure and build (Debug, with the dev QA screens) |
-| `ctest --preset dev` | All unit, integration, property and smoke tests (393 at submission) |
+| `ctest --preset dev` | All unit, integration, property and smoke tests (410 at submission) |
 | `ctest --preset dev -L property` / `-L smoke` | Property-based tests only / the headless smoke tests only |
 | `cmake --preset tests-only` · `cmake --build --preset tests-only` · `ctest --preset tests-only` | Domain, service and database tests without SDL or a window |
 | `cmake --build --preset dev --target format` / `tidy` | `clang-format` / `clang-tidy` |
@@ -131,12 +135,12 @@ Release binaries aren't code-signed. On macOS, right-click the app and choose **
 | [docs/ASSETS.md](docs/ASSETS.md) | Asset provenance and licenses |
 | [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md) | Libraries and fonts, with their licenses |
 | [.kiro/steering/](.kiro/steering/) | Product, tech, structure, art direction, testing guidance for Kiro |
-| [.kiro/specs/](.kiro/specs/) | Feature specs: game-shell, character-creator, agent-codex, quest-logs |
+| [.kiro/specs/](.kiro/specs/) | Feature specs: game-shell, character-creator, agent-codex, quest-logs, coding-sessions |
 | [.kiro/hooks/](.kiro/hooks/) | Automated format, build-and-test, property-test, migration-sync, art-review, and submission guards |
 
 ## How Kiro was used
 
-AgentScape is built spec-first with Kiro: always-on steering for the domain glossary and architecture, four layered feature specs with property-based correctness properties, and agent hooks that automate quality gates. See the full write-up in [docs/SUBMISSION.md](docs/SUBMISSION.md#5-how-we-used-kiro).
+AgentScape is built spec-first with Kiro: always-on steering for the domain glossary and architecture, five layered feature specs with property-based correctness properties, and agent hooks that automate quality gates. See the full write-up in [docs/SUBMISSION.md](docs/SUBMISSION.md#5-how-we-used-kiro).
 
 ## Credits and disclaimer
 

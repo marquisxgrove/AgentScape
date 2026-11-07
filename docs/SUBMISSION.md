@@ -56,15 +56,16 @@ We rebuilt them with today's tech: a native C++20 client on SDL3 and Dear ImGui,
 > - **Boons and Banes**: short, community-voted strengths and weaknesses, ranked by Wilson score.
 > - **The Proving Grounds**: compare up to three Agents side by side for a given task type.
 > - **Hiscores**: leaderboards for Agents by any Skill and for the most helpful adventurers.
+> - **The Wilds**: start a coding session with a familiar (or solo) before you sit down to code. You earn 1 XP a minute, even with the game closed, while your Adventurer squashes bug monsters alongside the familiar, or chops, mines and fishes on its own.
 > - **The Hall of Hallucinations** (Kiroween only): a graveyard where the community's most-agreed AI failures rest under tombstones.
 >
 > It ships with a fictional sample community (14 made-up familiars, 8 townsfolk, their notes and quest logs), so every screen is alive on first run, and your own logs update it instantly.
 >
-> Under the nostalgic skin, it's a native C++20 app (SDL3 + Dear ImGui) that also runs in the browser through WebAssembly. It works offline, supports full keyboard and gamepad navigation, and is backed by 29 property-based correctness properties and 393 automated tests, including a headless run of the whole demo path.
+> Under the nostalgic skin, it's a native C++20 app (SDL3 + Dear ImGui) that also runs in the browser through WebAssembly. It works offline, supports full keyboard and gamepad navigation, and is backed by 33 property-based correctness properties and 410 automated tests, including a headless run of the whole demo path.
 >
 > **Built with:** C++20 · SDL3 · Dear ImGui · SQLite · Emscripten (WebAssembly) · Catch2 · RapidCheck · CMake · GitHub Actions.
 
-Screenshots for the gallery: `docs/screenshots/readme/` (world map, Costumer, Codex, examine card, quest scroll, level-up, Tavern, Hiscores, Hall of Hallucinations). ✏ YOU: add the video link.
+Screenshots for the gallery: `docs/screenshots/readme/` (login, world map, Costumer, Codex, examine card, Proving Grounds, quest scroll, level-up, Tavern, Hiscores, Hall of Hallucinations, The Wilds idle, with a familiar, and solo). Regenerate them with the current build at any time; every one comes from the real app. ✏ YOU: add the video link.
 
 ---
 
@@ -81,7 +82,8 @@ Every shot below exists in the app as built. The smoke test `smoke_demo_path` pl
 | 1:25–1:40 | Proving Grounds with 3 familiars, green highlights and `*` marks | "Compare up to three side by side." |
 | 1:40–2:10 | "Write a Quest Log" → 3-step scroll → submit → **+250 XP** drop → level-up message → fireworks → "You have unlocked: …" | "Log a quest, earn XP, and level up. The Codex updates instantly." |
 | 2:10–2:25 | Tavern board with the townsfolk's notes, then Hiscores: familiars by Reliability, then Adventurers with the search jump | "Read other adventurers' quests, and climb the Hiscores." |
-| 2:25–2:40 | Hall of Hallucinations tombstones | "And during Kiroween, the community's most-agreed AI failures rest in the Hall of Hallucinations." |
+| 2:25–2:32 | The Wilds: pick Gryphon, *Start session*, the Adventurer and a wisp fight an Off-by-One Goblin | "Coding right now? Start a session, and earn XP while your Adventurer squashes bugs." |
+| 2:32–2:40 | Hall of Hallucinations tombstones | "And during Kiroween, the community's most-agreed AI failures rest in the Hall of Hallucinations." |
 | 2:40–2:55 | Montage: desktop window and browser tab side by side, a spec's `tasks.md`, the CI matrix all green, property tests passing | "One C++ codebase, desktop and web. Built spec-first with Kiro: steering, specs, hooks, and property-based tests." |
 
 Recording notes: record the desktop build at 1080p, with the game frame at 2× scale (1530×1006 inside the window). Use no music, or original/CC0 chiptune only. Turn on *Codex Keeper tools* beforehand only if you want to show moderation. The sample familiars are fictional, so there are no third-party logos or names on screen.
@@ -94,13 +96,13 @@ Recording notes: record the desktop build at 1080p, with the game frame at 2× s
 
 ### Kiro surfaces used
 
-- **Kiro Web (autonomous agent in a cloud sandbox).** Most of the implementation (the large majority of commits across PRs #1–#35) was written by the Kiro agent working in the browser-based environment: reading the specs, implementing one task slice per pull request, running the build and the whole test suite in its sandbox, rendering the real app headlessly to check every screen, and opening each PR with what it had and had not verified. The team reviewed and merged every PR, and steered between them in plain language ("use a branch and PR approach", "switch the sample data to fictional agents", "seed sample logs, then the final checkpoint", "increase the font size").
-- **Human-authored changes** sat between agent PRs where the team wanted control: for example CI hardening and test fixes (#31) and Guest remember-me with Back navigation (#34).
+- **Kiro Web (autonomous agent in a cloud sandbox).** Most of the implementation (the large majority of commits across PRs #1–#36) was written by the Kiro agent working in the browser-based environment: reading the specs, implementing one task slice per pull request, running the build and the whole test suite in its sandbox, rendering the real app headlessly to check every screen, and opening each PR with what it had and had not verified. The team reviewed and merged every PR, and steered between them in plain language ("use a branch and PR approach", "switch the sample data to fictional agents", "seed sample logs, then the final checkpoint", "increase the font size").
+- **Human-authored changes** sat between agent PRs where the team wanted control: CI hardening and test fixes (#31), Guest remember-me with Back navigation (#34), Pages gated on green CI and GitHub sign-in with platform TLS (#38), the navigation pass and local profiles (#39), and the coding-sessions spec and The Wilds.
 - ✏ YOU: if you also used the Kiro IDE or CLI (for the specs, steering or hooks), say which tasks you preferred on each surface.
 
 ### Spec-driven development
 
-- Four feature specs, each with `requirements.md` (EARS-style acceptance criteria), `design.md`, and `tasks.md`: [`game-shell`](../.kiro/specs/game-shell/), [`character-creator`](../.kiro/specs/character-creator/), [`agent-codex`](../.kiro/specs/agent-codex/), [`quest-logs`](../.kiro/specs/quest-logs/). They are layered by dependency (shell → creator → codex → quests), share one domain glossary, and spell out cross-spec contracts such as `applyRatingDelta` and the XP ledger.
+- Five feature specs, each with `requirements.md` (EARS-style acceptance criteria), `design.md`, and `tasks.md`: [`game-shell`](../.kiro/specs/game-shell/), [`character-creator`](../.kiro/specs/character-creator/), [`agent-codex`](../.kiro/specs/agent-codex/), [`quest-logs`](../.kiro/specs/quest-logs/), [`coding-sessions`](../.kiro/specs/coding-sessions/). They are layered by dependency (shell → creator → codex → quests → coding sessions), share one domain glossary, and spell out cross-spec contracts such as `applyRatingDelta` and the XP ledger.
 - Each `design.md` lists numbered **Correctness Properties** mapped to requirement IDs (33 in total); every one became a RapidCheck test named `Property <n>: <title>`.
 - **The spec shaped the order of work.** Every slice started with the pure domain and its properties, then persistence and services, then screens, then a smoke test. Each PR said which tasks it closed and what was still unverified, and `tasks.md` carries the notes.
 - **Design reviews that changed the design, recorded back into the specs:**
@@ -148,6 +150,7 @@ In the cloud sandbox, the agent ran the same gates the hooks encode by hand on e
 - Deleting a user cascaded their Note votes away but left the agree/disagree counts inflated. Idle Guests are now purged through the normal delete paths.
 - Reserving the townsfolk's names broke an older smoke test that created an Adventurer called "Mossbeard". It was caught before the PR was opened (after one red push), fixed, and pinned with a test.
 - A stacked PR (#33) was merged into a branch that had already merged, so the final checkpoint missed `main` until #35. Lesson recorded: don't stack PRs on branches that may merge first.
+- The Wilds' first push failed CI on Linux only: a test looped over `{1ULL, 42ULL, wildsSeed(...)}`. `std::uint64_t` is `unsigned long` on Linux but `unsigned long long` elsewhere, so the braced list mixed two types and GCC refused to deduce it. macOS and Windows were green. The fix names the type of every element.
 
 ### Custom agents
 
@@ -162,7 +165,7 @@ In the cloud sandbox, the agent ran the same gates the hooks encode by hand on e
 
 ## 6. Judge instructions (private Devpost field)
 
-> Open **https://marquisxgrove.github.io/AgentScape/** and click **Play as Guest**. No install or account needed; everything is saved in your browser. A Guest starts at Questing level 13, so writing your first Quest Log (Grand Codex → any familiar → *Write a Quest Log*) shows a level-up with fireworks.
+> Open **https://marquisxgrove.github.io/AgentScape/** and click **Play as Guest**. No install or account needed; everything is saved in your browser. A Guest starts at Questing level 13, so writing your first Quest Log (Grand Codex → any familiar → *Write a Quest Log*) shows a level-up with fireworks. To see coding sessions, go to *The Wilds* (bottom of the town map, or *Places*), pick a familiar and press *Start session*.
 >
 > Desktop builds (Windows, macOS, Linux) are on the Releases page; they are unsigned (right-click → Open on macOS, "Run anyway" on Windows).
 >
