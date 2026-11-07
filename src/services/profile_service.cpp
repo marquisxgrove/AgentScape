@@ -10,6 +10,9 @@ namespace as::services {
 namespace {
 constexpr const char* USER_COLUMNS = "id, name, kind, role, settings, created_at, last_seen_at, total_xp";
 constexpr const char* REMEMBERED_KEY = "remembered_user_id";
+// Guests idle since ?1, except the one remembered on this device (app_state key ?2): it lives until Log out.
+constexpr const char* IDLE_GUEST =
+    "kind = 'GUEST' AND last_seen_at < ?1 AND id NOT IN (SELECT value FROM app_state WHERE key = ?2)";
 
 UserKind kindFrom(const std::string& s) {
   if (s == "GUEST") return UserKind::Guest;
@@ -160,9 +163,9 @@ Result<std::vector<User>> ProfileService::listLocalUsers() {
 Result<void> ProfileService::rememberUser(const std::string& id) {
   auto r = db::guarded([&]() -> bool {
     db::Transaction tx{db_};
-    auto check = db_.prepare("SELECT 1 FROM user WHERE id = ? AND kind = 'PLAYER'");
+    auto check = db_.prepare("SELECT 1 FROM user WHERE id = ? AND kind IN ('PLAYER', 'GUEST')");
     check.bind(1, id);
-    if (!check.step()) return false;  // missing, a Guest, or an NPC
+    if (!check.step()) return false;  // missing, or an NPC
     db_.prepare("INSERT INTO app_state(key, value) VALUES (?, ?) "
                 "ON CONFLICT(key) DO UPDATE SET value = excluded.value")
         .bind(1, REMEMBERED_KEY)
@@ -190,8 +193,8 @@ Result<std::optional<User>> ProfileService::rememberedUser() {
     st.bind(1, REMEMBERED_KEY);
     if (!st.step()) return std::nullopt;
     auto user = findUser(db_, st.columnText(0));
-    // Defensive: only a real (non-Guest, non-NPC) User may be auto-signed-in.
-    if (user && user->kind != UserKind::Player) return std::nullopt;
+    // Defensive: an NPC is never auto-signed-in.
+    if (user && user->kind == UserKind::Npc) return std::nullopt;
     return user;
   });
 }
@@ -219,8 +222,9 @@ Result<int> ProfileService::cleanupGuests() {
   if (beforeGuestDelete_) {
     std::vector<std::string> idle;
     const auto listed = db::guarded([&] {
-      auto st = db_.prepare("SELECT id FROM user WHERE kind = 'GUEST' AND last_seen_at < ?");
+      auto st = db_.prepare(std::string("SELECT id FROM user WHERE ") + IDLE_GUEST);
       st.bind(1, core::formatIso8601(cutoff));
+      st.bind(2, REMEMBERED_KEY);
       while (st.step()) idle.push_back(st.columnText(0));
     });
     if (!listed) return tl::unexpected(listed.error());
@@ -228,8 +232,9 @@ Result<int> ProfileService::cleanupGuests() {
   }
   return db::guarded([&] {
     db::Transaction tx{db_};
-    db_.prepare("DELETE FROM user WHERE kind = 'GUEST' AND last_seen_at < ?")
+    db_.prepare(std::string("DELETE FROM user WHERE ") + IDLE_GUEST)
         .bind(1, core::formatIso8601(cutoff))
+        .bind(2, REMEMBERED_KEY)
         .run();
     const int removed = db_.changes();
     // A remembered pointer must never dangle.

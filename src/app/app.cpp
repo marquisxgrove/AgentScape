@@ -233,7 +233,7 @@ void App::onStoreReady() {
     SDL_Log("Removed %d stale Guest profile(s)", *removed);
   }
   registerScreens();
-  signInRemembered();  // Req 2.1: auto sign-in a remembered (non-Guest) user
+  signInRemembered();  // Req 2.1: auto sign-in the remembered user (Player or Guest)
 }
 
 void App::signInRemembered() {
@@ -243,7 +243,11 @@ void App::signInRemembered() {
   if (!user) return;
   adoptUser(user->id, user->settings);
   screens_.navigate(ScreenId::World);
-  if (postLoginScreen_) screens_.navigate(*postLoginScreen_, postLoginParams_);
+  if (postLoginScreen_) {
+    screens_.navigate(*postLoginScreen_, postLoginParams_);
+  } else if (auto active = services_->adventurers.getActive(user->id); active && !*active) {
+    screens_.navigate(ScreenId::Costumer);  // Req 2.6, as after the login screen: no Adventurer yet
+  }
   SDL_Log("Signed in remembered user %s", user->name.c_str());
 }
 
@@ -497,6 +501,18 @@ void App::drawShell() {
   };
 
   const ScreenId before = screens_.currentId().value_or(ScreenId::Login);
+  // Leaving the current screen ("To town", Escape) is allowed anywhere past the World, except the
+  // Costumer before the first Adventurer exists (Req 2.6). Escape is read before the screen draws, so a
+  // text box that Escape is about to release still counts as busy, and a context menu Escape is about to
+  // close keeps the key to itself.
+  bool canLeave = currentUserId_ && before != ScreenId::Login && before != ScreenId::World;
+  if (canLeave && before == ScreenId::Costumer && services_) {
+    auto active = services_->adventurers.getActive(*currentUserId_);
+    canLeave = active && *active;
+  }
+  const bool escapeBack = canLeave && !ImGui::IsAnyItemActive() && !contextMenu_.isOpen() &&
+                          (ImGui::IsKeyPressed(ImGuiKey_Escape, false) ||
+                           ImGui::IsKeyPressed(ImGuiKey_GamepadFaceRight, false));
   if (beginRegion("##viewport", ui::VIEWPORT)) {
     if (Screen* screen = screens_.current()) {
       screen->update(ctx);
@@ -508,7 +524,8 @@ void App::drawShell() {
   // The Tab_Panel (Settings) is shown only once a user is signed in (i.e. not on the login screen).
   if (beginRegion("##tabpanel", ui::TAB_PANEL)) {
     if (before != ScreenId::Login && currentUserId_) {
-      const auto result = ui::drawTabPanel(settings_, isKeeper_, xpStatus());
+      const auto result = ui::drawTabPanel(settings_, isKeeper_, xpStatus(), canLeave);
+      if (result.toTown) screens_.navigate(ScreenId::World);  // the World is a hub: history resets
       xpAnchor_ = result.xpAnchor;
       if (result.settingsChanged) {
         applySettings(result.settings);
@@ -544,6 +561,8 @@ void App::drawShell() {
     if (chatbox_) chatbox_->draw();
   }
   ImGui::End();
+
+  if (escapeBack) screens_.back();
 
   // A screen asked to open the context menu this frame.
   if (contextReq_.requested) {

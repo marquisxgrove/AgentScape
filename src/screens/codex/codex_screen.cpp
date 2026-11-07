@@ -106,6 +106,10 @@ void CodexScreen::draw(app::FrameCtx& ctx) {
 }
 
 void CodexScreen::drawControls(app::FrameCtx& ctx) {
+  const float rowY = ImGui::GetCursorPosY();
+  if (ui::PixelButton("Back", {70, 0}) && ctx.nav != nullptr) ctx.nav->back();
+  ImGui::SameLine();
+  ui::AlignFrameToButton();
   ImGui::SetNextItemWidth(150);
   if (ImGui::InputTextWithHint("##search", "Search name or vendor", search_.data(), search_.size())) {
     query_.text = search_.data();
@@ -113,6 +117,8 @@ void CodexScreen::drawControls(app::FrameCtx& ctx) {
     dirty_ = true;
   }
   ImGui::SameLine();
+  ImGui::SetCursorPosY(rowY);
+  ui::AlignTextToButton();
   ui::ShadowText("Sample snapshot: fictional agents", ui::PaletteColor::Parchment);
 
   bool first = true;

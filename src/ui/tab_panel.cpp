@@ -12,7 +12,7 @@ namespace {
 bool g_confirmKeeper = false;  // the on/off confirmation is showing (one Tab_Panel exists, so one flag)
 }
 
-TabPanelResult drawTabPanel(const domain::Settings& current, bool isKeeper, const XpStatus& xp) {
+TabPanelResult drawTabPanel(const domain::Settings& current, bool isKeeper, const XpStatus& xp, bool canGoToTown) {
   TabPanelResult result;
   result.settings = current;
 
@@ -49,6 +49,10 @@ TabPanelResult drawTabPanel(const domain::Settings& current, bool isKeeper, cons
     if (PixelButton("No##keeper", {60, 0})) g_confirmKeeper = false;
   }
   ImGui::Spacing();
+  if (canGoToTown) {
+    if (PixelButton("To town", {0, 0}, hoverText("Return", "to town", PaletteColor::TextCyan, 0))) result.toTown = true;
+    ImGui::SameLine();
+  }
   if (PixelButton("Log out", {0, 0}, hoverText("Log out", "", PaletteColor::TextCyan, 0))) result.logOut = true;
 
   return result;

@@ -49,7 +49,7 @@ The other specs (character-creator, agent-codex, quest-logs) render their screen
 
 #### Acceptance Criteria
 
-1. WHEN the app starts, THE system SHALL show the login screen unless a remembered non-Guest User exists, in which case it SHALL sign that User in.
+1. WHEN the app starts, THE system SHALL show the login screen unless a remembered User (Player or Guest) exists, in which case it SHALL sign that User in. Signing in through the login screen remembers that User on this device until they Log out.
 2. THE login screen SHALL show a stone panel titled "Welcome to AgentScape" with a "Play as Guest" button and a list of existing local non-Guest Users to continue as.
 3. WHEN the user presses "Play as Guest", THE system SHALL create a fresh, isolated Guest User named `Guest-<4 random chars>` and sign in to it.
 4. WHERE the build is a desktop build with a GitHub client ID configured, THE login screen SHALL also show "Sign in with GitHub". Pressing it SHALL:
@@ -133,4 +133,4 @@ The other specs (character-creator, agent-codex, quest-logs) render their screen
 2. IF the Local_Store can't be opened or migrated, THEN THE system SHALL show "Your save could not be loaded." with a "Start fresh" option that renames the old file to `agentscape.db.bak-<timestamp>` before creating a new one.
 3. IN the web build, THE system SHALL wait for the IndexedDB file system to load before opening the Local_Store, and show a loading message meanwhile.
 4. IN the web build, THE system SHALL flush the Local_Store to IndexedDB within 1 s after every committed write transaction and when the page is hidden.
-5. WHEN the app starts, THE system SHALL delete Guest Users whose last activity is older than 24 hours, together with their content (see quest-logs Requirement 9.2).
+5. WHEN the app starts, THE system SHALL delete Guest Users whose last activity is older than 24 hours, together with their content, except the remembered Guest (see quest-logs Requirement 9.2).

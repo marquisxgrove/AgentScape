@@ -30,7 +30,8 @@ struct User {
 inline constexpr std::chrono::hours GUEST_MAX_IDLE{24};
 
 // Local profiles (game-shell Requirements 2 and 7.1). Every write is one transaction.
-// Guests are never "remembered": the app only auto-signs-in a real (non-Guest) User.
+// One User (Player or Guest, never an NPC) may be remembered on this device and is auto-signed-in at
+// startup. A remembered Guest is exempt from the idle-Guest cleanup until Log out forgets it.
 class ProfileService {
  public:
   ProfileService(db::Database& db, const core::Clock& clock, core::Rng& rng) : db_(db), clock_(clock), rng_(rng) {}
@@ -51,7 +52,7 @@ class ProfileService {
   // Selectable "continue as" profiles: PLAYER users only, most recently used first.
   Result<std::vector<User>> listLocalUsers();
 
-  // Only PLAYER users can be remembered. Guests and NPCs are rejected.
+  // Players and Guests can be remembered; NPCs and missing users are rejected.
   Result<void> rememberUser(const std::string& id);
   Result<void> forgetRemembered();
   Result<std::optional<User>> rememberedUser();  // nullopt if none, or if it no longer exists
@@ -64,8 +65,8 @@ class ProfileService {
   using BeforeGuestDelete = std::function<void(const std::string& userId)>;
   void setBeforeGuestDelete(BeforeGuestDelete hook) { beforeGuestDelete_ = std::move(hook); }
 
-  // Deletes Guests idle for more than GUEST_MAX_IDLE (and, via ON DELETE CASCADE, their content).
-  // Returns how many were removed.
+  // Deletes Guests idle for more than GUEST_MAX_IDLE (and, via ON DELETE CASCADE, their content), except
+  // the remembered one. Returns how many were removed.
   Result<int> cleanupGuests();
 
  private:

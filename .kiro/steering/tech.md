@@ -51,7 +51,7 @@ inclusion: always
 ## Auth (local profiles)
 
 - A **User** is a local player profile in the database. `kind` is `PLAYER`, `GUEST`, or `NPC` (seeded community members). `role` is `USER` or `KEEPER` (local moderator).
-- **Play as Guest** is always available. Each press creates a fresh, isolated `GUEST` user seeded just below Questing level 14. At startup, the app deletes Guest users that haven't been used for 24 h.
+- **Play as Guest** is always available. Each press creates a fresh, isolated `GUEST` user seeded just below Questing level 14. The new Guest is remembered on this device and signed back in at launch until it Logs out. At startup, the app deletes Guest users that haven't been used for 24 h, except the remembered one.
 - **Sign in with GitHub** (desktop only) uses the **OAuth device flow**. It needs only a public client ID, never a client secret.
   - The flow fetches `GET /user` once, then **discards the access token**. We store only `github_id`, `github_login`, and the display name.
   - The web build hides this button because GitHub's device-flow endpoints don't allow browser (CORS) requests.

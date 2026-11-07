@@ -67,9 +67,10 @@ void CostumerScreen::draw(app::FrameCtx& ctx) {
 
   ui::StonePanel panel{"##costumer", "The Costumer"};
   if (!active_) {
-    drawCreate(ctx);
+    drawCreate(ctx);  // no way out until the first Adventurer exists (Req 2.6)
     return;
   }
+  if (ui::PixelButton("Back", {70, 0}) && ctx.nav != nullptr) ctx.nav->back();
 
   // Left: the live preview. Right: the tabbed controls, with the save bar pinned under them. The
   // columns stop short of the panel bottom so the bar always fits (a full-height child pushed it out).
