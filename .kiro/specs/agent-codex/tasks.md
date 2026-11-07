@@ -41,10 +41,10 @@
   - [x] 5.2 Build the Note list UI with agree/disagree buttons, "view all", and plain-text rendering (`TextUnformatted`).
     - _Requirements: 5.5, 5.6_
 
-- [ ] 6. Build proposals and Keeper tools
+- [x] 6. Build proposals and Keeper tools
   - [x] 6.1 Build the Propose screen and `proposeAgent` command with the slug duplicate check, https-only website, and 3/day limit.
     - _Requirements: 4.1–4.3, 4.5_
-  - [ ] 6.2 Add the "Codex Keeper tools" setting (`setKeeper`) and the Keeper queue screen: approve/reject proposals, hide/unhide Notes, resolve Reports. Post an ActivityEvent on approval.
+  - [x] 6.2 Add the "Codex Keeper tools" setting (`setKeeper`) and the Keeper queue screen: approve/reject proposals, hide/unhide Notes, resolve Reports. Post an ActivityEvent on approval.
     - _Requirements: 4.4, 8.1–8.4_
 
 - [ ] 7. Build the Proving Grounds

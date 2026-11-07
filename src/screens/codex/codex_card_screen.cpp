@@ -31,6 +31,8 @@ void CodexCardScreen::onEnter(const app::ScreenParams& params) {
       composing_ = true;
       composeKind_ = c->second == "bane" ? services::NoteKind::Bane : services::NoteKind::Boon;
     }
+    reportNoteId_.clear();
+    reportAgent_ = false;
     confirmLeave_ = false;
     showAllBoons_ = showAllBanes_ = false;
   }
@@ -86,7 +88,7 @@ void CodexCardScreen::draw(app::FrameCtx& ctx) {
   }
 
   ImGui::BeginChild("##cardbody", {0, 0});
-  drawHeader();
+  drawHeader(ctx);
   drawSkills();
   drawNotes(ctx, "Boons (what players praise)", services::NoteKind::Boon);
   drawNotes(ctx, "Banes (what players warn about)", services::NoteKind::Bane);
@@ -98,7 +100,7 @@ void CodexCardScreen::draw(app::FrameCtx& ctx) {
   ImGui::EndChild();
 }
 
-void CodexCardScreen::drawHeader() {
+void CodexCardScreen::drawHeader(app::FrameCtx& ctx) {
   const auto& a = card_->agent;
   // The panel title already names the familiar; this line says what it is.
   ui::ShadowText(std::string(services::kindDisplay(a.kind)) + " by " + a.vendor + "  -  updated " +
@@ -140,6 +142,13 @@ void CodexCardScreen::drawHeader() {
   if (ui::PixelButton("Write a Quest Log", {0, 0})) {
     ui::pushGameMessage("The Quest Log scribes aren't open for business yet.");
   }
+  ImGui::SameLine();
+  if (ui::PixelButton("Report##agent", {0, 0})) {
+    reportAgent_ = !reportAgent_;
+    reportNoteId_.clear();
+    reportReason_.fill('\0');
+  }
+  if (reportAgent_) drawReportForm(ctx, services::ReportTarget::Agent, card_->agent.id);
   ImGui::Spacing();
 }
 
@@ -204,6 +213,15 @@ void CodexCardScreen::drawNotes(app::FrameCtx& ctx, const char* title, services:
         vote(ctx, n, domain::VoteValue::Disagree);
       }
     }
+    if (n.authorId != ctx.userId) {
+      ImGui::SameLine();
+      if (ui::PixelButton("Report##note", {0, 0})) {
+        reportNoteId_ = reportNoteId_ == n.id ? std::string{} : n.id;
+        reportAgent_ = false;
+        reportReason_.fill('\0');
+      }
+    }
+    if (reportNoteId_ == n.id) drawReportForm(ctx, services::ReportTarget::Note, n.id);
     ImGui::Spacing();
     ImGui::PopID();
   }
@@ -223,6 +241,28 @@ void CodexCardScreen::vote(app::FrameCtx& ctx, const services::NoteView& note, d
   auto r = ctx.services->notes.voteOnNote(ctx.userId, note.id, same ? std::nullopt : std::optional{value});
   if (!r) ui::pushGameMessage(r.error().message);
   dirty_ = true;
+}
+
+void CodexCardScreen::drawReportForm(app::FrameCtx& ctx, services::ReportTarget target, const std::string& targetId) {
+  ui::ShadowText("Why? (3 to 200 characters, plain text)", ui::PaletteColor::TextOrange);
+  ImGui::SetNextItemWidth(ImGui::GetContentRegionAvail().x - 8);
+  ImGui::InputText("##reportreason", reportReason_.data(), reportReason_.size());
+  if (ui::PixelButton("Send report##send", {0, 0})) {
+    auto r = ctx.services->keeper.reportContent(ctx.userId, target, targetId, reportReason_.data());
+    if (r) {
+      ui::pushGameMessage("Thank you. The Codex Keepers will take a look.");
+      reportNoteId_.clear();
+      reportAgent_ = false;
+      reportReason_.fill('\0');
+    } else {
+      ui::pushGameMessage(r.error().message);
+    }
+  }
+  ImGui::SameLine();
+  if (ui::PixelButton("Cancel##report", {0, 0})) {
+    reportNoteId_.clear();
+    reportAgent_ = false;
+  }
 }
 
 void CodexCardScreen::drawCompose(app::FrameCtx& ctx) {

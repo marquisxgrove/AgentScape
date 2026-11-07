@@ -9,6 +9,7 @@
 #include "app/screen_stack.hpp"
 #include "domain/voting.hpp"
 #include "services/codex_service.hpp"
+#include "services/keeper_service.hpp"
 
 namespace as::screens {
 
@@ -22,11 +23,12 @@ class CodexCardScreen : public app::Screen {
 
  private:
   void reload(app::FrameCtx& ctx);
-  void drawHeader();
+  void drawHeader(app::FrameCtx& ctx);
   void drawSkills();
   void drawNotes(app::FrameCtx& ctx, const char* title, services::NoteKind kind);
   void drawCompose(app::FrameCtx& ctx);
   void vote(app::FrameCtx& ctx, const services::NoteView& note, domain::VoteValue value);
+  void drawReportForm(app::FrameCtx& ctx, services::ReportTarget target, const std::string& targetId);
 
   std::string slug_;
   std::optional<domain::QuestType> scope_;
@@ -40,6 +42,11 @@ class CodexCardScreen : public app::Screen {
   std::vector<services::NoteView> allBoons_;
   std::vector<services::NoteView> allBanes_;
   std::map<std::string, domain::VoteValue> myVotes_;
+
+  // The open report form: which Note (or the Agent) is being reported, and the reason typed so far.
+  std::string reportNoteId_;
+  bool reportAgent_ = false;
+  std::array<char, 256> reportReason_{};
 
   // "Write a Boon / Bane" form.
   bool composing_ = false;

@@ -18,6 +18,7 @@
 #include "platform/web_url.hpp"
 #include "screens/codex/codex_card_screen.hpp"
 #include "screens/codex/codex_screen.hpp"
+#include "screens/codex/keeper_screen.hpp"
 #include "screens/codex/propose_screen.hpp"
 #include "screens/costumer/costumer_screen.hpp"
 #include "screens/login/login_screen.hpp"
@@ -189,7 +190,8 @@ void App::openStore(bool resetData) {
                              services::AdventurerService{store_->db, clock_, rng_},
                              services::CodexService{store_->db, codexCache_},
                              services::NoteService{store_->db, clock_, rng_, bus_},
-                             services::AgentService{store_->db, clock_, rng_, bus_}});
+                             services::AgentService{store_->db, clock_, rng_, bus_},
+                             services::KeeperService{store_->db, clock_, rng_, bus_}});
   chatbox_.emplace(bus_);
   onStoreReady();
   dataState_ = DataState::Ready;
@@ -220,7 +222,9 @@ void App::adoptUser(const std::string& userId, const domain::Settings& settings)
   // Placeholder until the quest-logs spec supplies XP: Guests start at Questing level 13 (quest-logs
   // Req 9.1), everyone else at 1. The unlock sync below is the same call the level-up flow will make.
   currentLevel_ = 1;
+  isKeeper_ = false;
   if (services_) {
+    if (auto keeper = services_->keeper.isKeeper(userId)) isKeeper_ = *keeper;
     if (auto user = services_->profile.getUser(userId); user && user->kind == services::UserKind::Guest) {
       currentLevel_ = 13;
     }
@@ -273,6 +277,7 @@ void App::registerScreens() {
   screens_.registerScreen(ScreenId::World, [] { return std::make_unique<screens::WorldScreen>(); });
   screens_.registerScreen(ScreenId::Costumer, [] { return std::make_unique<screens::CostumerScreen>(); });
   screens_.registerScreen(ScreenId::Codex, [] { return std::make_unique<screens::CodexScreen>(); });
+  screens_.registerScreen(ScreenId::Keeper, [] { return std::make_unique<screens::KeeperScreen>(); });
   screens_.registerScreen(ScreenId::Propose, [] { return std::make_unique<screens::ProposeScreen>(); });
   screens_.registerScreen(ScreenId::CodexCard, [] { return std::make_unique<screens::CodexCardScreen>(); });
 #ifdef AS_ENABLE_DEV_SCREENS
@@ -293,10 +298,10 @@ void App::registerScreens() {
         if (name == "costumer-adventurers") postLoginParams_["tab"] = "adventurers";
       }
     }
-    for (const char* name : {"codex", "codex-table", "codex-search", "codex-card", "codex-card-debug", "codex-card-notes", "codex-card-compose", "codex-propose", "codex-propose-error"}) {
+    for (const char* name : {"codex", "codex-table", "codex-search", "codex-card", "codex-card-debug", "codex-card-notes", "codex-card-compose", "codex-propose", "codex-propose-error", "codex-keeper"}) {
       if (*config_.startScreen == name) {
         const std::string n = name;
-        postLoginScreen_ = n.rfind("codex-card", 0) == 0 ? ScreenId::CodexCard : (n.rfind("codex-propose", 0) == 0 ? ScreenId::Propose : ScreenId::Codex);
+        postLoginScreen_ = n.rfind("codex-card", 0) == 0 ? ScreenId::CodexCard : (n.rfind("codex-propose", 0) == 0 ? ScreenId::Propose : (n == "codex-keeper" ? ScreenId::Keeper : ScreenId::Codex));
         if (n == "codex-propose-error") postLoginParams_["demo"] = "1";
         if (n == "codex-propose-error") postLoginParams_["name"] = "Gryphon";
         if (n == "codex-table") postLoginParams_["view"] = "table";
@@ -352,6 +357,7 @@ void App::drawShell() {
   ctx.avatars = avatars_.get();
   ctx.userId = currentUserId_.value_or("");
   ctx.userLevel = currentLevel_;
+  ctx.isKeeper = isKeeper_;
   ctx.exportPortrait = [this](const domain::Appearance& a, const domain::Loadout& l, domain::Facing f,
                               const std::string& name) {
     if (!avatars_) return;
@@ -381,7 +387,7 @@ void App::drawShell() {
   // The Tab_Panel (Settings) is shown only once a user is signed in (i.e. not on the login screen).
   if (beginRegion("##tabpanel", ui::TAB_PANEL)) {
     if (before != ScreenId::Login && currentUserId_) {
-      const auto result = ui::drawTabPanel(settings_);
+      const auto result = ui::drawTabPanel(settings_, isKeeper_);
       if (result.settingsChanged) {
         applySettings(result.settings);
         if (services_) {
@@ -390,7 +396,16 @@ void App::drawShell() {
           }
         }
       }
+      if (result.setKeeper && services_) {
+        if (auto r = services_->keeper.setKeeper(*currentUserId_, *result.setKeeper)) {
+          isKeeper_ = *result.setKeeper;
+          ui::pushGameMessage(isKeeper_ ? "You are now a Codex Keeper." : "You are no longer a Codex Keeper.");
+        } else {
+          ui::pushGameMessage(r.error().message);
+        }
+      }
       if (result.logOut) {
+        ui::resetTabPanel();
         services_->profile.forgetRemembered();
         currentUserId_.reset();
         applySettings(domain::Settings{});

@@ -122,6 +122,7 @@ add_library(as_services STATIC
   src/services/codex_cache.cpp
   src/services/codex_service.cpp
   src/services/agent_service.cpp
+  src/services/keeper_service.cpp
   src/services/note_service.cpp
   src/services/codex_store.cpp
   src/services/profile_service.cpp)
@@ -162,6 +163,7 @@ if(AS_BUILD_APP)
     src/screens/codex/codex_card_screen.cpp
     src/screens/codex/codex_screen.cpp
     src/screens/codex/codex_widgets.cpp
+    src/screens/codex/keeper_screen.cpp
     src/screens/codex/propose_screen.cpp
     src/screens/costumer/costumer_screen.cpp
     src/screens/login/login_screen.cpp
@@ -256,6 +258,7 @@ if(AS_BUILD_TESTS)
     tests/integration/adventurer_service_test.cpp
     tests/integration/codex_service_test.cpp
     tests/integration/agent_service_test.cpp
+    tests/integration/keeper_service_test.cpp
     tests/integration/note_service_test.cpp
     tests/integration/codex_store_test.cpp
     tests/integration/db_test.cpp

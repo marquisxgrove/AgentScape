@@ -6,7 +6,11 @@
 
 namespace as::ui {
 
-TabPanelResult drawTabPanel(const domain::Settings& current) {
+namespace {
+bool g_confirmKeeper = false;  // the on/off confirmation is showing (one Tab_Panel exists, so one flag)
+}
+
+TabPanelResult drawTabPanel(const domain::Settings& current, bool isKeeper) {
   TabPanelResult result;
   result.settings = current;
 
@@ -18,9 +22,27 @@ TabPanelResult drawTabPanel(const domain::Settings& current) {
   ImGui::Spacing();
   ImGui::Separator();
   ImGui::Spacing();
+  // Codex Keeper tools turn on and off only after a confirmation (agent-codex Requirement 8.1).
+  bool keeperToggle = isKeeper;
+  if (Toggle("Codex Keeper tools", &keeperToggle, "Review proposals and reports in your local Codex")) {
+    g_confirmKeeper = true;
+  }
+  if (g_confirmKeeper) {
+    ShadowText(isKeeper ? "Give up the Keeper tools?" : "Become a Codex Keeper?", PaletteColor::TextOrange);
+    if (!isKeeper) ShadowText("Only on this device.", PaletteColor::Parchment);
+    if (PixelButton("Yes##keeper", {60, 0})) {
+      result.setKeeper = !isKeeper;
+      g_confirmKeeper = false;
+    }
+    ImGui::SameLine();
+    if (PixelButton("No##keeper", {60, 0})) g_confirmKeeper = false;
+  }
+  ImGui::Spacing();
   if (PixelButton("Log out", {0, 0}, hoverText("Log out", "", PaletteColor::TextCyan, 0))) result.logOut = true;
 
   return result;
 }
+
+void resetTabPanel() { g_confirmKeeper = false; }
 
 }  // namespace as::ui
