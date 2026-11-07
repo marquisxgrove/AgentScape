@@ -42,7 +42,7 @@ The goal is a lovingly faithful *feel* of an early-2000s fantasy browser MMORPG.
 
 ## Typography
 
-- **Pixel UI font** (OFL, e.g., *Silkscreen* or *Pixelify Sans*) loaded from `assets/fonts/` at its native pixel size, with no oversampling and pixel snapping on.
+- **Pixel UI font** (OFL, e.g., *Silkscreen* or *Pixelify Sans*) loaded from `assets/fonts/` with no oversampling and pixel snapping on. Silkscreen is drawn at 12 px (1.5× its 8 px grid): the native 8 px was too small to read on the 765×503 frame. Layouts must not assume a fixed text width; measure with `ImGui::CalcTextSize` or let text wrap or clip.
 - **Readable font toggle:** Settings → "Plain font" switches to a legible OFL sans-serif for accessibility. Respect it everywhere.
 
 ## Interaction vocabulary

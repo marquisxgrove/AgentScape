@@ -33,6 +33,7 @@ void avatarThumb(game::AvatarRenderer* avatars, const std::optional<domain::Adve
 bool questCard(const char* id, const services::QuestLogRecord& log, const std::optional<domain::AdventurerSnapshot>& snapshot,
                game::AvatarRenderer* avatars, bool helpedByViewer, float width);
 
-inline constexpr float QUEST_CARD_HEIGHT = 104.0F;
+// The height of one note at the current font size: six lines of text, or the thumbnail and name, whichever is taller.
+float questCardHeight();
 
 }  // namespace as::screens::quest

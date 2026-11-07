@@ -94,16 +94,46 @@ void avatarThumb(game::AvatarRenderer* avatars, const std::optional<domain::Adve
   }
 }
 
+namespace {
+// Shortens one line of text to fit `maxWidth` pixels at the current font, ending in "..." when it was cut.
+std::string fitLine(std::string text, float maxWidth) {
+  for (auto& ch : text) {
+    if (ch == '\n') ch = ' ';   // the excerpt is one line; the full story keeps its breaks on the detail screen
+  }
+  if (ImGui::CalcTextSize(text.c_str()).x <= maxWidth) return text;
+  // Trim whole code points from the end (never split a UTF-8 sequence).
+  while (!text.empty()) {
+    do {
+      text.pop_back();
+    } while (!text.empty() && (static_cast<unsigned char>(text.back()) & 0xC0U) == 0x80U);
+    if (!text.empty()) text.pop_back();   // the lead byte of the code point just removed
+    const std::string candidate = text + "...";
+    if (ImGui::CalcTextSize(candidate.c_str()).x <= maxWidth) return candidate;
+  }
+  return "...";
+}
+
+constexpr float CARD_PAD = 7.0F;
+constexpr float THUMB_COL = 60.0F;   // the author column: thumbnail and name
+}  // namespace
+
+float questCardHeight() {
+  const float line = ImGui::GetFontSize() + 3.0F;
+  return std::max(6.0F * line, 48.0F + line) + 2.0F * CARD_PAD;
+}
+
 bool questCard(const char* id, const services::QuestLogRecord& log, const std::optional<domain::AdventurerSnapshot>& snapshot,
                game::AvatarRenderer* avatars, bool helpedByViewer, float width) {
   ImGui::PushID(id);
+  const float height = questCardHeight();
   const ImVec2 p0 = ImGui::GetCursorScreenPos();
-  const ImVec2 p1{p0.x + width, p0.y + QUEST_CARD_HEIGHT};
-  const bool chosen = ImGui::InvisibleButton("##note", {width, QUEST_CARD_HEIGHT});
+  const ImVec2 p1{p0.x + width, p0.y + height};
+  const bool chosen = ImGui::InvisibleButton("##note", {width, height});
   const bool hot = ImGui::IsItemHovered() || ImGui::IsItemFocused();
   ImDrawList* dl = ImGui::GetWindowDrawList();
   ImFont* font = ImGui::GetFont();
   const float fs = ImGui::GetFontSize();
+  const float line = fs + 3.0F;
   const ImU32 ink = ui::toU32(ui::PaletteColor::Ink);
   const ImU32 paper = ui::toU32(ui::PaletteColor::Parchment);
   const ImU32 dark = IM_COL32(0x3e, 0x35, 0x29, 255);
@@ -113,39 +143,33 @@ bool questCard(const char* id, const services::QuestLogRecord& log, const std::o
   dl->AddCircleFilled({p0.x + width * 0.5F, p0.y + 3.0F}, 2.5F, IM_COL32(0x9a, 0x1e, 0x1e, 255));   // the pin
 
   // Author: thumbnail and name.
-  ImGui::SetCursorScreenPos({p0.x + 6.0F, p0.y + 8.0F});
+  ImGui::SetCursorScreenPos({p0.x + (THUMB_COL - 32.0F) * 0.5F, p0.y + CARD_PAD});
   avatarThumb(avatars, snapshot, 1.0F);
-  const std::string author = snapshot ? snapshot->name : log.authorName;
-  dl->PushClipRect({p0.x + 3.0F, p0.y}, {p0.x + 52.0F, p1.y}, true);
-  dl->AddText(font, fs, {p0.x + 5.0F, p0.y + 58.0F}, ink, author.c_str());
-  dl->PopClipRect();
+  const std::string author = fitLine(snapshot ? snapshot->name : log.authorName, THUMB_COL - 6.0F);
+  dl->AddText(font, fs, {p0.x + 4.0F, p0.y + CARD_PAD + 50.0F}, ink, author.c_str());
 
-  const float x = p0.x + 54.0F;
-  const float textW = width - 60.0F;
-  dl->PushClipRect({x, p0.y}, {p1.x - 3.0F, p1.y - 2.0F}, true);
-  float y = p0.y + 8.0F;
-  const std::string head = log.agentName + (log.input.version.empty() ? "" : " " + log.input.version) + (log.seeded ? "  [sample]" : "");
-  dl->AddText(font, fs, {x, y}, ink, head.c_str());
-  y += fs + 3.0F;
-  dl->AddText(font, fs, {x, y}, dark, domain::displayName(log.input.questType));
-  gemDisplay(dl, {x + textW - 66.0F, y - 1.0F}, log.input.overall, 8.0F, IM_COL32(0x9a, 0x1e, 0x1e, 255), ink);
-  y += fs + 3.0F;
-  dl->AddText(font, fs, {x, y}, ink, log.input.title.c_str());
-  y += fs + 3.0F;
-  const std::string excerpt = domain::shortEpitaph(log.input.body, 70);
-  // The excerpt is one line of plain text; line breaks in the body become spaces here so the note stays tidy.
-  std::string flat = excerpt;
-  for (auto& ch : flat) {
-    if (ch == '\n') ch = ' ';
-  }
-  dl->AddText(font, fs, {x, y}, dark, flat.c_str(), nullptr, textW);
-  y = p1.y - fs - 5.0F;
+  // Six lines to the right: familiar, type and gems, title, excerpt, tags, helpful. Every line is fitted to the width,
+  // so nothing overlaps whatever the font size.
+  const float x = p0.x + THUMB_COL;
+  const float textW = p1.x - CARD_PAD - x;
+  const float gemsW = 5.0F * 10.0F;
+  float y = p0.y + CARD_PAD;
+  const std::string head = log.agentName + (log.input.version.empty() ? "" : " " + log.input.version) + (log.seeded ? " [sample]" : "");
+  dl->AddText(font, fs, {x, y}, ink, fitLine(head, textW).c_str());
+  y += line;
+  dl->AddText(font, fs, {x, y}, dark, fitLine(domain::displayName(log.input.questType), textW - gemsW - 6.0F).c_str());
+  gemDisplay(dl, {p1.x - CARD_PAD - gemsW, y + (fs - 8.0F) * 0.5F}, log.input.overall, 8.0F, IM_COL32(0x9a, 0x1e, 0x1e, 255), ink);
+  y += line;
+  dl->AddText(font, fs, {x, y}, ink, fitLine(log.input.title, textW).c_str());
+  y += line;
+  dl->AddText(font, fs, {x, y}, dark, fitLine(log.input.body, textW).c_str());
+  y += line;
   std::string foot = log.input.recommend ? "Recommends" : "Not recommended";
   for (const auto& t : log.input.pros) foot += "  +" + t;
-  dl->AddText(font, fs, {x, y - fs - 2.0F}, dark, foot.c_str());
+  dl->AddText(font, fs, {x, y}, dark, fitLine(foot, textW).c_str());
+  y += line;
   const std::string helpful = std::string(helpedByViewer ? "You and " : "") + std::to_string(log.helpfulCount) + " found it helpful";
-  dl->AddText(font, fs, {x, y}, ink, log.helpfulCount > 0 || helpedByViewer ? helpful.c_str() : "No helpful votes yet");
-  dl->PopClipRect();
+  dl->AddText(font, fs, {x, y}, ink, fitLine(log.helpfulCount > 0 || helpedByViewer ? helpful : "No helpful votes yet", textW).c_str());
 
   ImGui::SetCursorScreenPos({p0.x, p1.y + 4.0F});   // the next card goes below
   ImGui::PopID();

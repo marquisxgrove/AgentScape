@@ -404,7 +404,7 @@ void App::drawLoading() {
 void App::drawLoadFailed() {
   if (beginRegion("##loadfailed", CENTER_DIALOG)) {
     ui::StonePanel panel{"##loadfailed-panel", "AgentScape"};
-    ui::ShadowText("Your save could not be loaded.", ui::PaletteColor::TextRed);
+    ui::ShadowText("Your save could not be loaded.", ui::PaletteColor::TextOrange);   // red text is too low-contrast on stone
     ImGui::Spacing();
     if (loadError_ && loadError_->canStartFresh) {
       if (ui::PixelButton("Start fresh")) {
@@ -602,7 +602,7 @@ SDL_AppResult App::iterate() {
   persistence_.tick();
   switch (pngExporter_.poll()) {
     case platform::ExportOutcome::Saved: ui::pushGameMessage("Your portrait has been saved."); break;
-    case platform::ExportOutcome::Failed: ui::pushGameMessage("<col=red>Your portrait could not be saved.</col>"); break;
+    case platform::ExportOutcome::Failed: ui::pushGameMessage("<col=orange>Your portrait could not be saved.</col>"); break;
     case platform::ExportOutcome::Cancelled:
     case platform::ExportOutcome::None: break;  // cancelling does nothing (Req 8.2)
   }

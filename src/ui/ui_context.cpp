@@ -9,12 +9,14 @@ namespace as::ui {
 namespace {
 UiContext* g_ctx = nullptr;
 
-// Silkscreen is drawn on a 1/8 em grid, so 8 px (and exact multiples) rasterise with every
-// edge on a pixel boundary: crisp without anti-aliasing.
-constexpr float PIXEL_BODY_PX = 8.0F;
-constexpr float PIXEL_TITLE_PX = 8.0F;  // bold cut at the same native size
-constexpr float PLAIN_BODY_PX = 13.0F;
-constexpr float PLAIN_TITLE_PX = 14.0F;
+// Silkscreen is drawn on a 1/8 em grid, so 8 px (and exact multiples) rasterise with every edge on a pixel
+// boundary. At 8 px the text was too small to read comfortably on a 765x503 frame, so the body and title use 12 px
+// (1.5x): a little softer than the native size but much easier to read, and the layouts are built to cope with it.
+// The "Plain font" setting uses a vector face, so any size is crisp there.
+constexpr float PIXEL_BODY_PX = 12.0F;
+constexpr float PIXEL_TITLE_PX = 12.0F;
+constexpr float PLAIN_BODY_PX = 16.0F;
+constexpr float PLAIN_TITLE_PX = 17.0F;
 
 ImFont* addFont(const std::filesystem::path& path, float px, bool pixelPerfect) {
   ImGuiIO& io = ImGui::GetIO();
