@@ -677,6 +677,11 @@ SDL_AppResult App::iterate() {
   ++framesRendered_;
   if (quitRequested_) return SDL_APP_SUCCESS;
 
+  if (config_.smokePathDir) {
+    if (framesRendered_ >= 2 && runPathStep()) return demoFailed_ ? SDL_APP_FAILURE : SDL_APP_SUCCESS;
+    return SDL_APP_CONTINUE;
+  }
+
   if (config_.smokeCodexDir) {
     if (framesRendered_ >= 2 && runCodexStep()) return demoFailed_ ? SDL_APP_FAILURE : SDL_APP_SUCCESS;
     return SDL_APP_CONTINUE;
@@ -700,6 +705,149 @@ SDL_AppResult App::iterate() {
     return dataState_ == DataState::Ready ? SDL_APP_SUCCESS : SDL_APP_FAILURE;
   }
   return SDL_APP_CONTINUE;
+}
+
+// The documented demo path (testing.md), end to end, in the real app:
+//   guest login -> World -> Costumer: create an Adventurer, claim and equip the Kiroween gear -> Codex card ->
+//   write a Quest Log through the real quest scroll -> "+250 XP" and the level-up -> Hiscores.
+// Phase 2 is a SEPARATE process on the same database (what a page reload is on the web): everything must still be
+// there. It saves a snapshot of every screen. It drives screens by navigation and services by calls; it does not
+// simulate mouse or keyboard input.
+bool App::runPathStep() {
+  const auto fail = [&](const char* why) {
+    SDL_Log("SMOKE FAIL: %s", why);
+    demoFailed_ = true;
+    return true;
+  };
+  const auto shoot = [&](const char* file) {
+    SDL_Surface* shot = SDL_RenderReadPixels(renderer_, nullptr);
+    if (shot == nullptr) return;
+    const std::string path = *config_.smokePathDir + "/" + file;
+    if (!IMG_SavePNG(shot, path.c_str())) SDL_Log("Snapshot write failed: %s", SDL_GetError());
+    SDL_DestroySurface(shot);
+  };
+  if (dataState_ != DataState::Ready || !services_) return fail("store not ready");
+  auto& svc = *services_;
+  const auto geared = [](const services::Adventurer& a) {
+    const auto head = a.loadout.find(domain::Slot::Head);
+    const auto weapon = a.loadout.find(domain::Slot::Weapon);
+    return head != a.loadout.end() && head->second == "jack_mask" && weapon != a.loadout.end() && weapon->second == "reapers_scythe";
+  };
+
+  if (config_.smokePhase == 1) {
+    switch (demoStep_++) {
+      case 0: {   // the login screen, then "Play as Guest"
+        if (screens_.currentId() != ScreenId::Login) return fail("did not start on the login screen");
+        shoot("p1-login.png");
+        auto guest = svc.profile.createGuest();
+        if (!guest) return fail("createGuest failed");
+        svc.profile.signIn(guest->id);
+        adoptUser(guest->id, guest->settings);
+        if (currentLevel_ != 13) return fail("a Guest should start at Questing level 13");
+        store_->db.prepare("INSERT OR REPLACE INTO app_state(key, value) VALUES ('smoke_user_id', ?)").bind(1, guest->id).run();
+        screens_.navigate(ScreenId::World);
+        return false;
+      }
+      case 1:
+        if (screens_.currentId() != ScreenId::World) return fail("did not reach the World");
+        shoot("p2-world.png");
+        screens_.navigate(ScreenId::Costumer);
+        return false;
+      case 2: {   // no Adventurer yet: the Costumer asks for a name; create one and dress it in the Kiroween gear
+        if (screens_.currentId() != ScreenId::Costumer) return fail("did not reach the Costumer");
+        shoot("p3-costumer-create.png");
+        const std::string uid = *currentUserId_;
+        auto created = svc.adventurers.createAdventurer(uid, "Wanderer");
+        if (!created || !created->isActive) return fail("createAdventurer failed or not active");
+        if (!svc.adventurers.claimKiroweenItem(uid, "jack_mask", /*kiroweenActive=*/true, currentLevel_)) return fail("claim mask");
+        if (!svc.adventurers.claimKiroweenItem(uid, "reapers_scythe", true, currentLevel_)) return fail("claim scythe");
+        auto owned = svc.adventurers.ownedItems(uid);
+        if (!owned) return fail("ownedItems failed");
+        auto gear = domain::equip(created->loadout, "jack_mask", *owned);
+        if (gear) gear = domain::equip(*gear, "reapers_scythe", *owned);
+        if (!gear) return fail("equip failed");
+        if (!svc.adventurers.saveAdventurer(uid, created->id, created->appearance, *gear)) return fail("save failed");
+        screens_.navigate(ScreenId::World);
+        screens_.navigate(ScreenId::Costumer);
+        return false;
+      }
+      case 3: {
+        auto active = svc.adventurers.getActive(*currentUserId_);
+        if (!active || !*active || !geared(**active)) return fail("the Kiroween gear is not equipped");
+        shoot("p4-costumer-equipped.png");
+        screens_.navigate(ScreenId::World);
+        screens_.navigate(ScreenId::Codex, {{"q", "gryphon"}});
+        return false;
+      }
+      case 4:   // search the Codex, open a familiar's card
+        if (screens_.currentId() != ScreenId::Codex) return fail("did not reach the Codex");
+        shoot("p5-codex.png");
+        screens_.navigate(ScreenId::CodexCard, {{"agent", "gryphon"}});
+        return false;
+      case 5:
+        if (screens_.currentId() != ScreenId::CodexCard) return fail("did not reach the examine card");
+        shoot("p6-codex-card.png");
+        screens_.navigate(ScreenId::QuestScroll, {{"agent", "gryphon"}, {"demo", "1"}, {"step", "3"}});   // the story step, filled in
+        return false;
+      case 6:
+        if (screens_.currentId() != ScreenId::QuestScroll) return fail("did not reach the quest scroll");
+        shoot("p7-quest-scroll.png");
+        screens_.navigate(ScreenId::QuestScroll, {{"agent", "gryphon"}, {"demo", "1"}, {"submit", "1"}});   // and saved
+        return false;
+      case 7:   // saved on its first frame; one more frame so the effects are drawn
+        return false;
+      case 8: {
+        const std::string uid = *currentUserId_;
+        auto logId = svc.quests.findOwn(uid, "seed:agent:gryphon", "dev");
+        if (!logId || !*logId) return fail("the quest scroll did not save a Quest Log");
+        if (totalXp_ != domain::guestSeedXp() + 250) return fail("the Quest Log should have paid exactly 250 XP");
+        if (currentLevel_ != 14) return fail("a Guest's first Quest Log should take it from level 13 to 14");
+        if (effects_.drops().empty() || effects_.bursts().empty()) return fail("expected the +250 XP drop and the level-up fireworks");
+        shoot("p8-level-up.png");
+        screens_.navigate(ScreenId::Hiscores, {{"tab", "adventurers"}, {"q", "Wanderer"}});
+        return false;
+      }
+      case 9: {
+        if (screens_.currentId() != ScreenId::Hiscores) return fail("did not reach the Hiscores");
+        auto board = svc.hiscores.adventurers(0, "Wanderer");
+        if (!board || !board->match) return fail("the Hiscores should list the new Adventurer");
+        const auto& row = board->rows[*board->match];
+        if (row.xp != totalXp_ || row.level != 14) return fail("the Hiscores row should show the new XP and level 14");
+        shoot("p9-hiscores.png");
+        SDL_Log("SMOKE OK: demo path phase 1 (level 14, rank %d)", row.rank);
+        return true;
+      }
+      default: return true;
+    }
+  }
+
+  // Phase 2: a brand-new process on the same database, as after a page reload.
+  switch (demoStep_++) {
+    case 0: {
+      auto st = store_->db.prepare("SELECT value FROM app_state WHERE key = 'smoke_user_id'");
+      if (!st.step()) return fail("phase 1 left no user behind");
+      const std::string uid = st.columnText(0);
+      auto user = svc.profile.getUser(uid);
+      if (!user) return fail("the Guest from phase 1 is gone");
+      adoptUser(uid, user->settings);
+      if (totalXp_ != domain::guestSeedXp() + 250 || currentLevel_ != 14) return fail("the XP and level did not survive the restart");
+      auto active = svc.adventurers.getActive(uid);
+      if (!active || !*active || !geared(**active)) return fail("the equipped gear did not survive the restart");
+      auto logId = svc.quests.findOwn(uid, "seed:agent:gryphon", "dev");
+      if (!logId || !*logId) return fail("the Quest Log did not survive the restart");
+      auto board = svc.hiscores.adventurers(0, "Wanderer");
+      if (!board || !board->match || board->rows[*board->match].level != 14) return fail("the Hiscores did not keep the Adventurer");
+      screens_.navigate(ScreenId::World);
+      screens_.navigate(ScreenId::Tavern);
+      return false;
+    }
+    case 1:
+      if (screens_.currentId() != ScreenId::Tavern) return fail("did not reach the Tavern after the restart");
+      shoot("p10-restored-tavern.png");
+      SDL_Log("SMOKE OK: demo path phase 2 (everything survived a restart)");
+      return true;
+    default: return true;
+  }
 }
 
 // The agent-codex flow, one step per frame so each step's screen is what the previous frame rendered:
