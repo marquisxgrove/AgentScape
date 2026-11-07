@@ -381,11 +381,18 @@ def item_prompt_staff(f):
 
 
 def item_reapers_scythe(f):
+    """A tall pole with a compact crescent blade above and beside the head (never across the face)."""
     cv = Cv(); x = weapon_x(f)
-    cv.vline(x, 4, 42, 7); cv.vline(x + 1, 4, 42, 6)
-    for i in range(10):                                          # curved blade sweeping to the right
-        yy = 4 + (i * i) // 14
-        cv.hline(x + 2, x + 2 + i, yy, 8); cv.hline(x + 2 + i - 1, x + 2 + i, yy + 1, 9)
+    cv.vline(x, 3, 42, 7); cv.vline(x + 1, 3, 42, 6)
+    d = -1 if f == 'N' else 1                                    # from behind the blade curls toward the centre
+    def blade(dx0, dx1, y, col):
+        a, b = (x + 1 + dx0 * d, x + 1 + dx1 * d)
+        cv.hline(min(a, b), max(a, b), y, col)
+    blade(0, 4, 1, 8)                                            # top edge
+    blade(1, 5, 2, 8)
+    blade(3, 5, 3, 9)                                            # the blade drops to a point
+    blade(4, 5, 4, 9)
+    blade(5, 5, 5, 9)
     return cv.outline(OL)
 
 

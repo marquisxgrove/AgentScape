@@ -1,12 +1,15 @@
 #pragma once
 
 #include <functional>
-#include <functional>
 #include <map>
 #include <memory>
 #include <optional>
 #include <string>
 #include <vector>
+
+#include "domain/appearance.hpp"
+#include "domain/context_menu.hpp"
+#include "domain/loadout.hpp"
 
 namespace as::app {
 
@@ -32,6 +35,14 @@ struct FrameCtx {
   struct ContextRequest* contextRequest = nullptr;  // a screen fills this to open a context menu
   game::AvatarRenderer* avatars = nullptr;          // paper-doll renderer (null if the atlas failed to load)
 
+  // The signed-in user. userLevel is the Questing level (a placeholder until the quest-logs spec lands:
+  // Guests start at 13, everyone else at 1).
+  std::string userId;
+  int userLevel = 1;
+  // Starts a 4x transparent PNG export of a look (desktop save dialog / web download).
+  std::function<void(const domain::Appearance&, const domain::Loadout&, domain::Facing, const std::string& name)>
+      exportPortrait;
+
   // Default "Reduce motion" for a NEW guest (web: the browser preference). Desktop: false.
   bool reduceMotionDefault = false;
   // A screen calls this after a successful sign-in so App can adopt the user (remember settings,
@@ -51,6 +62,8 @@ class Screen {
   virtual void update(FrameCtx& /*ctx*/) {}
   virtual void draw(FrameCtx& ctx) = 0;
   virtual std::optional<Tab> tabOverride() const { return std::nullopt; }
+  // A non-Examine choice from a Context_Menu this screen opened (e.g. "remove:Head").
+  virtual void onContextAction(FrameCtx& /*ctx*/, const domain::MenuAction& /*action*/) {}
 };
 
 using ScreenFactory = std::function<std::unique_ptr<Screen>()>;

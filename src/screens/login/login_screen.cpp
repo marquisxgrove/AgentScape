@@ -37,9 +37,11 @@ void LoginScreen::afterSignIn(app::FrameCtx& ctx, const services::User& user, bo
     return;
   }
   if (ctx.onSignedIn) ctx.onSignedIn(signed_in->id, remember);
-  // Req 2.6: no Adventurer yet -> Costumer, else World. Adventurers arrive with character-creator,
-  // so for now everyone lands on the World hub.
+  // Req 2.6: no Adventurer yet -> the Costumer to create one, otherwise the World. The World is
+  // navigated first because it resets the history, so "back" from the Costumer lands in town.
   ctx.nav->navigate(app::ScreenId::World);
+  auto active = ctx.services->adventurers.getActive(signed_in->id);
+  if (active && !*active) ctx.nav->navigate(app::ScreenId::Costumer);
 }
 
 void LoginScreen::draw(app::FrameCtx& ctx) {

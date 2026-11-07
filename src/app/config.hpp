@@ -20,6 +20,8 @@ struct Config {
   std::optional<std::string> startScreen;           // --screen=<name> (dev builds: "ui-gallery")
   std::optional<std::string> snapshotPath;          // --snapshot=<file.png>: save the frame, implies --smoke
   std::optional<std::string> exportAvatarPath;      // --export-avatar=<png>: write the default Adventurer at 4x and exit
+  std::optional<std::string> smokeCostumerDir;      // --smoke-costumer=<dir>: costumer persistence check
+  int smokePhase = 1;                               // --smoke-phase=1|2 (2 = after an app restart)
   std::optional<std::string> smokeDemoDir;          // --smoke-demo=<dir>: run the demo path, snapshot each step
   std::vector<std::string> warnings;                // unknown/invalid arguments, logged at startup
 };

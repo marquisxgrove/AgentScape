@@ -6,6 +6,8 @@
 #include <vector>
 
 #include "app/context_request.hpp"
+#include "app/services.hpp"
+#include "game/avatar_renderer.hpp"
 #include "platform/paths.hpp"
 #include "render/texture_cache.hpp"
 #include "ui/chatbox.hpp"
@@ -22,10 +24,21 @@ constexpr float MAP_H = 300;
 constexpr float LIST_GAP = 8;
 }  // namespace
 
+void WorldScreen::onEnter(const app::ScreenParams&) { adventurerLoaded_ = false; }
+
 void WorldScreen::activate(app::FrameCtx& ctx, const game::Hotspot& h) {
-  // Navigation to each destination lands with that screen's spec; for now, narrate it.
+  // Screens that exist open; the rest are narrated until their own specs land.
+  if (h.screen == app::ScreenId::Costumer && ctx.nav != nullptr) {
+    ctx.nav->navigate(app::ScreenId::Costumer);
+    return;
+  }
   ui::pushGameMessage(std::string(h.defaultAction) + " " + std::string(h.name) + "...");
-  (void)ctx;
+}
+
+void WorldScreen::onContextAction(app::FrameCtx& ctx, const domain::MenuAction& action) {
+  for (const auto* h : game::visibleHotspots(ctx.kiroween)) {
+    if (action.id == h->id) activate(ctx, *h);  // the menu's default action is the hotspot id
+  }
 }
 
 void WorldScreen::openMenu(app::FrameCtx& ctx, const game::Hotspot& h, float frameX, float frameY) {
@@ -48,6 +61,23 @@ void WorldScreen::draw(app::FrameCtx& ctx) {
     dl->AddImage(id, mapOrigin, {mapOrigin.x + MAP_W, mapOrigin.y + MAP_H});
   } else {
     dl->AddRectFilled(mapOrigin, {mapOrigin.x + MAP_W, mapOrigin.y + MAP_H}, ui::toU32(ui::PaletteColor::Stone));
+  }
+
+  // The active Adventurer stands in the town square (Req 3.5).
+  clock_ += ctx.dt;
+  if (!adventurerLoaded_ && ctx.services != nullptr) {
+    adventurerLoaded_ = true;
+    adventurer_.reset();
+    if (auto active = ctx.services->adventurers.getActive(ctx.userId); active && *active) adventurer_ = **active;
+  }
+  if (adventurer_ && ctx.avatars != nullptr) {
+    const int idle = ctx.reduceMotion ? 0 : static_cast<int>(clock_ * 2.0) % 2;
+    if (SDL_Texture* sprite = ctx.avatars->texture(adventurer_->appearance, adventurer_->loadout, domain::Facing::S, idle)) {
+      const ImVec2 at{mapOrigin.x + 174, mapOrigin.y + 172};
+      const auto spriteId = static_cast<ImTextureID>(reinterpret_cast<std::uintptr_t>(sprite));
+      dl->AddImage(spriteId, at, {at.x + static_cast<float>(ctx.avatars->cellWidth()),
+                            at.y + static_cast<float>(ctx.avatars->cellHeight())});
+    }
   }
 
   // Kiroween overlays: jack-o'-lanterns at the doorways, drifting fog over the whole map.

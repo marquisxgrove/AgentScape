@@ -52,6 +52,7 @@ class App {
   void adoptUser(const std::string& userId, const domain::Settings& settings);
   // Scripted demo path for the headless smoke test (--smoke-demo). Returns true when finished.
   bool runDemoStep();
+  bool runCostumerStep();  // --smoke-costumer: create, claim, equip, save; phase 2 verifies after a restart
   void snapshotTo(const std::string& file);
   void registerScreens();
   void applySettings(const domain::Settings& settings);
@@ -87,6 +88,9 @@ class App {
   std::optional<OpenedStore> store_;
   std::optional<Services> services_;
   std::optional<std::string> currentUserId_;
+  ScreenParams postLoginParams_;
+  std::optional<ScreenId> postLoginScreen_;  // dev: --screen=costumer opens this right after sign-in
+  int currentLevel_ = 1;  // placeholder until quest-logs provides real Questing levels
   domain::Settings settings_;
   std::optional<LocalStoreError> loadError_;
   bool inMemoryOnly_ = false;  // web without IndexedDB: progress won't survive a reload

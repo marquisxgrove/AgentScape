@@ -152,3 +152,38 @@ TEST_CASE("Property 6: Draw order is a filtered permutation", "[property][charac
     }
   });
 }
+
+#include "domain/wardrobe.hpp"
+
+// Wardrobe invariants over arbitrary owned sets, levels and seasons (Requirements 4.4, 5, 6.2, 6.4).
+TEST_CASE("Property 10: Wardrobe states are consistent with ownership", "[property][character-creator]") {
+  as::testing::checkProperty("each item appears once; Owned/Equipped iff owned; locked states carry a reason",
+                             [](const std::uint64_t seed, const bool kiroween, const int rawLevel) {
+                               const int level = std::abs(rawLevel % 100);
+                               const OwnedSet owned = ownedFrom(seed);
+                               const Loadout worn = applyOps(seed, owned, 8);
+                               const auto all = wardrobe(worn, owned, kiroween, level, std::nullopt, false);
+                               RC_ASSERT(all.size() == ITEMS().size());
+                               std::set<std::string> seen;
+                               for (const auto& e : all) {
+                                 RC_ASSERT(seen.insert(std::string(e.item->id)).second);
+                                 const bool isOwned = owned.count(std::string(e.item->id)) != 0;
+                                 const bool ownedStatus = e.status == ItemStatus::Owned || e.status == ItemStatus::Equipped;
+                                 RC_ASSERT(isOwned == ownedStatus);
+                                 if (e.status == ItemStatus::Equipped) RC_ASSERT(worn.at(e.item->slot) == e.item->id);
+                                 if (e.status == ItemStatus::LockedLevel || e.status == ItemStatus::KiroweenNeedsLevel ||
+                                     e.status == ItemStatus::ReturnsNextKiroween) {
+                                   RC_ASSERT(!e.requirement.empty());
+                                 }
+                                 // Out of season, an unowned Kiroween item can never be claimed.
+                                 if (!kiroween && !isOwned && isKiroween(*e.item)) {
+                                   RC_ASSERT(e.status == ItemStatus::ReturnsNextKiroween);
+                                 }
+                               }
+                               // "Owned only" is exactly the owned subset.
+                               const auto onlyOwned = wardrobe(worn, owned, kiroween, level, std::nullopt, true);
+                               std::size_t expected = 0;
+                               for (const auto& e : all) expected += (e.status == ItemStatus::Owned || e.status == ItemStatus::Equipped);
+                               RC_ASSERT(onlyOwned.size() == expected);
+                             });
+}

@@ -29,6 +29,17 @@ inline constexpr ReservedRange RESERVED_FEET{48, 8};
 inline constexpr int RESERVED_BEGIN = 16;
 inline constexpr int RESERVED_END = 56;  // exclusive
 
+// The five recolourable regions an Appearance has a colour choice for.
+enum class ColorRegion { Hair, Torso, Legs, Feet, Skin };
+
+struct Swatch {
+  std::uint8_t r, g, b;
+  const char* name;  // plain-language name for the "Describe" text and tooltips
+};
+
+int colorCount(ColorRegion region);                    // == APPEARANCE_LIMITS.colors.<region>
+Swatch swatchFor(ColorRegion region, int choice);      // choice is clamped into range
+
 // Returns base with only the reserved-region indices replaced by ramps derived from the Appearance
 // colour choices. Deterministic.
 Palette256 buildPalette(const Appearance& appearance, const Palette256& base);

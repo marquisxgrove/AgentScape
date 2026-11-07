@@ -1,6 +1,7 @@
 #pragma once
 
 #include "services/activity_service.hpp"
+#include "services/adventurer_service.hpp"
 #include "services/profile_service.hpp"
 
 namespace as::app {
@@ -9,6 +10,7 @@ namespace as::app {
 struct Services {
   services::ProfileService profile;
   services::ActivityService activity;
+  services::AdventurerService adventurers;
 };
 
 }  // namespace as::app

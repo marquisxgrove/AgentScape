@@ -1,5 +1,6 @@
 #include <catch2/catch_test_macros.hpp>
 
+#include <algorithm>
 #include <string>
 
 #include "core/rng.hpp"
@@ -265,4 +266,27 @@ TEST_CASE("deleting a user removes their Adventurers and unlocks", "[integration
 TEST_CASE("an unknown user cannot create an Adventurer", "[integration][adventurer]") {
   Harness h;
   CHECK_FALSE(h.svc.createAdventurer("ghost", "Nobody").has_value());
+}
+
+TEST_CASE("syncLevelUnlocks grants the level-gated items once and reports only the new ones", "[integration][adventurer]") {
+  Harness h;
+  const auto first = h.svc.syncLevelUnlocks("u1", 10);
+  REQUIRE(first.has_value());
+  CHECK_FALSE(first->empty());
+  const auto owned = h.svc.ownedItems("u1");
+  for (const auto& id : *first) CHECK(owned->count(id) == 1);
+  CHECK(owned->count("travellers_cape") == 1);   // level 10
+  CHECK(owned->count("scholar_robe") == 0);      // level 12
+
+  const auto again = h.svc.syncLevelUnlocks("u1", 10);
+  REQUIRE(again.has_value());
+  CHECK(again->empty());                          // idempotent
+
+  const auto up = h.svc.syncLevelUnlocks("u1", 13);
+  REQUIRE(up.has_value());
+  CHECK(std::find(up->begin(), up->end(), "scholar_robe") != up->end());
+  CHECK(std::find(up->begin(), up->end(), "travellers_cape") == up->end());   // already granted
+  CHECK(h.scalar("SELECT COUNT(*) FROM item_unlock WHERE source = 'LEVEL'") ==
+        static_cast<std::int64_t>(first->size() + up->size()));
+  CHECK(h.svc.syncLevelUnlocks("u2", 1)->empty());   // nothing below level 3
 }

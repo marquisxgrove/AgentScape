@@ -57,6 +57,10 @@ class AdventurerService {
   Result<void> claimKiroweenItem(const std::string& userId, std::string_view itemId, bool kiroweenActive,
                                  int userLevel);
 
+  // Grants every level-gated item reached at `level` (source LEVEL) in one transaction. Idempotent: the
+  // quest-logs level-up flow calls this with the new level. Returns the ids granted *now* (not before).
+  Result<std::vector<std::string>> syncLevelUnlocks(const std::string& userId, int level);
+
   // Records an unlock earned elsewhere (level-ups, grants). Idempotent.
   Result<void> grantItem(const std::string& userId, std::string_view itemId, std::string_view source);
 

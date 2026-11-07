@@ -16,6 +16,7 @@
 #include "platform/accessibility.hpp"
 #include "platform/paths.hpp"
 #include "platform/web_url.hpp"
+#include "screens/costumer/costumer_screen.hpp"
 #include "screens/login/login_screen.hpp"
 #include "screens/world/world_screen.hpp"
 #include "ui/layout.hpp"
@@ -179,7 +180,8 @@ void App::openStore(bool resetData) {
   SDL_Log("Local store ready: %s (schema %d)", savePath_.c_str(), store_->schemaVersion);
   persistence_.requestFlush();  // migrations/seed on a new web save
   services_.emplace(Services{services::ProfileService{store_->db, clock_, rng_},
-                             services::ActivityService{store_->db, clock_, bus_}});
+                             services::ActivityService{store_->db, clock_, bus_},
+                             services::AdventurerService{store_->db, clock_, rng_}});
   chatbox_.emplace(bus_);
   onStoreReady();
   dataState_ = DataState::Ready;
@@ -200,12 +202,22 @@ void App::signInRemembered() {
   if (!user) return;
   adoptUser(user->id, user->settings);
   screens_.navigate(ScreenId::World);
+  if (postLoginScreen_) screens_.navigate(*postLoginScreen_, postLoginParams_);
   SDL_Log("Signed in remembered user %s", user->name.c_str());
 }
 
 void App::adoptUser(const std::string& userId, const domain::Settings& settings) {
   currentUserId_ = userId;
   applySettings(settings);
+  // Placeholder until the quest-logs spec supplies XP: Guests start at Questing level 13 (quest-logs
+  // Req 9.1), everyone else at 1. The unlock sync below is the same call the level-up flow will make.
+  currentLevel_ = 1;
+  if (services_) {
+    if (auto user = services_->profile.getUser(userId); user && user->kind == services::UserKind::Guest) {
+      currentLevel_ = 13;
+    }
+    services_->adventurers.syncLevelUnlocks(userId, currentLevel_);
+  }
   // Seed the Chatbox: 20 most recent Tavern events, then the welcome line (Req 5.1/5.3).
   if (chatbox_ && services_) {
     if (auto recent = services_->activity.latest(20)) {
@@ -251,6 +263,7 @@ SDL_AppResult App::handleEvent(SDL_Event& event) {
 void App::registerScreens() {
   screens_.registerScreen(ScreenId::Login, [] { return std::make_unique<screens::LoginScreen>(); });
   screens_.registerScreen(ScreenId::World, [] { return std::make_unique<screens::WorldScreen>(); });
+  screens_.registerScreen(ScreenId::Costumer, [] { return std::make_unique<screens::CostumerScreen>(); });
 #ifdef AS_ENABLE_DEV_SCREENS
   screens_.registerScreen(ScreenId::DevGallery, [] { return std::make_unique<screens::UiGalleryScreen>(); });
   screens_.registerScreen(ScreenId::DevAvatars, [] { return std::make_unique<screens::AvatarGalleryScreen>(); });
@@ -261,12 +274,20 @@ void App::registerScreens() {
 #ifdef AS_ENABLE_DEV_SCREENS
     if (*config_.startScreen == "ui-gallery") start = ScreenId::DevGallery;
     if (*config_.startScreen == "avatar-gallery") start = ScreenId::DevAvatars;
+    for (const char* tab : {"costumer", "costumer-gear", "costumer-adventurers"}) {
+      if (*config_.startScreen == tab) {
+        postLoginScreen_ = ScreenId::Costumer;
+        const std::string name = tab;
+        if (name == "costumer-gear") postLoginParams_["tab"] = "gear";
+        if (name == "costumer-adventurers") postLoginParams_["tab"] = "adventurers";
+      }
+    }
     if (*config_.startScreen == "avatar-looks") {
       start = ScreenId::DevAvatars;
       startParams["page"] = "looks";
     }
 #endif
-    if (start == ScreenId::Login) SDL_Log("Unknown or unavailable --screen=%s", config_.startScreen->c_str());
+    if (start == ScreenId::Login && !postLoginScreen_) SDL_Log("Unknown or unavailable --screen=%s", config_.startScreen->c_str());
   }
   screens_.navigate(start, startParams);
 }
@@ -304,6 +325,16 @@ void App::drawShell() {
   ctx.services = services_ ? &*services_ : nullptr;
   ctx.nav = &screens_;
   ctx.avatars = avatars_.get();
+  ctx.userId = currentUserId_.value_or("");
+  ctx.userLevel = currentLevel_;
+  ctx.exportPortrait = [this](const domain::Appearance& a, const domain::Loadout& l, domain::Facing f,
+                              const std::string& name) {
+    if (!avatars_) return;
+    if (SDL_Surface* portrait = avatars_->exportSurface(a, l, f, 4)) {
+      pngExporter_.start(window_, portrait, platform::safePngName(name));
+      SDL_DestroySurface(portrait);  // the exporter keeps its own copy
+    }
+  };
   ctx.reduceMotionDefault = platform::prefersReducedMotion();
   ctx.contextRequest = &contextReq_;
   ctx.onSignedIn = [this](const std::string& userId, bool remember) {
@@ -360,9 +391,8 @@ void App::drawShell() {
   if (auto chosen = contextMenu_.draw()) {
     if (chosen->id == "examine") {
       ui::pushGameMessage(chosen->target);  // Req 4.3: Examine prints to the Chatbox
-    } else {
-      // Other default actions map to a screen navigation (e.g. "enter" -> target screen).
-      SDL_Log("Context action: %s -> %s", chosen->id.c_str(), chosen->target.c_str());
+    } else if (Screen* screen = screens_.current()) {
+      screen->onContextAction(ctx, *chosen);
     }
   }
 
@@ -387,6 +417,12 @@ void App::saveSnapshot() {
 SDL_AppResult App::iterate() {
   updateData();
   persistence_.tick();
+  switch (pngExporter_.poll()) {
+    case platform::ExportOutcome::Saved: ui::pushGameMessage("Your portrait has been saved."); break;
+    case platform::ExportOutcome::Failed: ui::pushGameMessage("<col=red>Your portrait could not be saved.</col>"); break;
+    case platform::ExportOutcome::Cancelled:
+    case platform::ExportOutcome::None: break;  // cancelling does nothing (Req 8.2)
+  }
   frame_->updateLayout(window_);
 
   screens_.applyPending();
@@ -446,6 +482,11 @@ SDL_AppResult App::iterate() {
   ++framesRendered_;
   if (quitRequested_) return SDL_APP_SUCCESS;
 
+  if (config_.smokeCostumerDir) {
+    if (framesRendered_ >= 2 && runCostumerStep()) return demoFailed_ ? SDL_APP_FAILURE : SDL_APP_SUCCESS;
+    return SDL_APP_CONTINUE;
+  }
+
   if (config_.smokeDemoDir) {
     // One demo step per frame, so each step's screen is what the previous frame rendered.
     if (framesRendered_ >= 2 && runDemoStep()) {
@@ -459,6 +500,101 @@ SDL_AppResult App::iterate() {
     return dataState_ == DataState::Ready ? SDL_APP_SUCCESS : SDL_APP_FAILURE;
   }
   return SDL_APP_CONTINUE;
+}
+
+bool App::runCostumerStep() {
+  const auto fail = [&](const char* why) {
+    SDL_Log("SMOKE FAIL: %s", why);
+    demoFailed_ = true;
+    return true;
+  };
+  const auto shoot = [&](const char* file) {
+    SDL_Surface* shot = SDL_RenderReadPixels(renderer_, nullptr);
+    if (shot == nullptr) return;
+    const std::string path = *config_.smokeCostumerDir + "/" + file;
+    if (!IMG_SavePNG(shot, path.c_str())) SDL_Log("Snapshot write failed: %s", SDL_GetError());
+    SDL_DestroySurface(shot);
+  };
+  if (dataState_ != DataState::Ready || !services_) return fail("store not ready");
+  auto& svc = services_->adventurers;
+  const auto isEquipped = [](const services::Adventurer& a) {
+    const auto head = a.loadout.find(domain::Slot::Head);
+    const auto weapon = a.loadout.find(domain::Slot::Weapon);
+    return head != a.loadout.end() && head->second == "jack_mask" && weapon != a.loadout.end() &&
+           weapon->second == "reapers_scythe";
+  };
+
+  if (config_.smokePhase == 1) {
+    switch (demoStep_++) {
+      case 0: {  // a fresh Guest signs in (level 13) and, having no Adventurer, lands in the Costumer
+        auto guest = services_->profile.createGuest();
+        if (!guest) return fail("createGuest failed");
+        services_->profile.signIn(guest->id);
+        adoptUser(guest->id, guest->settings);
+        if (currentLevel_ != 13) return fail("a Guest should start at Questing level 13");
+        store_->db.prepare("INSERT OR REPLACE INTO app_state(key, value) VALUES ('smoke_user_id', ?)")
+            .bind(1, guest->id)
+            .run();
+        screens_.navigate(ScreenId::World);
+        screens_.navigate(ScreenId::Costumer);
+        return false;
+      }
+      case 1: {
+        if (screens_.currentId() != ScreenId::Costumer) return fail("did not reach the Costumer");
+        shoot("c1-create.png");  // the "name your first Adventurer" form
+        const std::string uid = *currentUserId_;
+        auto created = svc.createAdventurer(uid, "Mossbeard");
+        if (!created || !created->isActive) return fail("createAdventurer failed or not active");
+        // Claim the two Kiroween items (the Scythe needs level 13) and equip them through the domain rules.
+        if (!svc.claimKiroweenItem(uid, "jack_mask", /*kiroweenActive=*/true, currentLevel_)) return fail("claim mask");
+        if (!svc.claimKiroweenItem(uid, "reapers_scythe", true, currentLevel_)) return fail("claim scythe");
+        auto owned = svc.ownedItems(uid);
+        if (!owned) return fail("ownedItems failed");
+        auto gear = domain::equip(created->loadout, "jack_mask", *owned);
+        if (!gear) return fail("equip mask");
+        gear = domain::equip(*gear, "reapers_scythe", *owned);
+        if (!gear) return fail("equip scythe");
+        if (!svc.saveAdventurer(uid, created->id, created->appearance, *gear)) return fail("save failed");
+        screens_.navigate(ScreenId::World);   // re-enter so the Costumer reloads from the database
+        screens_.navigate(ScreenId::Costumer);
+        return false;
+      }
+      case 2: {
+        auto active = svc.getActive(*currentUserId_);
+        if (!active || !*active || !isEquipped(**active)) return fail("the saved gear is not equipped");
+        shoot("c2-equipped.png");
+        SDL_Log("SMOKE OK: phase 1 (created, claimed, equipped, saved)");
+        return true;
+      }
+      default: return true;
+    }
+  }
+
+  // Phase 2: a brand-new process on the same database.
+  switch (demoStep_++) {
+    case 0: {
+      auto st = store_->db.prepare("SELECT value FROM app_state WHERE key = 'smoke_user_id'");
+      if (!st.step()) return fail("phase 1 left no user behind");
+      const std::string uid = st.columnText(0);
+      auto user = services_->profile.getUser(uid);
+      if (!user) return fail("the Guest from phase 1 is gone");
+      adoptUser(uid, user->settings);
+      screens_.navigate(ScreenId::World);
+      screens_.navigate(ScreenId::Costumer);
+      return false;
+    }
+    case 1: {
+      auto active = svc.getActive(*currentUserId_);
+      if (!active || !*active) return fail("the Adventurer did not survive the restart");
+      if ((*active)->name != "Mossbeard") return fail("wrong Adventurer after restart");
+      if (!isEquipped(**active)) return fail("the gear did not survive the restart");
+      if (screens_.currentId() != ScreenId::Costumer) return fail("not on the Costumer");
+      shoot("c3-restored.png");
+      SDL_Log("SMOKE OK: phase 2 (still equipped after restart)");
+      return true;
+    }
+    default: return true;
+  }
 }
 
 void App::snapshotTo(const std::string& file) {
