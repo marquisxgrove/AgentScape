@@ -2,6 +2,9 @@
 
 #include <SDL3/SDL.h>
 
+#include <imgui.h>
+
+#include <cstdint>
 #include <memory>
 #include <optional>
 #include <string>
@@ -14,12 +17,14 @@
 #include "app/services.hpp"
 #include "core/rng.hpp"
 #include "game/avatar_renderer.hpp"
+#include "game/effects.hpp"
 #include "platform/png_export.hpp"
 #include "platform/persist.hpp"
 #include "render/game_frame.hpp"
 #include "render/texture_cache.hpp"
 #include "ui/chatbox.hpp"
 #include "ui/context_menu_host.hpp"
+#include "ui/tab_panel.hpp"
 #include "ui/ui_context.hpp"
 
 namespace as::app {
@@ -55,6 +60,10 @@ class App {
   bool runCodexStep();     // --smoke-codex: the agent-codex flow end to end (steps are listed in app.cpp)
   bool runCostumerStep();  // --smoke-costumer: create, claim, equip, save; phase 2 verifies after a restart
   void snapshotTo(const std::string& file);
+  void onXpChanged(const XpChanged& e);
+  void onItemUnlocked(const ItemUnlocked& e);
+  void drawEffects();
+  ui::XpStatus xpStatus() const;
   void registerScreens();
   void applySettings(const domain::Settings& settings);
   void drawShell();
@@ -75,6 +84,9 @@ class App {
   bool kiroween_ = false;
   int framesRendered_ = 0;
   bool quitRequested_ = false;
+  std::size_t smokeTombstones_ = 0;    // --smoke-codex bookkeeping
+  std::int64_t smokeXpBefore_ = 0;
+  int smokeLevelBefore_ = 1;
   int demoStep_ = 0;   // index into the --smoke-demo sequence
   bool demoFailed_ = false;
 
@@ -93,7 +105,12 @@ class App {
   ScreenParams postLoginParams_;
   std::optional<ScreenId> postLoginScreen_;  // dev: --screen=costumer opens this right after sign-in
   bool isKeeper_ = false;  // cached KEEPER role of the signed-in user
-  int currentLevel_ = 1;  // placeholder until quest-logs provides real Questing levels
+  int currentLevel_ = 1;               // the signed-in user's Questing level, from their XP
+  std::int64_t totalXp_ = 0;           // and their total XP (kept in step by XpChanged events)
+  game::Effects effects_;              // floating "+N XP" drops and level-up fireworks
+  ImVec2 xpAnchor_{0, 0};              // where the tab panel's level line was drawn last frame
+  app::Subscription xpSub_;
+  app::Subscription unlockSub_;
   domain::Settings settings_;
   std::optional<LocalStoreError> loadError_;
   bool inMemoryOnly_ = false;  // web without IndexedDB: progress won't survive a reload

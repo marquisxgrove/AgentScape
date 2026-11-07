@@ -8,7 +8,7 @@
 namespace as::services {
 
 namespace {
-constexpr const char* USER_COLUMNS = "id, name, kind, role, settings, created_at, last_seen_at";
+constexpr const char* USER_COLUMNS = "id, name, kind, role, settings, created_at, last_seen_at, total_xp";
 constexpr const char* REMEMBERED_KEY = "remembered_user_id";
 
 UserKind kindFrom(const std::string& s) {
@@ -30,6 +30,7 @@ User readUser(const db::Statement& st) {
   u.settings = domain::settingsFromJson(st.columnText(4));
   u.createdAt = timeFrom(st.columnText(5));
   u.lastSeenAt = timeFrom(st.columnText(6));
+  u.totalXp = st.columnInt(7);
   return u;
 }
 

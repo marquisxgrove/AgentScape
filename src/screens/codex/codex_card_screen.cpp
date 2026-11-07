@@ -139,8 +139,10 @@ void CodexCardScreen::drawHeader(app::FrameCtx& ctx) {
     }
     ImGui::SameLine();
   }
-  if (ui::PixelButton("Write a Quest Log", {0, 0})) {
-    ui::pushGameMessage("The Quest Log scribes aren't open for business yet.");
+  if (ui::PixelButton("Write a Quest Log", {0, 0}) && ctx.nav != nullptr) {
+    app::ScreenParams p{{"agent", card_->agent.slug}};
+    if (scope_) p["scope"] = domain::storageName(*scope_);
+    ctx.nav->navigate(app::ScreenId::QuestScroll, p);
   }
   ImGui::SameLine();
   if (ui::PixelButton("Compare##agent", {0, 0}) && ctx.nav != nullptr) {

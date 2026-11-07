@@ -6,13 +6,17 @@
 
 #include <SDL3_image/SDL_image.h>
 
+#include <algorithm>
 #include <chrono>
 #include <cstdint>
 #include <cstdlib>
 #include <string_view>
 #include <vector>
 
+#include "domain/items.hpp"
+#include "domain/xp.hpp"
 #include "game/hotspots.hpp"
+#include "game/xp_feedback.hpp"
 #include "platform/accessibility.hpp"
 #include "platform/paths.hpp"
 #include "platform/web_url.hpp"
@@ -24,6 +28,7 @@
 #include "screens/codex/proving_screen.hpp"
 #include "screens/costumer/costumer_screen.hpp"
 #include "screens/login/login_screen.hpp"
+#include "screens/quest/quest_scroll_screen.hpp"
 #include "screens/world/world_screen.hpp"
 #include "ui/layout.hpp"
 #include "ui/tab_panel.hpp"
@@ -135,6 +140,8 @@ bool App::init() {
 }
 
 App::~App() {
+  xpSub_.reset();
+  unlockSub_.reset();
   chatbox_.reset();  // unsubscribes from the bus before services/db go away
   services_.reset();
   store_.reset();  // close the database before tearing down the platform layer
@@ -210,6 +217,8 @@ void App::openStore(bool resetData) {
       logError("Repair XP", fixed.error());
     }
   }
+  xpSub_ = app::Subscription{bus_, bus_.subscribe<app::XpChanged>([this](const app::XpChanged& e) { onXpChanged(e); })};
+  unlockSub_ = app::Subscription{bus_, bus_.subscribe<app::ItemUnlocked>([this](const app::ItemUnlocked& e) { onItemUnlocked(e); })};
   chatbox_.emplace(bus_);
   onStoreReady();
   dataState_ = DataState::Ready;
@@ -237,14 +246,18 @@ void App::signInRemembered() {
 void App::adoptUser(const std::string& userId, const domain::Settings& settings) {
   currentUserId_ = userId;
   applySettings(settings);
-  // Placeholder until the quest-logs spec supplies XP: Guests start at Questing level 13 (quest-logs
-  // Req 9.1), everyone else at 1. The unlock sync below is the same call the level-up flow will make.
+  // The Questing level comes from the user's XP (quest-logs Requirement 5.4). A new Guest starts with seed XP, so
+  // they begin at level 13; players begin at level 1. The unlock sync below is idempotent and also covers
+  // anything that became reachable while the app was closed.
   currentLevel_ = 1;
+  totalXp_ = 0;
   isKeeper_ = false;
+  effects_.clear();
   if (services_) {
     if (auto keeper = services_->keeper.isKeeper(userId)) isKeeper_ = *keeper;
-    if (auto user = services_->profile.getUser(userId); user && user->kind == services::UserKind::Guest) {
-      currentLevel_ = 13;
+    if (auto user = services_->profile.getUser(userId)) {
+      totalXp_ = user->totalXp;
+      currentLevel_ = domain::levelForXp(totalXp_);
     }
     services_->adventurers.syncLevelUnlocks(userId, currentLevel_);
   }
@@ -298,6 +311,7 @@ void App::registerScreens() {
   screens_.registerScreen(ScreenId::Keeper, [] { return std::make_unique<screens::KeeperScreen>(); });
   screens_.registerScreen(ScreenId::Proving, [] { return std::make_unique<screens::ProvingScreen>(); });
   screens_.registerScreen(ScreenId::Graveyard, [] { return std::make_unique<screens::GraveyardScreen>(); });
+  screens_.registerScreen(ScreenId::QuestScroll, [] { return std::make_unique<screens::QuestScrollScreen>(); });
   screens_.registerScreen(ScreenId::Propose, [] { return std::make_unique<screens::ProposeScreen>(); });
   screens_.registerScreen(ScreenId::CodexCard, [] { return std::make_unique<screens::CodexCardScreen>(); });
 #ifdef AS_ENABLE_DEV_SCREENS
@@ -318,10 +332,17 @@ void App::registerScreens() {
         if (name == "costumer-adventurers") postLoginParams_["tab"] = "adventurers";
       }
     }
-    for (const char* name : {"codex", "codex-table", "codex-search", "codex-card", "codex-card-debug", "codex-card-notes", "codex-card-compose", "codex-propose", "codex-propose-error", "codex-keeper", "proving", "proving-pick", "graveyard", "graveyard-list"}) {
+    for (const char* name : {"codex", "codex-table", "codex-search", "codex-card", "codex-card-debug", "codex-card-notes", "codex-card-compose", "codex-propose", "codex-propose-error", "codex-keeper", "proving", "proving-pick", "graveyard", "graveyard-list", "quest-scroll", "quest-scroll-rating", "quest-scroll-story", "quest-scroll-demo"}) {
       if (*config_.startScreen == name) {
         const std::string n = name;
-        postLoginScreen_ = n.rfind("codex-card", 0) == 0 ? ScreenId::CodexCard : (n.rfind("codex-propose", 0) == 0 ? ScreenId::Propose : (n == "codex-keeper" ? ScreenId::Keeper : (n.rfind("proving", 0) == 0 ? ScreenId::Proving : (n.rfind("graveyard", 0) == 0 ? ScreenId::Graveyard : ScreenId::Codex))));
+        postLoginScreen_ = n.rfind("codex-card", 0) == 0 ? ScreenId::CodexCard : (n.rfind("codex-propose", 0) == 0 ? ScreenId::Propose : (n == "codex-keeper" ? ScreenId::Keeper : (n.rfind("proving", 0) == 0 ? ScreenId::Proving : (n.rfind("graveyard", 0) == 0 ? ScreenId::Graveyard : (n.rfind("quest-scroll", 0) == 0 ? ScreenId::QuestScroll : ScreenId::Codex)))));
+        if (n.rfind("quest-scroll", 0) == 0) postLoginParams_["agent"] = "gryphon";
+        if (n == "quest-scroll-rating") postLoginParams_["step"] = "2";
+        if (n == "quest-scroll-story") postLoginParams_["step"] = "3";
+        if (n == "quest-scroll-demo") {
+          postLoginParams_["demo"] = "1";
+          postLoginParams_["submit"] = "1";
+        }
         if (n == "graveyard-list") postLoginParams_["view"] = "list";
         if (n.rfind("proving", 0) == 0) postLoginParams_["with"] = "gryphon,cairn,gryphon-chat";
         if (n == "proving-pick") postLoginParams_["pick"] = "2";
@@ -370,6 +391,60 @@ void App::drawLoadFailed() {
   ImGui::End();
 }
 
+ui::XpStatus App::xpStatus() const {
+  ui::XpStatus x;
+  x.level = currentLevel_;
+  x.totalXp = totalXp_;
+  x.toNextLevel = currentLevel_ >= domain::MAX_QUESTING_LEVEL ? 0 : domain::xpTable()[static_cast<std::size_t>(currentLevel_) + 1] - totalXp_;
+  return x;
+}
+
+void App::onXpChanged(const XpChanged& e) {
+  if (!currentUserId_ || e.userId != *currentUserId_) return;   // someone else's XP (another device user) is not ours to show
+  const auto fb = game::feedbackFor(totalXp_, e.totalXp, currentLevel_, e.newLevel);
+  totalXp_ = e.totalXp;
+  currentLevel_ = e.newLevel;
+  if (fb.gained > 0) effects_.addXpDrop(fb.gained);
+  if (fb.levelUp) {
+    ui::pushGameMessage(game::levelUpMessage(*fb.levelUp));
+    effects_.addFireworks(static_cast<float>(ui::VIEWPORT.w), static_cast<float>(ui::VIEWPORT.h),
+                          static_cast<std::uint64_t>(e.totalXp));
+  }
+}
+
+void App::onItemUnlocked(const ItemUnlocked& e) {
+  if (!currentUserId_ || e.userId != *currentUserId_) return;
+  if (const auto* item = domain::findItem(e.itemId)) ui::pushGameMessage(game::unlockMessage(item->name));
+}
+
+// Floating "+N XP" drops near the tab panel's level line, and level-up fireworks over the viewport. Drawn last, on
+// the foreground list, in frame pixels. With Reduce motion they are static (see game::Effects).
+void App::drawEffects() {
+  ImDrawList* dl = ImGui::GetForegroundDrawList();
+  const ImU32 colors[4] = {ui::toU32(ui::PaletteColor::TextYellow), ui::toU32(ui::PaletteColor::TextOrange),
+                           ui::toU32(ui::PaletteColor::TextCyan), ui::toU32(ui::PaletteColor::TextGreen)};
+  const ImVec2 origin{static_cast<float>(ui::VIEWPORT.x), static_cast<float>(ui::VIEWPORT.y)};
+  for (const auto& burst : effects_.bursts()) {
+    if (burst.age <= 0.0F) continue;   // staggered: not started
+    for (const auto& s : burst.sparks) {
+      const float a = s.maxLife > 0 ? std::clamp(s.life / s.maxLife, 0.0F, 1.0F) : 0.0F;
+      if (a <= 0.0F) continue;
+      const ImU32 c = (colors[s.color % 4] & 0x00FFFFFFU) | (static_cast<ImU32>(a * 255.0F) << 24);
+      dl->AddRectFilled({origin.x + s.x, origin.y + s.y}, {origin.x + s.x + 2, origin.y + s.y + 2}, c);
+    }
+  }
+  const ImVec2 base{xpAnchor_.x + 160.0F, xpAnchor_.y};   // right of the level line, clear of the panel title
+  float stack = 0;
+  for (const auto& d : effects_.drops()) {
+    const std::string text = game::dropText(d.amount);
+    const ImVec2 at{base.x, base.y - d.rise + stack};   // each extra drop sits one line lower, so none is clipped
+    const auto alpha = static_cast<ImU32>(std::clamp(d.alpha, 0.0F, 1.0F) * 255.0F) << 24;
+    dl->AddText({at.x + 1, at.y + 1}, 0x00000000U | alpha, text.c_str());
+    dl->AddText(at, (ui::toU32(ui::PaletteColor::TextYellow) & 0x00FFFFFFU) | alpha, text.c_str());
+    stack += 12.0F;   // several drops at once don't overprint each other
+  }
+}
+
 void App::drawShell() {
   FrameCtx ctx;
   ctx.dt = static_cast<double>(ImGui::GetIO().DeltaTime);
@@ -410,7 +485,8 @@ void App::drawShell() {
   // The Tab_Panel (Settings) is shown only once a user is signed in (i.e. not on the login screen).
   if (beginRegion("##tabpanel", ui::TAB_PANEL)) {
     if (before != ScreenId::Login && currentUserId_) {
-      const auto result = ui::drawTabPanel(settings_, isKeeper_);
+      const auto result = ui::drawTabPanel(settings_, isKeeper_, xpStatus());
+      xpAnchor_ = result.xpAnchor;
       if (result.settingsChanged) {
         applySettings(result.settings);
         if (services_) {
@@ -460,6 +536,8 @@ void App::drawShell() {
   }
 
   ui::HoverText({static_cast<float>(ui::VIEWPORT.x), static_cast<float>(ui::VIEWPORT.y)});
+  effects_.step(static_cast<double>(ImGui::GetIO().DeltaTime), settings_.reduceMotion);
+  drawEffects();
 }
 
 void App::saveSnapshot() {
@@ -698,7 +776,35 @@ bool App::runCodexStep() {
         return fail("the Graveyard should hold 1 to 13 tombstones");
       }
       shoot("x5-graveyard.png");
-      SDL_Log("SMOKE OK: codex flow completed (%zu tombstones)", stones->size());
+      smokeTombstones_ = stones->size();
+
+      // Write a Quest Log through the real screen: a Guest (level 13) with an Adventurer, the form prefilled by the
+      // dev "demo" switch and saved on its first frame. The XP, the level-up and the effects come from the events.
+      if (!svc.adventurers.createAdventurer(me, "Smokey")) return fail("createAdventurer failed");
+      // The Guest started at level 13 (seed XP); the Note (+50) and the approved proposal (+500) earlier in this flow
+      // have raised it since, so remember where it stands now and check the Quest Log adds exactly 250 on top.
+      if (totalXp_ != domain::guestSeedXp() + 50 + 500) return fail("the Guest's XP should be its seed plus a Note and an approval");
+      if (currentLevel_ != domain::levelForXp(totalXp_)) return fail("the level should follow the XP");
+      smokeXpBefore_ = totalXp_;
+      smokeLevelBefore_ = currentLevel_;
+      screens_.navigate(ScreenId::QuestScroll, {{"agent", "gryphon"}, {"demo", "1"}, {"submit", "1"}});
+      return false;
+    }
+    case 7:   // the screen loaded and saved on its first draw; wait one more frame for the effects to be drawn
+      return false;
+    case 8: {
+      auto logs = svc.quests.findOwn(me, "seed:agent:gryphon", "dev");
+      if (!logs || !*logs) return fail("the quest scroll did not save a Quest Log");
+      auto record = svc.quests.get(**logs);
+      if (!record || !*record || (*record)->input.title != "A solid helper") return fail("the saved Quest Log is wrong");
+      if (totalXp_ != smokeXpBefore_ + 250) return fail("the Quest Log should have paid exactly 250 XP");
+      if (currentLevel_ != domain::levelForXp(totalXp_)) return fail("the level should follow the XP");
+      if (currentLevel_ <= smokeLevelBefore_) return fail("250 XP should take this Guest up a level");
+      if (effects_.drops().empty()) return fail("expected a floating +250 XP drop");
+      if (effects_.bursts().empty()) return fail("expected level-up fireworks");
+      if (screens_.currentId() == ScreenId::QuestScroll) return fail("the scroll should close after saving");
+      shoot("x6-level-up.png");
+      SDL_Log("SMOKE OK: codex flow completed (%zu tombstones, level %d)", smokeTombstones_, currentLevel_);
       return true;
     }
     default:

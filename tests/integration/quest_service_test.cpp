@@ -768,3 +768,15 @@ TEST_CASE("without the cleanup hook a deleted Guest's ratings would be orphaned 
   REQUIRE(profile.cleanupGuests().has_value());
   CHECK_FALSE(f.storedAggregates() == f.recomputedAggregates());   // the stored ratings outlive the log
 }
+
+TEST_CASE("a user's XP is read back from the profile, and a Guest starts at level 13", "[integration][quests][xp]") {
+  Fixture f;
+  ProfileService profile(f.db, f.clock, f.rng);
+  REQUIRE(f.quests.createQuestLog("alice", Fixture::input()).has_value());
+  CHECK(profile.getUser("alice")->totalXp == 250);
+  CHECK(profile.getUser("bob")->totalXp == 0);
+  const auto guest = profile.createGuest();
+  REQUIRE(guest.has_value());
+  CHECK(profile.getUser(guest->id)->totalXp == domain::guestSeedXp());
+  CHECK(domain::levelForXp(profile.getUser(guest->id)->totalXp) == 13);
+}

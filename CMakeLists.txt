@@ -93,11 +93,14 @@ as_enable_sanitizers(as_platform_core)
 
 # Pure UI logic (palette, markup parser): no ImGui, unit-testable.
 add_library(as_ui_core STATIC
+  src/game/effects.cpp
   src/game/kiroween_fx.cpp
+  src/game/xp_feedback.cpp
   src/ui/chat_model.cpp
   src/ui/costumer_draft.cpp
   src/ui/context_menu_model.cpp
-  src/ui/markup.cpp)
+  src/ui/markup.cpp
+  src/ui/quest_form.cpp)
 target_include_directories(as_ui_core PUBLIC src)
 target_link_libraries(as_ui_core PUBLIC as_core as_domain)
 as_enable_warnings(as_ui_core)
@@ -176,6 +179,8 @@ if(AS_BUILD_APP)
     src/screens/costumer/costumer_screen.cpp
     src/screens/graveyard/graveyard_screen.cpp
     src/screens/login/login_screen.cpp
+    src/screens/quest/quest_scroll_screen.cpp
+    src/screens/quest/quest_widgets.cpp
     src/screens/world/world_screen.cpp
     src/ui/chatbox.cpp
     src/ui/context_menu_host.cpp
@@ -231,6 +236,7 @@ if(AS_BUILD_TESTS)
     tests/unit/compare_test.cpp
     tests/unit/graveyard_test.cpp
     tests/unit/quest_domain_test.cpp
+    tests/unit/quest_feedback_test.cpp
     tests/unit/codex_scoring_test.cpp
     tests/unit/codex_validation_test.cpp
     tests/unit/config_test.cpp

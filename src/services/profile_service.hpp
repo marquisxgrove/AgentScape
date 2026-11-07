@@ -22,6 +22,7 @@ struct User {
   UserKind kind = UserKind::Player;
   UserRole role = UserRole::User;
   domain::Settings settings;
+  std::int64_t totalXp = 0;   // Questing XP: the sum of the user's xp_entry rows
   std::chrono::sys_seconds createdAt;
   std::chrono::sys_seconds lastSeenAt;
 };
