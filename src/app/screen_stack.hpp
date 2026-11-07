@@ -10,12 +10,17 @@
 
 namespace as::app {
 
-enum class ScreenId { Login, World, Costumer, Codex, Tavern, Hiscores, Graveyard, Keeper, DevGallery };
+enum class ScreenId { Login, World, Costumer, Codex, Tavern, Hiscores, Graveyard, Keeper, DevGallery, DevAvatars };
 
 // Navigation parameters, e.g. {"agent", "<slug>"} when opening an examine card.
 using ScreenParams = std::map<std::string, std::string>;
 
 class ScreenStack;  // forward
+}  // namespace as::app
+namespace as::game {
+class AvatarRenderer;
+}  // namespace as::game
+namespace as::app {
 
 // Per-frame context handed to screens. `services` is set by App; screens never touch the db directly.
 struct FrameCtx {
@@ -25,6 +30,7 @@ struct FrameCtx {
   struct Services* services = nullptr;
   ScreenStack* nav = nullptr;
   struct ContextRequest* contextRequest = nullptr;  // a screen fills this to open a context menu
+  game::AvatarRenderer* avatars = nullptr;          // paper-doll renderer (null if the atlas failed to load)
 
   // Default "Reduce motion" for a NEW guest (web: the browser preference). Desktop: false.
   bool reduceMotionDefault = false;

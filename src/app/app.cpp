@@ -23,6 +23,7 @@
 #include "ui/theme.hpp"
 #include "ui/widgets.hpp"
 #ifdef AS_ENABLE_DEV_SCREENS
+#include "screens/dev/avatar_gallery_screen.hpp"
 #include "screens/dev/ui_gallery_screen.hpp"
 #endif
 
@@ -115,6 +116,12 @@ bool App::init() {
   ui_.skin = ui::loadSkin(*textures_, assets / "ui");
   ui_.textures = textures_.get();
 
+  if (auto avatars = game::AvatarRenderer::create(renderer_, assets / "sprites")) {
+    avatars_ = std::move(*avatars);
+  } else {
+    logError("Avatar renderer", avatars.error());  // the game still runs; avatars just aren't drawn
+  }
+
   updateData();  // desktop opens the store immediately; the web waits for IndexedDB
   return true;
 }
@@ -123,6 +130,7 @@ App::~App() {
   chatbox_.reset();  // unsubscribes from the bus before services/db go away
   services_.reset();
   store_.reset();  // close the database before tearing down the platform layer
+  avatars_.reset();
   textures_.reset();
   ui::setContext(nullptr);
   if (ImGui::GetCurrentContext() != nullptr) {
@@ -245,15 +253,22 @@ void App::registerScreens() {
   screens_.registerScreen(ScreenId::World, [] { return std::make_unique<screens::WorldScreen>(); });
 #ifdef AS_ENABLE_DEV_SCREENS
   screens_.registerScreen(ScreenId::DevGallery, [] { return std::make_unique<screens::UiGalleryScreen>(); });
+  screens_.registerScreen(ScreenId::DevAvatars, [] { return std::make_unique<screens::AvatarGalleryScreen>(); });
 #endif
   ScreenId start = ScreenId::Login;
+  ScreenParams startParams;
   if (config_.startScreen) {
 #ifdef AS_ENABLE_DEV_SCREENS
     if (*config_.startScreen == "ui-gallery") start = ScreenId::DevGallery;
+    if (*config_.startScreen == "avatar-gallery") start = ScreenId::DevAvatars;
+    if (*config_.startScreen == "avatar-looks") {
+      start = ScreenId::DevAvatars;
+      startParams["page"] = "looks";
+    }
 #endif
     if (start == ScreenId::Login) SDL_Log("Unknown or unavailable --screen=%s", config_.startScreen->c_str());
   }
-  screens_.navigate(start);
+  screens_.navigate(start, startParams);
 }
 
 void App::drawLoading() {
@@ -288,6 +303,7 @@ void App::drawShell() {
   ctx.reduceMotion = settings_.reduceMotion;
   ctx.services = services_ ? &*services_ : nullptr;
   ctx.nav = &screens_;
+  ctx.avatars = avatars_.get();
   ctx.reduceMotionDefault = platform::prefersReducedMotion();
   ctx.contextRequest = &contextReq_;
   ctx.onSignedIn = [this](const std::string& userId, bool remember) {
@@ -409,6 +425,22 @@ SDL_AppResult App::iterate() {
   frame_->beginFrame();
   ImGui_ImplSDLRenderer3_RenderDrawData(ImGui::GetDrawData(), renderer_);
   if (config_.snapshotPath && framesRendered_ + 1 == SNAPSHOT_FRAME) saveSnapshot();
+  if (config_.exportAvatarPath && framesRendered_ == 0) {
+    // Dev QA: prove the 4x transparent portrait export path without a dialog.
+    bool ok = false;
+    if (avatars_) {
+      domain::Appearance look;
+      look.hair = 2;
+      look.colors = {3, 5, 4, 2, 1};
+      if (SDL_Surface* portrait = avatars_->exportSurface(look, domain::defaultLoadout(), domain::Facing::S, 4)) {
+        ok = platform::writePng(portrait, *config_.exportAvatarPath);
+        SDL_Log("Exported %dx%d portrait to %s: %s", portrait->w, portrait->h, config_.exportAvatarPath->c_str(),
+                ok ? "ok" : "FAILED");
+        SDL_DestroySurface(portrait);
+      }
+    }
+    if (!ok) return SDL_APP_FAILURE;
+  }
   frame_->present();
 
   ++framesRendered_;

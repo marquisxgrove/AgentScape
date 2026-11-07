@@ -43,7 +43,7 @@ const std::array<Item, 23>& catalog() {
       {"reapers_scythe", "Reaper's Scythe", Slot::Weapon, "It harvests only hallucinations. Mostly.", "reapers_scythe",
        UnlockKiroween{13}, true},
       // BODY
-      {"plain_tunic", "Plain Tunic", Slot::Body, "Unassuming cloth for an unassuming start.", "plain_tunic",
+      {"plain_tunic", "Plain Tunic", Slot::Body, "Unassuming cloth for an unassuming start.", "",  // no overlay: this IS the base layer
        UnlockDefault{}},
       {"scholar_robe", "Scholar Robe", Slot::Body, "Flowing robes that rustle with footnotes.", "scholar_robe",
        UnlockLevel{12}},
@@ -54,7 +54,7 @@ const std::array<Item, 23>& catalog() {
       {"candy_pail", "Candy Pail", Slot::Shield, "Trick-or-treat defence. Surprisingly sturdy.", "candy_pail",
        UnlockKiroween{}},
       // LEGS
-      {"plain_trousers", "Plain Trousers", Slot::Legs, "Sensible and seldom remarked upon.", "plain_trousers",
+      {"plain_trousers", "Plain Trousers", Slot::Legs, "Sensible and seldom remarked upon.", "",  // no overlay: this IS the base layer
        UnlockDefault{}},
       {"scholar_skirt", "Scholar Skirt", Slot::Legs, "Pleated for pacing the library aisles.", "scholar_skirt",
        UnlockLevel{12}},
@@ -62,7 +62,7 @@ const std::array<Item, 23>& catalog() {
       {"leather_gloves", "Leather Gloves", Slot::Hands, "Keeps ink and frostbite off your knuckles.", "leather_gloves",
        UnlockLevel{3}},
       // FEET
-      {"leather_boots", "Leather Boots", Slot::Feet, "Broken in, and good for a long quest.", "leather_boots",
+      {"leather_boots", "Leather Boots", Slot::Feet, "Broken in, and good for a long quest.", "",  // no overlay: this IS the base layer
        UnlockDefault{}},
       {"cobweb_boots", "Cobweb Boots", Slot::Feet, "Trailing silk from some very large spider.", "cobweb_boots",
        UnlockKiroween{}},

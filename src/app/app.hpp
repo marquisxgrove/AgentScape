@@ -13,6 +13,8 @@
 #include "app/event_bus.hpp"
 #include "app/services.hpp"
 #include "core/rng.hpp"
+#include "game/avatar_renderer.hpp"
+#include "platform/png_export.hpp"
 #include "platform/persist.hpp"
 #include "render/game_frame.hpp"
 #include "render/texture_cache.hpp"
@@ -63,6 +65,8 @@ class App {
   SDL_Renderer* renderer_ = nullptr;
   std::unique_ptr<render::GameFrame> frame_;
   std::unique_ptr<render::TextureCache> textures_;
+  std::unique_ptr<game::AvatarRenderer> avatars_;
+  platform::PngExporter pngExporter_;
   ui::UiContext ui_;
   ScreenStack screens_;
   bool fontTextureNearest_ = false;

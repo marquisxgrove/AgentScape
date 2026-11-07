@@ -90,6 +90,15 @@ target_link_libraries(as_ui_core PUBLIC as_core as_domain)
 as_enable_warnings(as_ui_core)
 as_enable_sanitizers(as_ui_core)
 
+# Pure rendering logic (no SDL): atlas model, palette-swap compositor. Unit-testable without a window.
+add_library(as_render_core STATIC
+  src/render/avatar_atlas.cpp
+  src/render/avatar_compositor.cpp)
+target_include_directories(as_render_core PUBLIC src)
+target_link_libraries(as_render_core PUBLIC as_domain nlohmann_json::nlohmann_json)
+as_enable_warnings(as_render_core)
+as_enable_sanitizers(as_render_core)
+
 # EventBus: typed pub/sub, no app/service deps (services publish onto it).
 add_library(as_events STATIC src/app/event_bus.cpp)
 target_include_directories(as_events PUBLIC src)
@@ -128,7 +137,9 @@ if(AS_BUILD_APP)
     src/platform/persist.cpp
     src/platform/accessibility.cpp
     src/platform/github_device_flow.cpp
+    src/platform/png_export.cpp
     src/platform/web_url.cpp
+    src/game/avatar_renderer.cpp
     src/game/hotspots.cpp
     src/game/kiroween_layer.cpp
     src/render/game_frame.cpp
@@ -143,7 +154,7 @@ if(AS_BUILD_APP)
     src/ui/ui_context.cpp
     src/ui/widgets.cpp)
   if(AS_ENABLE_DEV_SCREENS)
-    target_sources(agentscape PRIVATE src/screens/dev/ui_gallery_screen.cpp)
+    target_sources(agentscape PRIVATE src/screens/dev/ui_gallery_screen.cpp src/screens/dev/avatar_gallery_screen.cpp)
   endif()
   # Assets ship next to the binary (desktop) or inside the .data file (web).
   if(NOT EMSCRIPTEN)
@@ -153,7 +164,7 @@ if(AS_BUILD_APP)
   endif()
   target_include_directories(agentscape PRIVATE src)
   target_link_libraries(agentscape PRIVATE
-    as_app_core as_services as_ui_core as_db as_domain imgui SDL3::SDL3 SDL3_image::SDL3_image)
+    as_app_core as_services as_render_core as_ui_core as_db as_domain imgui SDL3::SDL3 SDL3_image::SDL3_image)
   target_compile_definitions(agentscape PRIVATE
     AS_KIROWEEN_DEFAULT="${AS_KIROWEEN_DEFAULT}"
     AS_GITHUB_CLIENT_ID="${AS_GITHUB_CLIENT_ID}")
@@ -183,6 +194,7 @@ if(AS_BUILD_TESTS)
   include(Catch)
 
   add_executable(unit_tests
+    tests/unit/avatar_render_test.cpp
     tests/unit/civil_time_test.cpp
     tests/unit/config_test.cpp
     tests/unit/core_test.cpp
@@ -198,7 +210,8 @@ if(AS_BUILD_TESTS)
     tests/unit/palette_test.cpp
     tests/unit/regressions_game_shell.cpp
     tests/unit/screen_stack_test.cpp)
-  target_link_libraries(unit_tests PRIVATE as_app_core as_events as_platform_core as_ui_core as_domain Catch2::Catch2WithMain)
+  target_link_libraries(unit_tests PRIVATE as_app_core as_events as_platform_core as_render_core as_ui_core as_domain Catch2::Catch2WithMain)
+  target_compile_definitions(unit_tests PRIVATE AS_SOURCE_DIR="${CMAKE_SOURCE_DIR}")
   as_enable_warnings(unit_tests)
   as_enable_sanitizers(unit_tests)
   catch_discover_tests(unit_tests PROPERTIES LABELS "unit")
