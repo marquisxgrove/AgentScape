@@ -17,6 +17,7 @@ Built for **Kiroween 2026**, **Resurrection** category. Licensed under the [MIT 
 - **Consult the Grand Codex.** Every AI familiar (model or tool) has an *examine card* with an Overall level and **10 Skill levels (1–99)** built from ratings and filterable by Quest Type, plus community-voted **Boons** (strengths) and **Banes** (weaknesses). Browse it as a bookshelf or a table; search, filter, sort and page through it. Propose a missing familiar.
 - **Write Quest Logs at the Tavern.** A 3-step quest scroll: which familiar, gem ratings for the overall result and any Skills, then the story and quick tags. Earn **Questing XP**, level up (fireworks included), and unlock cosmetics. Mark other adventurers' logs Helpful.
 - **Compare familiars** side by side in the **Proving Grounds**, and climb the **Hiscores** (familiars by any Skill, adventurers by XP).
+- **Earn XP while you code.** Head to **The Wilds**, say who you're coding with (a familiar, or solo) and start a session. You earn 1 XP a minute, even with the game closed (up to 4 hours a session, 8 hours a day), while your Adventurer squashes bug monsters with the familiar, or chops, mines and fishes on its own.
 - **Visit the Hall of Hallucinations** during Kiroween: a graveyard of the community's most-agreed AI failures.
 - **Moderate your local Codex** with the Codex Keeper tools (Settings): approve proposals, hide or unhide Notes and Quest Logs, exclude ratings, and resolve reports.
 
@@ -35,9 +36,12 @@ Everything is stored locally in SQLite (in IndexedDB on the web). No server, no 
 
 ## Playing
 
-- **Start:** click **Play as Guest**. A Guest starts at Questing level 13, so the early cosmetics and the Reaper's Scythe are already claimable, and the first Quest Log is a level-up. Guests idle for more than 24 hours are cleaned up on the next launch.
+- **Start:** click **Play as Guest** to jump straight in. A Guest starts at Questing level 13, so the early cosmetics and the Reaper's Scythe are already claimable, and the first Quest Log is a level-up. Your Guest stays signed in on this device until you **Log out**. A Guest can't be signed back into, so Log out asks first; logged-out Guests idle for more than 24 hours are cleaned up on the next launch.
+- **Keep a profile:** click **Create a profile** and pick a name (up to 12 letters or numbers). A profile is permanent, starts at Questing level 1, and is listed under *Or continue as* whenever you're logged out. There's no password: profiles live only on this device. On a desktop build with a GitHub client ID, **Sign in with GitHub** makes the same kind of profile from your GitHub account (see [Building](#building)).
+- **Coding sessions:** in **The Wilds** (the road south, or *Places*), pick a familiar or *Solo* and press **Start session** before you code; press **Stop session** when you're done. XP is paid as you go and for time spent away ("While you were away…"). After a session with a familiar, *Write a Quest Log* rates it while it's fresh.
+- **Getting around:** every screen has **Back** (or **Cancel**), and **To town** in the right panel returns to the town map from anywhere.
 - **Mouse:** left-click to use, right-click for the context menu, hover for the top-left hover text.
-- **Keyboard and gamepad:** arrow keys / D-pad and Tab move the yellow focus cursor, Enter / A activates, Escape / B goes back. The `Menu` key, Shift+F10 or gamepad Y opens the context menu on the focused item.
+- **Keyboard and gamepad:** arrow keys / D-pad and Tab move the yellow focus cursor, Enter / A activates. Escape / B closes whatever is open (a form, a confirmation, a step of the quest scroll), and otherwise goes back a screen. If that would throw away a half-written Quest Log, unsaved Costumer changes or a started proposal, it asks for a second press. The `Menu` key, Shift+F10 or gamepad Y opens the context menu on the focused item.
 - **Settings** (right panel): *Plain font* (Atkinson Hyperlegible instead of the pixel font), *Reduce motion* (still fog, idle and fireworks; on the web it follows the browser setting for new Guests), *Codex Keeper tools*.
 - **Kiroween** runs from 1 October to 15 November (UTC). Force it with `--kiroween=on`, `KIROWEEN_MODE=on`, `?kiroween=on` on the web, or the `AS_KIROWEEN_DEFAULT=on` build option. The published web and release builds have it on.
 
@@ -67,7 +71,7 @@ cmake --build --preset dev
 
 The database and seed data are created automatically on first launch, in your user data folder (`SDL_GetPrefPath("AgentScape", "AgentScape")`: `%APPDATA%\AgentScape\AgentScape` on Windows, `~/Library/Application Support/AgentScape/AgentScape` on macOS, `~/.local/share/AgentScape/AgentScape` on Linux).
 
-To enable **Sign in with GitHub** on desktop, create a GitHub OAuth App with **Enable Device Flow** turned on, then configure with `cmake --preset dev -DAS_GITHUB_CLIENT_ID=<client id>`. No client secret is needed. Without it, the app offers Play as Guest only.
+To enable **Sign in with GitHub** on desktop, create a GitHub OAuth App (*Settings → Developer settings → OAuth Apps*; any homepage and callback URL will do) with **Enable Device Flow** turned on, then configure with `cmake --preset dev -DAS_GITHUB_CLIENT_ID=<client id>`. No client secret is needed. This also builds libcurl, using the system's TLS (Schannel on Windows, Secure Transport on macOS, OpenSSL on Linux, so install `libssl-dev` there). For the release builds, put the client ID in the repository variable `AS_GITHUB_CLIENT_ID` (*Settings → Secrets and variables → Actions → Variables*). Without it, the app offers Play as Guest and local profiles. If sign-in fails, the log line starting `GitHub sign-in:` says which step failed and why.
 
 ### Web
 
@@ -100,15 +104,15 @@ Release binaries aren't code-signed. On macOS, right-click the app and choose **
 
 ## Publishing
 
-1. **Web:** in the repository's *Settings → Pages*, set *Source* to **GitHub Actions** once. Every push to `main` then builds the web target with Kiroween on and deploys it (`.github/workflows/pages.yml`).
+1. **Web:** in the repository's *Settings → Pages*, set *Source* to **GitHub Actions** once. (Left on *Deploy from a branch*, the site shows this README instead of the game, and the deploy job fails with a 404.) After that, every push to `main` that passes CI builds the web target with Kiroween on and deploys it (`.github/workflows/pages.yml`). To publish straight away, run *Deploy web build* from the Actions tab.
 2. **Desktop:** push a version tag, for example `git tag v1.0.0 && git push origin v1.0.0`. `.github/workflows/release.yml` builds Windows, macOS and Linux archives and a web zip, all with Kiroween on, and attaches them to a GitHub Release.
 
 ## Testing
 
-- **Property-based tests** (RapidCheck) for every pure domain rule: 29 numbered correctness properties across the four specs, from "incremental rating aggregates equal a full recompute" to "two-handed weapons and shields never coexist". Scoring maths runs 1,000 cases per property.
+- **Property-based tests** (RapidCheck) for every pure domain rule: 33 numbered correctness properties across the five specs, from "incremental rating aggregates equal a full recompute" to "two-handed weapons and shields never coexist". Scoring maths runs 1,000 cases per property.
 - **Unit and integration tests** (Catch2) for services and repositories against a fresh in-memory SQLite with every migration applied.
-- **Headless smoke tests** that drive the real app with SDL's dummy video driver and save a snapshot of every screen. `smoke_demo_path` plays the whole demo path (Guest → Costumer with Kiroween gear → Codex card → Quest Log → +250 XP and level-up → Hiscores), then restarts the app on the same database and checks everything survived.
-- **CI** (`.github/workflows/ci.yml`) builds and tests Windows (MSVC), macOS (Clang) and Linux (GCC), runs the suite under AddressSanitizer and UBSan, and builds the web target.
+- **Headless smoke tests** that drive the real app with SDL's dummy video driver and save a snapshot of every screen (`src/app/smoke_runs.cpp`). `smoke_demo_path` plays the whole demo path (Guest → Costumer with Kiroween gear → Codex card → Quest Log → +250 XP and level-up → Hiscores), then restarts the app on the same database and checks everything survived.
+- **CI** (`.github/workflows/ci.yml`) builds and tests Windows (MSVC), macOS (Clang) and Linux (GCC), runs the suite under AddressSanitizer and UBSan, and builds the web target. The web build is only published once CI has passed.
 
 ## Known limitations
 

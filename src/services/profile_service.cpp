@@ -2,6 +2,7 @@
 
 #include "core/civil_time.hpp"
 #include "core/ids.hpp"
+#include "domain/adventurer_name.hpp"
 #include "domain/guest_name.hpp"
 #include "domain/xp.hpp"
 
@@ -45,7 +46,54 @@ std::optional<User> findUser(db::Database& db, const std::string& id) {
 }
 
 Result<User> notFound() { return makeError(GameErrorCode::NotFound, "You can't do that right now."); }
+
+constexpr const char* MSG_BAD_NAME = "Use 1 to 12 letters or numbers, with single spaces, - or _ between them.";
+constexpr const char* MSG_NAME_TAKEN = "That name is not available.";
 }  // namespace
+
+Result<User> ProfileService::createPlayer(std::string_view rawName, const domain::Settings& defaults) {
+  const auto name = domain::validateName(rawName, domain::RESERVED_NAMES);
+  if (!name) {
+    return makeError(GameErrorCode::InvalidInput,
+                     name.error() == domain::NameError::Blocked ? MSG_NAME_TAKEN : MSG_BAD_NAME);
+  }
+  const std::string key = domain::nameKey(*name);
+  if (key.rfind("guest ", 0) == 0) return makeError(GameErrorCode::InvalidInput, MSG_NAME_TAKEN);  // reads as a Guest
+
+  auto created = db::guarded([&]() -> std::optional<User> {
+    const auto now = clock_.now();
+    const std::string stamp = core::formatIso8601(now);
+
+    db::Transaction tx{db_};
+    // Players and the seeded townsfolk share one namespace. The table has no name key column, and there are only a
+    // handful of local profiles, so compare keys here.
+    auto others = db_.prepare("SELECT name FROM user WHERE kind IN ('PLAYER', 'NPC')");
+    while (others.step()) {
+      if (domain::nameKey(others.columnText(0)) == key) return std::nullopt;
+    }
+    User u;
+    u.id = core::newUlid(now, rng_);
+    u.name = *name;
+    u.kind = UserKind::Player;
+    u.settings = defaults;
+    u.createdAt = now;
+    u.lastSeenAt = now;
+    db_.prepare(
+           "INSERT INTO user(id, name, kind, role, settings, created_at, last_seen_at) "
+           "VALUES (?, ?, 'PLAYER', 'USER', ?, ?, ?)")
+        .bind(1, u.id)
+        .bind(2, u.name)
+        .bind(3, domain::settingsToJson(defaults))
+        .bind(4, stamp)
+        .bind(5, stamp)
+        .run();
+    tx.commit();
+    return u;
+  });
+  if (!created) return tl::unexpected(created.error());
+  if (!*created) return makeError(GameErrorCode::InvalidInput, MSG_NAME_TAKEN);
+  return **created;
+}
 
 Result<User> ProfileService::createGuest(const domain::Settings& defaults) {
   return db::guarded([&]() -> User {

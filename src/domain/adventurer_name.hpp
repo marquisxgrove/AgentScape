@@ -1,5 +1,6 @@
 #pragma once
 
+#include <array>
 #include <span>
 #include <string>
 #include <string_view>
@@ -9,6 +10,10 @@
 namespace as::domain {
 
 enum class NameError { Invalid, Blocked };
+
+// Names nobody may take, for an Adventurer or a local profile: they would pass for staff or the game itself.
+inline constexpr std::array<std::string_view, 7> RESERVED_NAMES{"admin",  "moderator", "codex keeper", "agentscape",
+                                                                "system", "keeper",    "staff"};
 
 // Validates and normalises an Adventurer name (Req 1.1): 1-12 chars, letters/digits/space/_/-,
 // must start with a letter or digit, no leading/trailing/consecutive separators. Trims surrounding

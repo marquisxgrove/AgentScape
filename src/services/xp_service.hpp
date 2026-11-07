@@ -36,6 +36,11 @@ class XpService {
   // unlocks and records a milestone ActivityEvent for every multiple of 10 (and 99) reached.
   Result<XpGrant> award(const std::string& userId, domain::XpReason reason, const std::string& refId, int amount);
 
+  // Raises the (user, reason, ref) entry to `amount`, creating it if needed, and pays only the difference, with the
+  // same level, unlock and milestone handling as award(). An entry is never lowered: a smaller or equal amount pays
+  // nothing. Used for entries that grow over time (a coding session's XP for one day).
+  Result<XpGrant> raiseTo(const std::string& userId, domain::XpReason reason, const std::string& refId, int amount);
+
   // Removes the ledger rows that reference one Quest Log (its creation XP and any helpful XP) and corrects each
   // affected user's total_xp. Unlocks already granted are kept (Requirement 6.2). Returns the users affected.
   Result<std::vector<std::string>> revokeForQuestLog(const std::string& questLogId);
@@ -52,6 +57,8 @@ class XpService {
   Result<int> repairTotals();
 
  private:
+  Result<XpGrant> applyGain(const std::string& userId, const std::string& userName, int gain);
+
   db::Database& db_;
   const core::Clock& clock_;
   core::Rng& rng_;

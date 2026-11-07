@@ -60,6 +60,64 @@ TEST_CASE("a new guest adopts the provided setting defaults", "[integration][pro
   CHECK(h.profiles.getUser(guest->id)->settings.reduceMotion);
 }
 
+TEST_CASE("createPlayer makes a permanent named Player listed to continue as", "[integration][profile]") {
+  Harness h;
+  domain::Settings defaults;
+  defaults.reduceMotion = true;
+  auto player = h.profiles.createPlayer("  Marq  ", defaults);   // surrounding spaces are trimmed
+  REQUIRE(player.has_value());
+  CHECK(player->kind == UserKind::Player);
+  CHECK(player->name == "Marq");
+  CHECK(core::isUlid(player->id));
+  CHECK(player->totalXp == 0);   // only a Guest starts with seed XP
+
+  auto stored = h.profiles.getUser(player->id);
+  REQUIRE(stored.has_value());
+  CHECK(stored->kind == UserKind::Player);
+  CHECK(stored->settings.reduceMotion);
+
+  auto users = h.profiles.listLocalUsers();
+  REQUIRE(users.has_value());
+  REQUIRE(users->size() == 1);
+  CHECK((*users)[0].id == player->id);
+
+  // Players are never cleaned up, however long they sit idle.
+  h.clock.advance(std::chrono::hours{24 * 30});
+  REQUIRE(h.profiles.cleanupGuests().has_value());
+  CHECK(h.profiles.getUser(player->id).has_value());
+}
+
+TEST_CASE("createPlayer refuses bad, taken, reserved and Guest-like names", "[integration][profile]") {
+  Harness h;
+  h.insertNpc("seed:npc:m", "Mossbeard");
+  REQUIRE(h.profiles.createPlayer("Marq").has_value());
+  auto guest = h.profiles.createGuest();
+  REQUIRE(guest.has_value());
+
+  const auto refused = [&](std::string_view name) {
+    auto r = h.profiles.createPlayer(name);
+    return !r.has_value() && r.error().code == GameErrorCode::InvalidInput && !r.error().message.empty();
+  };
+  CHECK(refused(""));
+  CHECK(refused("   "));
+  CHECK(refused("ThirteenChars"));      // 13 characters
+  CHECK(refused("bad!name"));
+  CHECK(refused("two  spaces"));
+  CHECK(refused("MARQ"));               // taken, ignoring case
+  CHECK(refused("mossbeard"));          // a seeded townsfolk author
+  CHECK(refused("Admin"));              // reserved
+  CHECK(refused("Guest-AB12"));         // reads as a Guest
+  CHECK(refused("guest_x"));
+  CHECK(refused(guest->name));
+
+  auto users = h.profiles.listLocalUsers();
+  REQUIRE(users.has_value());
+  CHECK(users->size() == 1);            // nothing else was created
+
+  CHECK(h.profiles.createPlayer("Guesty").has_value());   // only the "Guest " prefix is reserved
+  CHECK(h.profiles.createPlayer("Marq_2").has_value());
+}
+
 TEST_CASE("listLocalUsers returns players only, most recent first", "[integration][profile]") {
   Harness h;
   h.profiles.createGuest();  // excluded

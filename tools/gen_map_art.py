@@ -75,13 +75,18 @@ def main():
     building(px, 250, 55, 100, 88, WOOD, ROOF, ROOF_D)       # Tavern
     building(px, 55, 180, 100, 85, STONE_L, ROOF, ROOF_D)    # Costumer
     # Hiscores obelisk
-    rect(px, 182, 34, 26, 92, OBSID); border(px, 182, 34, 26, 92, OUTLINE)
-    rect(px, 178, 122, 34, 7, STONE_D)
+    rect(px, 179, 34, 26, 92, OBSID); border(px, 179, 34, 26, 92, OUTLINE)   # centred on the road (x 176-208)
+    rect(px, 175, 122, 34, 7, STONE_D)
     # Graveyard patch — drawn always; the hotspot itself is season-gated
     rect(px, 240, 178, 110, 88, GRASS2)
     for gx in (252, 277, 302, 327):
         rect(px, gx, 214, 13, 28, GRAVE); border(px, gx, 214, 13, 28, OUTLINE)
         rect(px, gx+3, 209, 7, 7, GRAVE)
+    # Signpost where the south road leaves town: The Wilds (hotspot "wilds", coding-sessions spec)
+    rect(px, 221, 270, 3, 20, WOOD); border(px, 221, 270, 3, 20, OUTLINE)
+    rect(px, 212, 262, 22, 10, PARCH); border(px, 212, 262, 22, 10, OUTLINE)
+    for i in range(4):   # an arrow pointing down the road
+        rect(px, 219 + i, 264 + i, 8 - 2*i, 1, WOOD)
     speckle(px, rng, 6)
     # subtle frame
     border(px, 0, 0, W, H, STONE_D)

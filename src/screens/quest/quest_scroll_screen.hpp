@@ -20,8 +20,10 @@ class QuestScrollScreen : public app::Screen {
   app::ScreenId id() const override { return app::ScreenId::QuestScroll; }
   void onEnter(const app::ScreenParams& params) override;
   void draw(app::FrameCtx& ctx) override;
+  bool onEscape(app::FrameCtx& ctx) override;
 
  private:
+  bool canStepBack() const;
   void load(app::FrameCtx& ctx);
   void openExisting(app::FrameCtx& ctx, const std::string& questLogId);
   void submit(app::FrameCtx& ctx);
@@ -45,6 +47,7 @@ class QuestScrollScreen : public app::Screen {
   std::vector<services::Agent> agents_;
   std::map<std::string, std::string> fieldErrors_;   // field -> message from the last refused Save
   bool confirmDelete_ = false;
+  bool escapeArmed_ = false;   // Escape on the first step warned once; the next one discards the draft
 
   std::array<char, 48> version_{};
   std::array<char, 96> title_{};

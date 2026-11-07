@@ -28,6 +28,7 @@ Players create pixel-art Adventurers with a classic arrow-button character desig
 3. IF the name is taken, invalid, or on the blocklist, THEN THE system SHALL reject it with a game-voice message ("That name is not available.").
 4. THE system SHALL allow at most 5 Adventurers per user.
 5. WHEN a user creates their first Adventurer, THE system SHALL mark it as active.
+6. WHEN the first Adventurer has just been created, THE Costumer SHALL offer "Begin" in place of "Back". "Begin" SHALL save any unsaved look and gear changes and then open the World; IF the save is refused, THEN THE Costumer SHALL stay open with the Chatbox message. Later visits to the Costumer show "Back".
 
 ### Requirement 2: Design appearance
 

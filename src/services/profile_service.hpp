@@ -4,6 +4,7 @@
 #include <functional>
 #include <optional>
 #include <string>
+#include <string_view>
 #include <vector>
 
 #include "core/result.hpp"
@@ -40,6 +41,12 @@ class ProfileService {
   // prefers-reduced-motion). NOTE: quest-logs Req 9.1 also seeds Guest XP; the XP column arrives with
   // that spec's migration, and this is the single place to add it.
   Result<User> createGuest(const domain::Settings& defaults = {});
+
+  // A permanent local PLAYER profile with a chosen name (game-shell Requirement 2.9). The name follows the Adventurer
+  // name rules (1-12 letters or digits, single spaces, - or _ between them) and must not clash, ignoring case and
+  // separators, with another Player, a seeded townsfolk NPC (who author the sample Notes and Quest Logs), a reserved
+  // name, or the Guest-XXXX pattern. Players never expire and appear under "continue as".
+  Result<User> createPlayer(std::string_view rawName, const domain::Settings& defaults = {});
 
   // Signs in the PLAYER linked to this GitHub id, creating one on first use. Updates the stored
   // login/name on every sign-in. The caller has already discarded the access token.

@@ -29,9 +29,15 @@ struct TabPanelResult {
   ImVec2 xpAnchor{0, 0};         // screen position of the level line, where floating "+N XP" drops start
 };
 
-// `isKeeper`: the user currently holds the KEEPER role (shows the Codex Keeper tools toggle).
-// `canGoToTown`: show "To town" (the user is somewhere other than the World and may leave).
-TabPanelResult drawTabPanel(const domain::Settings& current, bool isKeeper, const XpStatus& xp, bool canGoToTown);
+// Who is signed in and where they are, as far as the panel needs to know.
+struct TabPanelView {
+  bool isKeeper = false;     // holds the KEEPER role (the Codex Keeper tools toggle is on)
+  bool isGuest = false;      // a Guest: Log out asks first, because a Guest can't sign back in
+  bool canGoToTown = false;  // show "To town" (somewhere other than the World, and free to leave)
+  XpStatus xp;
+};
+
+TabPanelResult drawTabPanel(const domain::Settings& current, const TabPanelView& view);
 
 // Forgets any half-finished confirmation (call on log out).
 void resetTabPanel();

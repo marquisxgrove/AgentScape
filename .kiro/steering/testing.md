@@ -11,7 +11,11 @@ fileMatchPattern: ["tests/**/*", "src/domain/**/*", "**/*_test.cpp", "**/*_props
 2. **Unit and integration tests (Catch2 v3).**
    - Unit tests cover `src/core`, UI state models (context menu navigation, chat filtering, the hover-text markup parser), and platform parsers (device-flow responses).
    - Integration tests run services and repositories against a fresh in-memory SQLite database with all migrations applied.
-3. **Headless smoke test** for the demo path only. It runs with `SDL_VIDEO_DRIVER=dummy` and the software renderer, drives the `App` through `AppCommand`s, and saves a PNG snapshot of each screen as a CI artifact for visual review. The path is: guest login → create Adventurer → equip Kiroween gear → open an Agent in the Codex → write a Quest Log → see the level-up in the chatbox → Hiscores.
+3. **Headless smoke tests** for the main paths only. They run the real app with `SDL_VIDEO_DRIVER=dummy` and the software renderer, take one scripted step per frame, and save a PNG snapshot of each screen as a CI artifact for visual review. The steps navigate screens and call services directly; they do not simulate mouse or keyboard input. The runs live in `src/app/smoke_runs.cpp` and are registered in `CMakeLists.txt` (label `smoke`, each driven by a `cmake/RunSmoke*.cmake` script):
+   - `smoke_demo_path` (`--smoke-path`): guest login → create Adventurer → equip Kiroween gear → open an Agent in the Codex → write a Quest Log → see the level-up → Hiscores; then a second process on the same database checks that everything survived a restart.
+   - `smoke_codex` (`--smoke-codex`): search, examine card, Boons and votes, Proving Grounds, propose and approve, Graveyard, a Quest Log, Helpful votes, Hiscores.
+   - `smoke_costumer` (`--smoke-costumer`): create, claim, equip and save, then verify after a restart.
+   - `smoke_demo` (`--smoke-demo`): the shell path, guest login → World → the Tavern context menu.
 
 ## Property-based testing rules
 

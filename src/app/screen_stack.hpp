@@ -13,7 +13,7 @@
 
 namespace as::app {
 
-enum class ScreenId { Login, World, Costumer, Codex, CodexCard, Propose, Proving, QuestScroll, QuestDetail, Tavern, Hiscores, Graveyard, Keeper, DevGallery, DevAvatars };
+enum class ScreenId { Login, World, Costumer, Codex, CodexCard, Propose, Proving, QuestScroll, QuestDetail, Tavern, Hiscores, Graveyard, Keeper, Wilds, DevGallery, DevAvatars };
 
 // Navigation parameters, e.g. {"agent", "<slug>"} when opening an examine card.
 using ScreenParams = std::map<std::string, std::string>;
@@ -62,6 +62,9 @@ class Screen {
   virtual void onExit() {}
   virtual void update(FrameCtx& /*ctx*/) {}
   virtual void draw(FrameCtx& ctx) = 0;
+  // Escape (or gamepad B) was pressed and the app is about to go back. Return true to stay: the screen closed
+  // something it had open (a form, a confirmation, a step), or it holds unsaved work and asks for a second press.
+  virtual bool onEscape(FrameCtx& /*ctx*/) { return false; }
   virtual std::optional<Tab> tabOverride() const { return std::nullopt; }
   // A non-Examine choice from a Context_Menu this screen opened (e.g. "remove:Head").
   virtual void onContextAction(FrameCtx& /*ctx*/, const domain::MenuAction& /*action*/) {}
