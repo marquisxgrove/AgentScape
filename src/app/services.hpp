@@ -1,6 +1,7 @@
 #pragma once
 
 #include "services/activity_service.hpp"
+#include "services/agent_service.hpp"
 #include "services/adventurer_service.hpp"
 #include "services/codex_service.hpp"
 #include "services/note_service.hpp"
@@ -15,6 +16,7 @@ struct Services {
   services::AdventurerService adventurers;
   services::CodexService codex;
   services::NoteService notes;
+  services::AgentService agents;
 };
 
 }  // namespace as::app

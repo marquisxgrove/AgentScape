@@ -105,7 +105,7 @@ void CodexScreen::draw(app::FrameCtx& ctx) {
   drawPaging();
 }
 
-void CodexScreen::drawControls(app::FrameCtx&) {
+void CodexScreen::drawControls(app::FrameCtx& ctx) {
   ImGui::SetNextItemWidth(150);
   if (ImGui::InputTextWithHint("##search", "Search name or vendor", search_.data(), search_.size())) {
     query_.text = search_.data();
@@ -163,6 +163,7 @@ void CodexScreen::drawControls(app::FrameCtx&) {
     dirty_ = true;
   }
   if (codex::flowButton(shelf_ ? "View: Shelf" : "View: Table", "view", first)) shelf_ = !shelf_;
+  if (codex::flowButton("Propose a familiar", "propose", first) && ctx.nav != nullptr) ctx.nav->navigate(app::ScreenId::Propose);
   ImGui::Spacing();
 }
 
