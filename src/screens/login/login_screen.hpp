@@ -1,5 +1,6 @@
 #pragma once
 
+#include <array>
 #include <memory>
 #include <string>
 #include <vector>
@@ -11,7 +12,7 @@
 
 namespace as::screens {
 
-// game-shell Requirement 2: "Welcome to AgentScape", Play as Guest, continue-as list.
+// game-shell Requirement 2: "Welcome to AgentScape", Play as Guest, Create a profile, continue-as list.
 // "Sign in with GitHub" appears only on desktop builds with a configured client id (Req 2.4/2.5).
 class LoginScreen : public app::Screen {
  public:
@@ -21,11 +22,17 @@ class LoginScreen : public app::Screen {
   void onEnter(const app::ScreenParams& params) override;
   void onExit() override;
   void draw(app::FrameCtx& ctx) override;
+  bool onEscape(app::FrameCtx& ctx) override;   // closes the "Create a profile" form
 
  private:
   void drawGitHubFlow(app::FrameCtx& ctx);
   void drawChoices(app::FrameCtx& ctx);
+  void drawCreateProfile(app::FrameCtx& ctx);
+  void drawError();
   std::unique_ptr<platform::GitHubDeviceFlow> github_;
+  bool creating_ = false;              // the "Create a profile" form is showing
+  bool focusName_ = false;             // put the cursor in the name box on the form's first frame
+  std::array<char, 32> profileName_{};
   bool githubActive_ = false;
   game::KiroweenLayer bats_;
   bool batsInit_ = false;

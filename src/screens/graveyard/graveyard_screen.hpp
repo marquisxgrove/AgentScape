@@ -5,6 +5,7 @@
 #include <vector>
 
 #include "app/screen_stack.hpp"
+#include "game/kiroween_layer.hpp"
 #include "services/codex_service.hpp"
 
 namespace as::screens {
@@ -29,6 +30,8 @@ class GraveyardScreen : public app::Screen {
   std::vector<services::Tombstone> stones_;
   std::string error_;
   int shown_ = 0;   // the stone whose epitaph is displayed (hovered or focused last)
+  game::KiroweenLayer fog_;   // ground fog drifting over the graves (still with Reduce motion)
+  bool fogInit_ = false;
 };
 
 }  // namespace as::screens

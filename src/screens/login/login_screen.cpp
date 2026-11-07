@@ -26,6 +26,7 @@ void LoginScreen::onExit() {
 
 void LoginScreen::onEnter(const app::ScreenParams& params) {
   loaded_ = false;
+  creating_ = false;
   const auto it = params.find("error");
   error_ = it != params.end() ? it->second : std::string{};
 }
@@ -73,6 +74,8 @@ void LoginScreen::draw(app::FrameCtx& ctx) {
   ImGui::BeginGroup();
   if (githubActive_) {
     drawGitHubFlow(ctx);
+  } else if (creating_) {
+    drawCreateProfile(ctx);
   } else {
     drawChoices(ctx);
   }
@@ -157,6 +160,15 @@ void LoginScreen::drawChoices(app::FrameCtx& ctx) {
     error_ = guest.error().message;
   }
 
+  if (ui::PixelButton("Create a profile", {COLUMN_W, 0},
+                      ui::hoverText("Create", "a profile", ui::PaletteColor::TextCyan, 0))) {
+    error_.clear();
+    profileName_.fill('\0');
+    creating_ = true;
+    focusName_ = true;
+    return;
+  }
+
   if (!users_.empty()) {
     ImGui::Spacing();
     ui::ShadowText("Or continue as:", ui::PaletteColor::Parchment);
@@ -170,11 +182,56 @@ void LoginScreen::drawChoices(app::FrameCtx& ctx) {
     }
   }
 
-  if (!error_.empty()) {
-    ImGui::Spacing();
-    ui::RichText(std::string("<col=orange>") + ui::escapeMarkup(error_) + "</col>", ui::PaletteColor::TextYellow,
-                 COLUMN_W);
+  drawError();
+}
+
+// A permanent local profile (Requirement 2.9): a name, and nothing else. It is listed under "continue as" from then on.
+void LoginScreen::drawCreateProfile(app::FrameCtx& ctx) {
+  ui::ShadowText("Name your profile:", ui::PaletteColor::TextYellow);
+  ImGui::Spacing();
+  if (focusName_) {
+    ImGui::SetKeyboardFocusHere();
+    focusName_ = false;
   }
+  ImGui::SetNextItemWidth(COLUMN_W);
+  const bool entered =
+      ImGui::InputText("##profilename", profileName_.data(), profileName_.size(), ImGuiInputTextFlags_EnterReturnsTrue);
+  ImGui::Spacing();
+  ui::ShadowText("Up to 12 letters or numbers.", ui::PaletteColor::Parchment);
+  ui::ShadowText("It stays on this device.", ui::PaletteColor::Parchment);
+  ImGui::Spacing();
+  if (ui::PixelButton("Create", {96, 0}) || entered) {
+    domain::Settings defaults;
+    defaults.reduceMotion = ctx.reduceMotionDefault;
+    auto player = ctx.services->profile.createPlayer(profileName_.data(), defaults);
+    if (player) {
+      creating_ = false;
+      error_.clear();
+      afterSignIn(ctx, *player, /*remember=*/true);
+      return;
+    }
+    error_ = player.error().message;
+  }
+  ImGui::SameLine();
+  if (ui::PixelButton("Cancel##profile", {96, 0})) {
+    creating_ = false;
+    error_.clear();
+  }
+  drawError();
+}
+
+bool LoginScreen::onEscape(app::FrameCtx&) {
+  if (!creating_) return false;
+  creating_ = false;
+  error_.clear();
+  return true;
+}
+
+void LoginScreen::drawError() {
+  if (error_.empty()) return;
+  ImGui::Spacing();
+  ui::RichText(std::string("<col=orange>") + ui::escapeMarkup(error_) + "</col>", ui::PaletteColor::TextYellow,
+               COLUMN_W);
 }
 
 }  // namespace as::screens

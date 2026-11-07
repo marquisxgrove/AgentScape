@@ -21,6 +21,7 @@ class CodexCardScreen : public app::Screen {
   app::ScreenId id() const override { return app::ScreenId::CodexCard; }
   void onEnter(const app::ScreenParams& params) override;
   void draw(app::FrameCtx& ctx) override;
+  bool onEscape(app::FrameCtx& ctx) override;
 
  private:
   void reload(app::FrameCtx& ctx);

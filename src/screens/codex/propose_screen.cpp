@@ -25,6 +25,18 @@ void ProposeScreen::onEnter(const app::ScreenParams& params) {
   }
 }
 
+// Escape warns once before throwing away a proposal that has been started.
+bool ProposeScreen::onEscape(app::FrameCtx&) {
+  const bool started = name_[0] != '\0' || vendor_[0] != '\0' || examine_[0] != '\0' || about_[0] != '\0' ||
+                       website_[0] != '\0';
+  if (!done_ && started && !escapeArmed_) {
+    escapeArmed_ = true;
+    ui::pushGameMessage("Press Escape again to leave without sending your proposal.");
+    return true;
+  }
+  return false;
+}
+
 void ProposeScreen::fieldError(const char* field) {
   if (errorField_ == field && !errorText_.empty()) ui::ShadowText(errorText_, ui::PaletteColor::TextOrange);
 }

@@ -83,6 +83,12 @@ class QuestService {
   QuestService(db::Database& db, const core::Clock& clock, core::Rng& rng, app::EventBus& bus)
       : db_(db), clock_(clock), rng_(rng), bus_(bus), activity_(db, clock, bus), adventurers_(db, clock, rng),
         xp_(db, clock, rng, activity_) {}
+  // xp_ refers to activity_, a sibling member, so a defaulted move would leave it pointing into the moved-from
+  // object (the App builds its service bundle as a temporary and moves it). Rebuild both instead.
+  QuestService(QuestService&& other) noexcept : QuestService(other.db_, other.clock_, other.rng_, other.bus_) {}
+  QuestService(const QuestService&) = delete;
+  QuestService& operator=(const QuestService&) = delete;
+  QuestService& operator=(QuestService&&) = delete;
 
   // Writes a new Quest Log for an approved Agent, with a snapshot of the active Adventurer. Needs an Adventurer
   // ("You need an Adventurer to go questing."), at most one log per (user, Agent, version), and at most

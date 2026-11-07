@@ -18,6 +18,7 @@ class ProposeScreen : public app::Screen {
   app::ScreenId id() const override { return app::ScreenId::Propose; }
   void onEnter(const app::ScreenParams& params) override;
   void draw(app::FrameCtx& ctx) override;
+  bool onEscape(app::FrameCtx& ctx) override;
 
  private:
   void submit(app::FrameCtx& ctx);
@@ -35,6 +36,7 @@ class ProposeScreen : public app::Screen {
   std::optional<std::string> openSlug_;  // an approved Agent already has this name
   bool submitOnEnter_ = false;  // dev QA only
   bool done_ = false;
+  bool escapeArmed_ = false;   // Escape on a filled-in form warned once; the next one discards it
 };
 
 }  // namespace as::screens

@@ -35,6 +35,7 @@ void QuestScrollScreen::onEnter(const app::ScreenParams& params) {
     loaded_ = false;
     fieldErrors_.clear();
     confirmDelete_ = false;
+    escapeArmed_ = false;
   }
 }
 
@@ -121,8 +122,7 @@ void QuestScrollScreen::draw(app::FrameCtx& ctx) {
   ImGui::EndChild();
 
   // Navigation bar.
-  const bool canBack = form_.step() != QuestStep::Where && !(form_.editing() && form_.step() == QuestStep::Rating);
-  ImGui::BeginDisabled(!canBack);
+  ImGui::BeginDisabled(!canStepBack());
   if (ui::PixelButton("Back##step", {70, 0})) {
     form_.back();
     fieldErrors_.clear();
@@ -169,6 +169,34 @@ void QuestScrollScreen::draw(app::FrameCtx& ctx) {
       if (ui::PixelButton("No##del", {50, 0})) confirmDelete_ = false;
     }
   }
+}
+
+bool QuestScrollScreen::canStepBack() const {
+  // Editing starts on the Rating step: the familiar and version of a saved log are fixed.
+  return form_.step() != QuestStep::Where && !(form_.editing() && form_.step() == QuestStep::Rating);
+}
+
+// Escape unwinds the scroll one layer at a time: the delete confirmation, then a step, then (after a warning if
+// anything was written) the scroll itself. One stray key press never throws a Quest Log away.
+bool QuestScrollScreen::onEscape(app::FrameCtx&) {
+  if (confirmDelete_) {
+    confirmDelete_ = false;
+    return true;
+  }
+  if (needAdventurer_) return false;
+  if (canStepBack()) {
+    form_.back();
+    fieldErrors_.clear();
+    return true;
+  }
+  const auto& in = form_.input();
+  const bool hasWork = form_.editing() || !in.version.empty() || !in.title.empty() || !in.body.empty();
+  if (hasWork && !escapeArmed_) {
+    escapeArmed_ = true;
+    ui::pushGameMessage("Press Escape again to leave without saving this Quest Log.");
+    return true;
+  }
+  return false;
 }
 
 void QuestScrollScreen::drawWhere(app::FrameCtx&) {

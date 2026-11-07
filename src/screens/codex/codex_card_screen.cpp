@@ -40,6 +40,25 @@ void CodexCardScreen::onEnter(const app::ScreenParams& params) {
   dirty_ = true;
 }
 
+// Escape closes what is open on the card before it leaves the card. A closed Boon/Bane draft keeps its text,
+// exactly as its Cancel button does.
+bool CodexCardScreen::onEscape(app::FrameCtx&) {
+  if (confirmLeave_) {
+    confirmLeave_ = false;
+    return true;
+  }
+  if (!reportNoteId_.empty() || reportAgent_) {
+    reportNoteId_.clear();
+    reportAgent_ = false;
+    return true;
+  }
+  if (composing_) {
+    composing_ = false;
+    return true;
+  }
+  return false;
+}
+
 void CodexCardScreen::reload(app::FrameCtx& ctx) {
   dirty_ = false;
   error_.clear();
