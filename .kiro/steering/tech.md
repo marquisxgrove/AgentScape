@@ -52,7 +52,10 @@ inclusion: always
 
 - A **User** is a local player profile in the database. `kind` is `PLAYER`, `GUEST`, or `NPC` (seeded community members). `role` is `USER` or `KEEPER` (local moderator).
 - **Play as Guest** is always available. Each press creates a fresh, isolated `GUEST` user seeded just below Questing level 14. The new Guest is remembered on this device and signed back in at launch until it Logs out. At startup, the app deletes Guest users that haven't been used for 24 h, except the remembered one.
+- **Create a profile** is always available too: a permanent local `PLAYER` with a chosen name (Adventurer name rules; unique against other Players and the seeded NPCs, ignoring case and separators; no reserved names, nothing that reads as `Guest-…`). There is no password, because all data is local to the device. `ProfileService::createPlayer`.
 - **Sign in with GitHub** (desktop only) uses the **OAuth device flow**. It needs only a public client ID, never a client secret.
+  - The client ID also pulls in libcurl, built with the platform TLS (Schannel / Secure Transport / OpenSSL) and HTTP only. Release builds read it from the repository variable `AS_GITHUB_CLIENT_ID`.
+  - Failures show the player one game-voice line; the log names the step, the HTTP status and GitHub's `error` code, and never a response body or token.
   - The flow fetches `GET /user` once, then **discards the access token**. We store only `github_id`, `github_login`, and the display name.
   - The web build hides this button because GitHub's device-flow endpoints don't allow browser (CORS) requests.
   - The OAuth App must have **Enable Device Flow** turned on.
@@ -74,7 +77,7 @@ inclusion: always
 
 - **Catch2 v3** for unit and integration tests. **RapidCheck** (with its Catch2 integration) for property-based tests of all pure domain logic in `src/domain/`.
 - Integration tests run services against an in-memory SQLite database (`:memory:`) with all migrations applied.
-- A **headless smoke test** (`SDL_VIDEO_DRIVER=dummy`, software renderer) drives the demo path through `AppCommand`s and saves screen snapshots as CI artifacts.
+- **Headless smoke tests** (`SDL_VIDEO_DRIVER=dummy`, software renderer) run scripted paths through the real app (`src/app/smoke_runs.cpp`, selected by a `--smoke-*` flag) and save screen snapshots as CI artifacts.
 - See `testing.md` for the full rules.
 
 ## Quality
@@ -119,5 +122,5 @@ inclusion: always
   - The desktop app reaches the login screen in under **1 s** on a mid-range laptop.
   - Frames render in under **16 ms** at 2× scale.
 - Distribution:
-  - The web build is hosted on **GitHub Pages**.
+  - The web build is hosted on **GitHub Pages**. `.github/workflows/pages.yml` deploys it after CI passes on a push to `main`, building the commit CI tested. The repository's Pages source must be **GitHub Actions**; on "Deploy from a branch" the site shows the README instead.
   - Desktop builds (Windows x64, macOS universal, Linux x64 AppImage) are attached to **GitHub Releases** by CI.

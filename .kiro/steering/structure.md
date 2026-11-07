@@ -28,7 +28,7 @@ inclusion: always
 │  └─ shell.html              # Emscripten HTML shell (canvas, loading bar, WebGL error message)
 ├─ src/
 │  ├─ main.cpp                # SDL_App* callbacks only. Forwards to app::App.
-│  ├─ app/                    # App, Config (CLI/env/URL), ScreenStack, EventBus, AppCommand dispatch, FrameCtx
+│  ├─ app/                    # App, Config (CLI/env/URL), ScreenStack, EventBus, FrameCtx; smoke_runs.cpp (scripted --smoke-* runs)
 │  ├─ screens/                # One folder per screen; thin. Reads services, draws widgets.
 │  │  ├─ login/
 │  │  ├─ world/               # Promptmoor hub
@@ -37,6 +37,7 @@ inclusion: always
 │  │  ├─ tavern/              # Quest board, quest scroll, quest detail
 │  │  ├─ hiscores/
 │  │  ├─ graveyard/           # Kiroween Hall of Hallucinations
+│  │  ├─ wilds/               # Coding sessions: start/stop, the fight or skilling scene
 │  │  ├─ keeper/              # Codex Keeper queue (local moderation)
 │  │  └─ dev/                 # UI and avatar galleries (AS_ENABLE_DEV_SCREENS only)
 │  ├─ ui/                     # ImGui theme and retro widgets: StonePanel, PixelButton, ContextMenuHost,
@@ -64,8 +65,8 @@ inclusion: always
    ├─ generators/             # Shared RapidCheck generators and rc::Arbitrary<> specialisations
    ├─ property/               # <spec>_props.cpp
    ├─ unit/                   # <module>_test.cpp, regressions_<spec>.cpp
-   ├─ integration/            # Services and repositories against :memory: SQLite
-   └─ smoke/                  # Headless demo-path test (SDL dummy video driver)
+   └─ integration/            # Services and repositories against :memory: SQLite
+                              # (the headless smoke runs live in src/app/smoke_runs.cpp; cmake/RunSmoke*.cmake drive them)
 ```
 
 ## Layering rules

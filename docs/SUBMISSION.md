@@ -17,8 +17,9 @@ This file has the pre-submission checklist, the Devpost description, the demo vi
 
 ### Working app
 
-- [ ] **Web build URL (GitHub Pages):** `https://marquisxgrove.github.io/AgentScape/`. ✏ YOU: enable *Settings → Pages → Source: GitHub Actions* once; `.github/workflows/pages.yml` deploys on every push to `main`. Then open the link and tick this.
+- [ ] **Web build URL (GitHub Pages):** `https://marquisxgrove.github.io/AgentScape/`. ✏ YOU: enable *Settings → Pages → Source: GitHub Actions* once (until then the link shows the README, not the game), then run *Deploy web build* from the Actions tab. After that, `.github/workflows/pages.yml` redeploys whenever CI passes on `main`. Then open the link and tick this.
 - [ ] **Release binaries** for Windows, macOS and Linux on a GitHub Release. ✏ YOU: `git tag v1.0.0 && git push origin v1.0.0`; `.github/workflows/release.yml` builds and attaches them. Then paste the link: `https://github.com/marquisxgrove/AgentScape/releases/latest`.
+- [ ] *(Optional)* **Sign in with GitHub** in the release builds. ✏ YOU: create a GitHub OAuth App with *Enable Device Flow* on, and put its client ID in the repository variable `AS_GITHUB_CLIENT_ID` before tagging. Without it the release offers Play as Guest and Create a profile, which is enough for judging.
 - [x] Judging builds (Pages and release) are built with `AS_KIROWEEN_DEFAULT=on`, so the spooky layer is visible for the whole judging period.
 - [ ] ✏ YOU: "Play as Guest" works in the web build in a private window (an in-memory warning is acceptable there) and in a normal window, and data survives a reload. *Not checked by automation; nobody has run the web build in a browser yet.*
 - [x] On first launch, the seed data loads: every familiar is ranked, and the Hiscores, the Tavern (12 sample Quest Logs) and the Hall of Hallucinations (13 graves) are populated.
@@ -100,7 +101,7 @@ Recording notes: record the desktop build at 1080p, with the game frame at 2× s
 ### Spec-driven development
 
 - Four feature specs, each with `requirements.md` (EARS-style acceptance criteria), `design.md`, and `tasks.md`: [`game-shell`](../.kiro/specs/game-shell/), [`character-creator`](../.kiro/specs/character-creator/), [`agent-codex`](../.kiro/specs/agent-codex/), [`quest-logs`](../.kiro/specs/quest-logs/). They are layered by dependency (shell → creator → codex → quests), share one domain glossary, and spell out cross-spec contracts such as `applyRatingDelta` and the XP ledger.
-- Each `design.md` lists numbered **Correctness Properties** mapped to requirement IDs (29 in total); every one became a RapidCheck test named `Property <n>: <title>`.
+- Each `design.md` lists numbered **Correctness Properties** mapped to requirement IDs (33 in total); every one became a RapidCheck test named `Property <n>: <title>`.
 - **The spec shaped the order of work.** Every slice started with the pure domain and its properties, then persistence and services, then screens, then a smoke test. Each PR said which tasks it closed and what was still unverified, and `tasks.md` carries the notes.
 - **Design reviews that changed the design, recorded back into the specs:**
   - `applyRatingDelta` had to be UPDATE-then-INSERT: SQLite checks a table's CHECK constraint on the proposed row before it notices the key conflict, so a single upsert rejected negative deltas (agent-codex design notes).
@@ -132,7 +133,7 @@ In the cloud sandbox, the agent ran the same gates the hooks encode by hand on e
 
 ### Property-based testing, and testing the tests
 
-- 29 properties across the four specs (4 + 9 + 8 + 8), for example: two-handed and shield exclusivity; incremental rating aggregates equal a full recompute after any create, edit, delete or exclude sequence (model-based); Skill-level bounds; the helpful-XP daily cap; competition ranking; and the round-trip of every validated input.
+- 33 properties across the five specs (4 + 9 + 8 + 8 + 4), for example: two-handed and shield exclusivity; incremental rating aggregates equal a full recompute after any create, edit, delete or exclude sequence (model-based); Skill-level bounds; the helpful-XP daily cap; competition ranking; and the round-trip of every validated input.
 - **A real bug a property caught:** the chat-log ordering property found a tie-break bug in how the chatbox orders messages, in the second slice, before any screen depended on it.
 - **Mutation checks.** After each slice the agent deliberately broke each rule (removed a guard, flipped a comparison, skipped a write) and confirmed a test failed, then restored the code. Over the project, well over a hundred such breaks. Several survived at first and exposed weak tests, which were then strengthened:
   - The duplicate-slug test still passed with the check removed, because the database's UNIQUE constraint refused the insert instead. The test now requires the friendly error.

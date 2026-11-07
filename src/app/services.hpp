@@ -4,6 +4,7 @@
 #include "services/agent_service.hpp"
 #include "services/adventurer_service.hpp"
 #include "services/codex_service.hpp"
+#include "services/coding_service.hpp"
 #include "services/hiscores_service.hpp"
 #include "services/keeper_service.hpp"
 #include "services/note_service.hpp"
@@ -25,6 +26,7 @@ struct Services {
   services::ProvingService proving;
   services::QuestService quests;
   services::HiscoresService hiscores;
+  services::CodingService coding;
 };
 
 }  // namespace as::app

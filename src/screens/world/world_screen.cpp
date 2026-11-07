@@ -2,16 +2,20 @@
 
 #include <imgui.h>
 
+#include <algorithm>
+#include <chrono>
 #include <string>
 #include <vector>
 
 #include "app/context_request.hpp"
 #include "app/services.hpp"
+#include "domain/coding_session.hpp"
 #include "game/avatar_renderer.hpp"
 #include "platform/paths.hpp"
 #include "render/texture_cache.hpp"
 #include "ui/chatbox.hpp"
 #include "ui/layout.hpp"
+#include "ui/markup.hpp"
 #include "ui/theme.hpp"
 #include "ui/ui_context.hpp"
 #include "ui/widgets.hpp"
@@ -24,11 +28,14 @@ constexpr float MAP_H = 300;
 constexpr float LIST_GAP = 8;
 }  // namespace
 
-void WorldScreen::onEnter(const app::ScreenParams&) { adventurerLoaded_ = false; }
+void WorldScreen::onEnter(const app::ScreenParams&) {
+  adventurerLoaded_ = false;
+  codingRefreshIn_ = 0;
+}
 
 void WorldScreen::activate(app::FrameCtx& ctx, const game::Hotspot& h) {
   // Screens that exist open; the rest are narrated until their own specs land.
-  if ((h.screen == app::ScreenId::Costumer || h.screen == app::ScreenId::Codex || h.screen == app::ScreenId::Graveyard || h.screen == app::ScreenId::Tavern || h.screen == app::ScreenId::Hiscores) && ctx.nav != nullptr) {
+  if ((h.screen == app::ScreenId::Costumer || h.screen == app::ScreenId::Codex || h.screen == app::ScreenId::Graveyard || h.screen == app::ScreenId::Tavern || h.screen == app::ScreenId::Hiscores || h.screen == app::ScreenId::Wilds) && ctx.nav != nullptr) {
     ctx.nav->navigate(h.screen);
     return;
   }
@@ -136,6 +143,25 @@ void WorldScreen::draw(app::FrameCtx& ctx) {
       const ImVec2 at = ImGui::GetItemRectMin();
       openMenu(ctx, h, at.x + 8, at.y + 8);
     }
+  }
+
+  // A running coding session, under the Places list (coding-sessions Requirement 3.5).
+  codingRefreshIn_ -= ctx.dt;
+  if (codingRefreshIn_ <= 0 && ctx.services != nullptr) {
+    codingRefreshIn_ = 5;
+    coding_.reset();
+    if (auto r = ctx.services->coding.running(ctx.userId); r && *r) coding_ = **r;
+  }
+  if (coding_) {
+    const auto elapsed = std::chrono::floor<std::chrono::seconds>(std::chrono::system_clock::now()) - coding_->startedAt;
+    // Two short lines, wrapped to the column: familiar names can be long.
+    ImGui::Spacing();
+    ImGui::SetCursorPosX(ImGui::GetCursorStartPos().x + MAP_W + LIST_GAP);
+    ui::ShadowText("Coding: " + domain::formatSessionDuration(std::min(elapsed, std::chrono::seconds{domain::CODING_SESSION_MAX})),
+                   ui::PaletteColor::TextGreen);
+    ImGui::SetCursorPosX(ImGui::GetCursorStartPos().x + MAP_W + LIST_GAP);
+    ui::RichText(ui::escapeMarkup(coding_->solo() ? std::string("solo, in the Wilds") : "with " + coding_->agentName),
+                 ui::PaletteColor::TextCyan, listW);
   }
 }
 

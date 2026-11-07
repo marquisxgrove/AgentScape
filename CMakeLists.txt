@@ -40,6 +40,7 @@ add_library(as_domain STATIC
   src/domain/adventurer_name.cpp
   src/domain/appearance.cpp
   src/domain/codex_query.cpp
+  src/domain/coding_session.cpp
   src/domain/compare.cpp
   src/domain/graveyard.cpp
   src/domain/hiscores.cpp
@@ -97,6 +98,7 @@ as_enable_sanitizers(as_platform_core)
 add_library(as_ui_core STATIC
   src/game/effects.cpp
   src/game/kiroween_fx.cpp
+  src/game/wilds_sim.cpp
   src/game/xp_feedback.cpp
   src/ui/chat_model.cpp
   src/ui/costumer_draft.cpp
@@ -130,6 +132,7 @@ add_library(as_services STATIC
   src/services/adventurer_service.cpp
   src/services/codex_cache.cpp
   src/services/codex_service.cpp
+  src/services/coding_service.cpp
   src/services/agent_service.cpp
   src/services/hiscores_service.cpp
   src/services/keeper_service.cpp
@@ -188,6 +191,7 @@ if(AS_BUILD_APP)
     src/screens/quest/quest_scroll_screen.cpp
     src/screens/quest/tavern_screen.cpp
     src/screens/quest/quest_widgets.cpp
+    src/screens/wilds/wilds_screen.cpp
     src/screens/world/world_screen.cpp
     src/ui/chatbox.cpp
     src/ui/context_menu_host.cpp
@@ -260,6 +264,7 @@ if(AS_BUILD_TESTS)
     tests/unit/markup_test.cpp
     tests/unit/palette_test.cpp
     tests/unit/wardrobe_test.cpp
+    tests/unit/wilds_sim_test.cpp
     tests/unit/regressions_game_shell.cpp
     tests/unit/screen_stack_test.cpp)
   target_link_libraries(unit_tests PRIVATE as_app_core as_events as_platform_core as_render_core as_ui_core as_domain Catch2::Catch2WithMain)
@@ -273,7 +278,8 @@ if(AS_BUILD_TESTS)
     tests/property/character_creator_props.cpp
     tests/property/loadout_props.cpp
     tests/property/agent_codex_props.cpp
-    tests/property/quest_logs_props.cpp)
+    tests/property/quest_logs_props.cpp
+    tests/property/coding_sessions_props.cpp)
   target_link_libraries(property_tests PRIVATE as_domain Catch2::Catch2WithMain rapidcheck)
   target_include_directories(property_tests PRIVATE tests)
   as_enable_warnings(property_tests)
@@ -284,6 +290,7 @@ if(AS_BUILD_TESTS)
     tests/integration/activity_service_test.cpp
     tests/integration/adventurer_service_test.cpp
     tests/integration/codex_service_test.cpp
+    tests/integration/coding_service_test.cpp
     tests/integration/agent_service_test.cpp
     tests/integration/hiscores_service_test.cpp
     tests/integration/keeper_service_test.cpp

@@ -33,6 +33,7 @@ const char* xpReasonToDb(XpReason reason) {
     case XpReason::HelpfulReceived: return "HELPFUL_RECEIVED";
     case XpReason::AgentApproved: return "AGENT_APPROVED";
     case XpReason::Seed: return "SEED";
+    case XpReason::Coding: return "CODING";
   }
   return "QUEST_LOG";
 }

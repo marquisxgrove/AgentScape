@@ -29,8 +29,7 @@ Result<XpGrant> XpService::award(const std::string& userId, domain::XpReason rea
   if (amount <= 0) return makeError(GameErrorCode::InvalidInput, "You can't do that right now.", "XP amount must be positive");
   return db::guarded([&]() -> Result<XpGrant> {
     const auto now = clock_.now();
-    XpGrant grant;
-    auto user = db_.prepare("SELECT name, kind FROM user WHERE id = ?");
+    auto user = db_.prepare("SELECT name FROM user WHERE id = ?");
     user.bind(1, userId);
     if (!user.step()) return makeError(GameErrorCode::NotFound, "That is no longer there.");
     const std::string userName = user.columnText(0);
@@ -44,44 +43,92 @@ Result<XpGrant> XpService::award(const std::string& userId, domain::XpReason rea
         .bind(5, amount)
         .bind(6, core::formatIso8601(now))
         .run();
-    const std::int64_t before = readTotal(db_, userId);
-    grant.levelBefore = domain::levelForXp(before);
     if (db_.changes() == 0) {   // already awarded: a retry pays nothing
-      grant.totalXp = before;
-      grant.levelAfter = grant.levelBefore;
+      XpGrant grant;
+      grant.totalXp = readTotal(db_, userId);
+      grant.levelBefore = grant.levelAfter = domain::levelForXp(grant.totalXp);
       return grant;
     }
-    db_.prepare("UPDATE user SET total_xp = total_xp + ? WHERE id = ?").bind(1, amount).bind(2, userId).run();
-    grant.awarded = true;
-    grant.amount = amount;
-    grant.totalXp = before + amount;
-    grant.levelAfter = domain::levelForXp(grant.totalXp);
-
-    if (grant.levelAfter > grant.levelBefore) {
-      // Unlocks: everything the new level reaches that the user does not own yet. Idempotent by construction.
-      domain::OwnedSet owned = domain::defaultOwnedSet();
-      auto have = db_.prepare("SELECT item_id FROM item_unlock WHERE user_id = ?");
-      have.bind(1, userId);
-      while (have.step()) owned.insert(have.columnText(0));
-      for (const auto& id : domain::newUnlocks(owned, grant.levelAfter)) {
-        db_.prepare("INSERT INTO item_unlock(user_id, item_id, source, unlocked_at) VALUES (?, ?, 'LEVEL', ?) "
-                    "ON CONFLICT(user_id, item_id) DO NOTHING")
-            .bind(1, userId)
-            .bind(2, id)
-            .bind(3, core::formatIso8601(now))
-            .run();
-        if (db_.changes() == 1) grant.unlocked.push_back(id);
-      }
-      // Announce every milestone crossed (a multiple of 10, or 99), in order.
-      for (int level = grant.levelBefore + 1; level <= grant.levelAfter; ++level) {
-        if (level % 10 != 0 && level != domain::MAX_QUESTING_LEVEL) continue;
-        auto event = activity_.record(ActivityKind::LevelUp, userName + " reached Questing level " + std::to_string(level) + "!");
-        if (!event) return tl::unexpected(event.error());
-        grant.activity.push_back(std::move(*event));
-      }
-    }
-    return grant;
+    return applyGain(userId, userName, amount);
   }).and_then([](Result<XpGrant> r) { return r; });
+}
+
+Result<XpGrant> XpService::raiseTo(const std::string& userId, domain::XpReason reason, const std::string& refId, int amount) {
+  if (auto ok = needTransaction(db_); !ok) return tl::unexpected(ok.error());
+  return db::guarded([&]() -> Result<XpGrant> {
+    const auto now = clock_.now();
+    auto user = db_.prepare("SELECT name FROM user WHERE id = ?");
+    user.bind(1, userId);
+    if (!user.step()) return makeError(GameErrorCode::NotFound, "That is no longer there.");
+    const std::string userName = user.columnText(0);
+
+    auto existing = db_.prepare("SELECT amount FROM xp_entry WHERE user_id = ? AND reason = ? AND ref_id = ?");
+    existing.bind(1, userId).bind(2, domain::xpReasonToDb(reason)).bind(3, refId);
+    const bool found = existing.step();
+    const std::int64_t have = found ? existing.columnInt(0) : 0;
+    if (amount <= have) {   // nothing new: never lowers an entry
+      XpGrant grant;
+      grant.totalXp = readTotal(db_, userId);
+      grant.levelBefore = grant.levelAfter = domain::levelForXp(grant.totalXp);
+      return grant;
+    }
+    if (found) {
+      db_.prepare("UPDATE xp_entry SET amount = ? WHERE user_id = ? AND reason = ? AND ref_id = ?")
+          .bind(1, amount)
+          .bind(2, userId)
+          .bind(3, domain::xpReasonToDb(reason))
+          .bind(4, refId)
+          .run();
+    } else {
+      db_.prepare("INSERT INTO xp_entry(id, user_id, reason, ref_id, amount, created_at) VALUES (?, ?, ?, ?, ?, ?)")
+          .bind(1, core::newUlid(now, rng_))
+          .bind(2, userId)
+          .bind(3, domain::xpReasonToDb(reason))
+          .bind(4, refId)
+          .bind(5, amount)
+          .bind(6, core::formatIso8601(now))
+          .run();
+    }
+    return applyGain(userId, userName, static_cast<int>(amount - have));
+  }).and_then([](Result<XpGrant> r) { return r; });
+}
+
+// Adds `gain` (already written to the ledger) to total_xp, and on a level change grants the unlocks and records the
+// milestones. Runs inside the caller's transaction and db::guarded scope.
+Result<XpGrant> XpService::applyGain(const std::string& userId, const std::string& userName, int gain) {
+  const auto now = clock_.now();
+  XpGrant grant;
+  const std::int64_t before = readTotal(db_, userId);
+  grant.levelBefore = domain::levelForXp(before);
+  db_.prepare("UPDATE user SET total_xp = total_xp + ? WHERE id = ?").bind(1, gain).bind(2, userId).run();
+  grant.awarded = true;
+  grant.amount = gain;
+  grant.totalXp = before + gain;
+  grant.levelAfter = domain::levelForXp(grant.totalXp);
+  if (grant.levelAfter > grant.levelBefore) {
+    // Unlocks: everything the new level reaches that the user does not own yet. Idempotent by construction.
+    domain::OwnedSet owned = domain::defaultOwnedSet();
+    auto have = db_.prepare("SELECT item_id FROM item_unlock WHERE user_id = ?");
+    have.bind(1, userId);
+    while (have.step()) owned.insert(have.columnText(0));
+    for (const auto& id : domain::newUnlocks(owned, grant.levelAfter)) {
+      db_.prepare("INSERT INTO item_unlock(user_id, item_id, source, unlocked_at) VALUES (?, ?, 'LEVEL', ?) "
+                  "ON CONFLICT(user_id, item_id) DO NOTHING")
+          .bind(1, userId)
+          .bind(2, id)
+          .bind(3, core::formatIso8601(now))
+          .run();
+      if (db_.changes() == 1) grant.unlocked.push_back(id);
+    }
+    // Announce every milestone crossed (a multiple of 10, or 99), in order.
+    for (int level = grant.levelBefore + 1; level <= grant.levelAfter; ++level) {
+      if (level % 10 != 0 && level != domain::MAX_QUESTING_LEVEL) continue;
+      auto event = activity_.record(ActivityKind::LevelUp, userName + " reached Questing level " + std::to_string(level) + "!");
+      if (!event) return tl::unexpected(event.error());
+      grant.activity.push_back(std::move(*event));
+    }
+  }
+  return grant;
 }
 
 Result<std::vector<std::string>> XpService::revokeForQuestLog(const std::string& questLogId) {

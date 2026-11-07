@@ -15,6 +15,7 @@
 
 #include "domain/items.hpp"
 #include "domain/xp.hpp"
+#include "game/wilds_sim.hpp"
 #include "game/xp_feedback.hpp"
 #include "platform/accessibility.hpp"
 #include "platform/paths.hpp"
@@ -31,6 +32,7 @@
 #include "screens/quest/quest_detail_screen.hpp"
 #include "screens/quest/quest_scroll_screen.hpp"
 #include "screens/quest/tavern_screen.hpp"
+#include "screens/wilds/wilds_screen.hpp"
 #include "screens/world/world_screen.hpp"
 #include "ui/layout.hpp"
 #include "ui/tab_panel.hpp"
@@ -205,7 +207,8 @@ void App::openStore(bool resetData) {
                              services::KeeperService{store_->db, clock_, rng_, bus_},
                              services::ProvingService{store_->db, clock_},
                              services::QuestService{store_->db, clock_, rng_, bus_},
-                             services::HiscoresService{store_->db, codexCache_}});
+                             services::HiscoresService{store_->db, codexCache_},
+                             services::CodingService{store_->db, clock_, rng_, bus_}});
   // An idle Guest's content leaves the Codex through the normal delete paths, not by cascade (quest-logs Req 9.2).
   services_->profile.setBeforeGuestDelete([this](const std::string& userId) {
     if (auto r = services_->quests.purgeUser(userId); !r) logError("Purge Guest quest logs", r.error());
@@ -281,6 +284,38 @@ void App::adoptUser(const std::string& userId, const domain::Settings& settings)
     ui::pushGameMessage("Welcome to AgentScape.");
     if (kiroween_) ui::pushGameMessage("A chill runs through Promptmoor. Kiroween has begun!");
   }
+  settleCoding(/*away=*/true);   // a session that kept running while the game was closed
+}
+
+void App::settleCoding(bool away) {
+  constexpr double SETTLE_EVERY_SECONDS = 60;
+  codingSettleIn_ = SETTLE_EVERY_SECONDS;
+  if (!services_ || !currentUserId_) return;
+  auto r = services_->coding.settle(*currentUserId_);
+  if (!r) {
+    logError("Coding session", r.error());
+    return;
+  }
+  if (!r->session) return;
+  const auto& s = *r->session;
+  if (away && r->newlyCovered >= std::chrono::minutes{1}) {
+    // What the Adventurer got up to meanwhile: the scene's tallies over the stretch just settled.
+    const auto seed = game::wildsSeed(s.id);
+    const auto t0 = static_cast<double>((r->from - s.startedAt).count());
+    const auto t1 = static_cast<double>((r->to - s.startedAt).count());
+    const std::string xp = "+" + std::to_string(r->xp) + " XP.";
+    if (s.solo()) {
+      const auto a = game::skillingAt(seed, t0).tally;
+      const auto b = game::skillingAt(seed, t1).tally;
+      ui::pushGameMessage("While you were away, you gathered " + std::to_string(b.logs - a.logs) + " logs, " +
+                          std::to_string(b.ore - a.ore) + " ore and " + std::to_string(b.fish - a.fish) + " fish: " + xp);
+    } else {
+      const auto squashed = game::combatAt(seed, t1, true).squashedTotal - game::combatAt(seed, t0, true).squashedTotal;
+      ui::pushGameMessage("While you were away, you and " + s.agentName + " squashed " + std::to_string(squashed) +
+                          " bugs: " + xp);
+    }
+  }
+  if (r->ended) ui::pushGameMessage("Your coding session reached 4 hours and has ended.");
 }
 
 void App::applySettings(const domain::Settings& settings) {
@@ -326,6 +361,7 @@ void App::registerScreens() {
   screens_.registerScreen(ScreenId::QuestScroll, [] { return std::make_unique<screens::QuestScrollScreen>(); });
   screens_.registerScreen(ScreenId::Propose, [] { return std::make_unique<screens::ProposeScreen>(); });
   screens_.registerScreen(ScreenId::CodexCard, [] { return std::make_unique<screens::CodexCardScreen>(); });
+  screens_.registerScreen(ScreenId::Wilds, [] { return std::make_unique<screens::WildsScreen>(); });
 #ifdef AS_ENABLE_DEV_SCREENS
   screens_.registerScreen(ScreenId::DevGallery, [] { return std::make_unique<screens::UiGalleryScreen>(); });
   screens_.registerScreen(ScreenId::DevAvatars, [] { return std::make_unique<screens::AvatarGalleryScreen>(); });
@@ -377,6 +413,8 @@ void App::registerScreens() {
         {"tavern-helpful", ScreenId::Tavern, {{"sort", "helpful"}}},
         {"tavern-gryphon", ScreenId::Tavern, {{"agent", "gryphon"}}},
         {"quest-detail", ScreenId::QuestDetail, {{"id", "devlog03"}}},   // needs a Quest Log with this id (dev fixture)
+        {"wilds", ScreenId::Wilds, {}},
+        {"wilds-gryphon", ScreenId::Wilds, {{"with", "gryphon"}}},
     };
     for (const auto& view : DEV_VIEWS) {
       if (*config_.startScreen == view.name) {
@@ -474,6 +512,8 @@ void App::drawEffects() {
 }
 
 void App::drawShell() {
+  codingSettleIn_ -= static_cast<double>(ImGui::GetIO().DeltaTime);
+  if (codingSettleIn_ <= 0) settleCoding(/*away=*/false);   // passive XP, about once a minute
 
   FrameCtx ctx;
   ctx.dt = static_cast<double>(ImGui::GetIO().DeltaTime);

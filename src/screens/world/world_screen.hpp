@@ -6,6 +6,7 @@
 
 #include "game/kiroween_layer.hpp"
 #include "services/adventurer_service.hpp"
+#include "services/coding_service.hpp"
 
 namespace as::screens {
 
@@ -29,6 +30,8 @@ class WorldScreen : public app::Screen {
   double clock_ = 0;
   game::KiroweenLayer kiroween_;
   bool kiroweenInit_ = false;
+  std::optional<services::CodingSession> coding_;   // the user's running coding session, if any
+  double codingRefreshIn_ = 0;
 };
 
 }  // namespace as::screens
