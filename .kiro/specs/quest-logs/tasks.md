@@ -36,7 +36,7 @@
   - [x]* 3.6 Write an integration test: 50 random operations against `:memory:`, then aggregates equal the SQL recompute and `total_xp` equals the ledger sum.
     - _Requirements: 2.2, 5.4_
 
-- [ ] 4. Build the quest scroll
+- [x] 4. Build the quest scroll
   - Build the 3-step quest scroll screen with an Agent picker, gem rating radio groups, skill icons, quick tags, and the existing-log redirect. The Codex card button pre-selects the Agent.
   - _Requirements: 1.1–1.6_
 
@@ -45,7 +45,7 @@
   - Implement `AvatarThumb` on top of the shared `AvatarRenderer` and `TextureCache`.
   - _Requirements: 3.1–3.4, 4.1, 4.2_
 
-- [ ] 6. Add game feedback
+- [x] 6. Add game feedback (the optional 8-bit level-up sound is not included)
   - Add `XpDrop`, the level-up chatbox message, `Fireworks` (reduced-motion aware), and "You have unlocked: …" messages driven by `QuestOutcome`. Add optional 8-bit level-up sound (off by default).
   - _Requirements: 5.5, 5.6, 6.1_
 
