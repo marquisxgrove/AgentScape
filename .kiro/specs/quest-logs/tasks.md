@@ -2,23 +2,23 @@
 
 > Depends on: `game-shell`, `character-creator` (items, unlocks, snapshot), and `agent-codex` (skills, `applyRatingDelta`).
 
-- [ ] 1. Implement ratings domain
-  - [ ] 1.1 Implement `ratings`: `RatingSet`, `ratingDeltas`, `sumDeltas`, `QuestLogInput`, `validateQuestLogInput`, its JSON codec, and the quick-tag lists.
+- [x] 1. Implement ratings domain
+  - [x] 1.1 Implement `ratings`: `RatingSet`, `ratingDeltas`, `sumDeltas`, `QuestLogInput`, `validateQuestLogInput`, its JSON codec, and the quick-tag lists.
     - _Requirements: 1.1, 2.1, 2.3_
-  - [ ]* 1.2 Write property test for delta algebra (Property 2).
+  - [x]* 1.2 Write property test for delta algebra (Property 2).
     - **Property 2: Delta algebra**
     - **Validates: Requirement 2.1**
-  - [ ]* 1.3 Write model-based property test for incremental aggregates vs. recompute (Property 1).
+  - [x]* 1.3 Write model-based property test for incremental aggregates vs. recompute (Property 1).
     - **Property 1: Incremental aggregates equal recompute**
     - **Validates: Requirements 2.1–2.3**
-  - [ ]* 1.4 Write property test for input validation (Property 8).
+  - [x]* 1.4 Write property test for input validation (Property 8).
     - **Property 8: Input validation**
     - **Validates: Requirement 1.1**
 
-- [ ] 2. Implement XP and ranking domain
-  - [ ] 2.1 Implement `xp` (`XP_TABLE`, `levelForXp`, `XP_REWARDS`, `helpfulXpAllowed`, `newUnlocks`) and `ranking` (`competitionRank`).
+- [x] 2. Implement XP and ranking domain
+  - [x] 2.1 Implement `xp` (`XP_TABLE`, `levelForXp`, `XP_REWARDS`, `helpfulXpAllowed`, `newUnlocks`) and `ranking` (`competitionRank`).
     - _Requirements: 5.1, 5.4, 6.1–6.3, 7.3_
-  - [ ]* 2.2 Write property tests for the XP table, level monotonicity, unlocks, helpful cap, and ranking (Properties 3–7).
+  - [x]* 2.2 Write property tests for the XP table, level monotonicity, unlocks, helpful cap, and ranking (Properties 3–7).
     - **Property 3: XP table and level** / **Property 4: Level monotonicity** / **Property 5: Unlocks are monotone and idempotent** / **Property 6: Helpful XP daily cap** / **Property 7: Competition ranking**
     - **Validates: Requirements 5.1, 5.4, 6.1, 6.3, 7.3**
 

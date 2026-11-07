@@ -53,8 +53,8 @@ inline constexpr std::array PRO_TAGS = { /* see Quick tags */ };
 inline constexpr std::array CON_TAGS = { /* see Quick tags */ };
 
 // src/domain/xp.hpp
-inline constexpr int MAX_LEVEL = 99;
-extern const std::array<std::int64_t, MAX_LEVEL + 1> XP_TABLE;  // index 1..99; [0] unused
+inline constexpr int MAX_QUESTING_LEVEL = 99;   // renamed: skills.hpp already has MAX_LEVEL for Skill levels
+const std::array<std::int64_t, MAX_QUESTING_LEVEL + 1>& xpTable();  // index 1..99; [0] unused. A golden test pins the exact integers.
 int levelForXp(std::int64_t xp);                                // 1..99
 enum class XpReason { QuestLog, Note, HelpfulReceived, AgentApproved, Seed };
 inline constexpr struct { int questLog = 250, note = 50, helpfulReceived = 25, agentApproved = 500; } XP_REWARDS{};
@@ -92,7 +92,7 @@ std::vector<std::pair<T, int>> competitionRank(std::vector<T> rows, Score score,
 
 ## Data models
 
-Migration `0004_quests.sql`:
+Migration `0005_quests.sql` (0004 is now `proving_grounds`):
 
 ```sql
 CREATE TABLE quest_log (
