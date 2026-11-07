@@ -388,3 +388,52 @@ TEST_CASE("the rating set of an input is its overall and skills", "[unit][rating
   CHECK(s.skills == in.skills);
   CHECK_FALSE(s.excluded);
 }
+
+// --- Adventurer snapshot ------------------------------------------------------------------------------------------
+
+#include <nlohmann/json.hpp>
+
+#include "domain/snapshot.hpp"
+
+TEST_CASE("a snapshot round-trips through its JSON", "[unit][snapshot]") {
+  AdventurerSnapshot s;
+  s.name = "Mira";
+  s.appearance.hair = 2;
+  s.appearance.colors.skin = 1;
+  s.loadout[Slot::Weapon] = "reapers_scythe";
+  s.loadout[Slot::Head] = "jack_mask";
+  const auto back = snapshotFromJson(snapshotToJson(s));
+  REQUIRE(back.has_value());
+  CHECK(*back == s);
+}
+
+TEST_CASE("a snapshot with items that left the catalog or sit in the wrong slot still loads without them", "[unit][snapshot]") {
+  AdventurerSnapshot s;
+  s.name = "Mira";
+  s.loadout[Slot::Weapon] = "reapers_scythe";
+  auto text = snapshotToJson(s);
+  auto j = nlohmann::json::parse(text);
+  j["loadout"]["Head"] = "an_item_from_the_future";   // not in the catalog
+  j["loadout"]["Feet"] = "reapers_scythe";            // a weapon in the feet slot
+  j["loadout"]["NoSuchSlot"] = "jack_mask";           // not a slot
+  const auto back = snapshotFromJson(j.dump());
+  REQUIRE(back.has_value());
+  CHECK(back->loadout.size() == 1);
+  CHECK(back->loadout.at(Slot::Weapon) == "reapers_scythe");
+}
+
+TEST_CASE("a damaged snapshot is refused rather than half-drawn", "[unit][snapshot]") {
+  CHECK_FALSE(snapshotFromJson("not json").has_value());
+  CHECK_FALSE(snapshotFromJson("[]").has_value());
+  CHECK_FALSE(snapshotFromJson("{}").has_value());
+  CHECK_FALSE(snapshotFromJson(R"({"name":"X"})").has_value());                  // no appearance
+  CHECK_FALSE(snapshotFromJson(R"({"appearance":{},"name":"X"})").has_value());   // incomplete appearance
+  AdventurerSnapshot s;
+  s.name = "Mira";
+  auto j = nlohmann::json::parse(snapshotToJson(s));
+  j["appearance"]["hair"] = 9999;   // out of range
+  CHECK_FALSE(snapshotFromJson(j.dump()).has_value());
+  j = nlohmann::json::parse(snapshotToJson(s));
+  j["name"] = 7;
+  CHECK_FALSE(snapshotFromJson(j.dump()).has_value());
+}

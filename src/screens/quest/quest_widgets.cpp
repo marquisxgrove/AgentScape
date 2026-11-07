@@ -5,6 +5,10 @@
 #include <algorithm>
 #include <string>
 
+#include <cstdint>
+
+#include "domain/graveyard.hpp"
+#include "game/avatar_renderer.hpp"
 #include "ui/theme.hpp"
 #include "ui/widgets.hpp"
 
@@ -67,6 +71,85 @@ bool gemRating(const char* id, int* value, int minValue) {
   changed = *value != before;
   ImGui::PopID();
   return changed;
+}
+
+void gemDisplay(ImDrawList* dl, ImVec2 topLeft, int value, float size, ImU32 fill, ImU32 outline) {
+  const float h = size * 0.5F;
+  for (int i = 0; i < 5; ++i) {
+    const ImVec2 c{topLeft.x + static_cast<float>(i) * (size + 2.0F) + h, topLeft.y + h};
+    const ImVec2 pts[4] = {{c.x, c.y - h}, {c.x + h, c.y}, {c.x, c.y + h}, {c.x - h, c.y}};
+    if (i < value) dl->AddConvexPolyFilled(pts, 4, fill);
+    dl->AddPolyline(pts, 4, outline, ImDrawFlags_Closed, 1.0F);
+  }
+}
+
+void avatarThumb(game::AvatarRenderer* avatars, const std::optional<domain::AdventurerSnapshot>& snapshot, float scale) {
+  const float w = (avatars != nullptr ? static_cast<float>(avatars->cellWidth()) : 32.0F) * scale;
+  const float h = (avatars != nullptr ? static_cast<float>(avatars->cellHeight()) : 48.0F) * scale;
+  SDL_Texture* tex = (avatars != nullptr && snapshot) ? avatars->texture(snapshot->appearance, snapshot->loadout, domain::Facing::S, 0) : nullptr;
+  if (tex != nullptr) {
+    ImGui::Image(static_cast<ImTextureID>(reinterpret_cast<std::uintptr_t>(tex)), {w, h});
+  } else {
+    ImGui::Dummy({w, h});
+  }
+}
+
+bool questCard(const char* id, const services::QuestLogRecord& log, const std::optional<domain::AdventurerSnapshot>& snapshot,
+               game::AvatarRenderer* avatars, bool helpedByViewer, float width) {
+  ImGui::PushID(id);
+  const ImVec2 p0 = ImGui::GetCursorScreenPos();
+  const ImVec2 p1{p0.x + width, p0.y + QUEST_CARD_HEIGHT};
+  const bool chosen = ImGui::InvisibleButton("##note", {width, QUEST_CARD_HEIGHT});
+  const bool hot = ImGui::IsItemHovered() || ImGui::IsItemFocused();
+  ImDrawList* dl = ImGui::GetWindowDrawList();
+  ImFont* font = ImGui::GetFont();
+  const float fs = ImGui::GetFontSize();
+  const ImU32 ink = ui::toU32(ui::PaletteColor::Ink);
+  const ImU32 paper = ui::toU32(ui::PaletteColor::Parchment);
+  const ImU32 dark = IM_COL32(0x3e, 0x35, 0x29, 255);
+
+  dl->AddRectFilled(p0, p1, paper);
+  dl->AddRect(p0, p1, hot ? ui::toU32(ui::PaletteColor::TextOrange) : dark, 0.0F, 0, hot ? 2.0F : 1.0F);
+  dl->AddCircleFilled({p0.x + width * 0.5F, p0.y + 3.0F}, 2.5F, IM_COL32(0x9a, 0x1e, 0x1e, 255));   // the pin
+
+  // Author: thumbnail and name.
+  ImGui::SetCursorScreenPos({p0.x + 6.0F, p0.y + 8.0F});
+  avatarThumb(avatars, snapshot, 1.0F);
+  const std::string author = snapshot ? snapshot->name : log.authorName;
+  dl->PushClipRect({p0.x + 3.0F, p0.y}, {p0.x + 52.0F, p1.y}, true);
+  dl->AddText(font, fs, {p0.x + 5.0F, p0.y + 58.0F}, ink, author.c_str());
+  dl->PopClipRect();
+
+  const float x = p0.x + 54.0F;
+  const float textW = width - 60.0F;
+  dl->PushClipRect({x, p0.y}, {p1.x - 3.0F, p1.y - 2.0F}, true);
+  float y = p0.y + 8.0F;
+  const std::string head = log.agentName + (log.input.version.empty() ? "" : " " + log.input.version);
+  dl->AddText(font, fs, {x, y}, ink, head.c_str());
+  y += fs + 3.0F;
+  dl->AddText(font, fs, {x, y}, dark, domain::displayName(log.input.questType));
+  gemDisplay(dl, {x + textW - 66.0F, y - 1.0F}, log.input.overall, 8.0F, IM_COL32(0x9a, 0x1e, 0x1e, 255), ink);
+  y += fs + 3.0F;
+  dl->AddText(font, fs, {x, y}, ink, log.input.title.c_str());
+  y += fs + 3.0F;
+  const std::string excerpt = domain::shortEpitaph(log.input.body, 70);
+  // The excerpt is one line of plain text; line breaks in the body become spaces here so the note stays tidy.
+  std::string flat = excerpt;
+  for (auto& ch : flat) {
+    if (ch == '\n') ch = ' ';
+  }
+  dl->AddText(font, fs, {x, y}, dark, flat.c_str(), nullptr, textW);
+  y = p1.y - fs - 5.0F;
+  std::string foot = log.input.recommend ? "Recommends" : "Not recommended";
+  for (const auto& t : log.input.pros) foot += "  +" + t;
+  dl->AddText(font, fs, {x, y - fs - 2.0F}, dark, foot.c_str());
+  const std::string helpful = std::string(helpedByViewer ? "You and " : "") + std::to_string(log.helpfulCount) + " found it helpful";
+  dl->AddText(font, fs, {x, y}, ink, log.helpfulCount > 0 || helpedByViewer ? helpful.c_str() : "No helpful votes yet");
+  dl->PopClipRect();
+
+  ImGui::SetCursorScreenPos({p0.x, p1.y + 4.0F});   // the next card goes below
+  ImGui::PopID();
+  return chosen;
 }
 
 }  // namespace as::screens::quest

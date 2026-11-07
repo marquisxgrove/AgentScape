@@ -9,6 +9,7 @@
 #include "domain/appearance_json.hpp"
 #include "domain/loadout_json.hpp"
 #include "domain/rate_limit.hpp"
+#include "domain/snapshot.hpp"
 #include "services/codex_store.hpp"
 
 namespace as::services {
@@ -85,7 +86,7 @@ void publish(app::EventBus& bus, ActivityService& activity, Pending& p) {
 
 constexpr const char* ROW_COLUMNS =
     "q.id, q.author_id, u.name, q.agent_id, a.name, q.agent_version, q.quest_type, q.overall, q.ratings, q.title, q.body, "
-    "q.recommend, q.tags, q.snapshot, q.helpful_count, q.hidden, q.excluded, q.created_at, q.updated_at";
+    "q.recommend, q.tags, q.snapshot, q.helpful_count, q.hidden, q.excluded, q.created_at, q.updated_at, a.slug";
 
 QuestLogRecord readRecord(const db::Statement& st) {
   QuestLogRecord r;
@@ -108,17 +109,11 @@ QuestLogRecord readRecord(const db::Statement& st) {
   r.excluded = st.columnInt(16) == 1;
   r.createdAt = core::parseIso8601(st.columnText(17)).value_or(std::chrono::sys_seconds{});
   r.updatedAt = core::parseIso8601(st.columnText(18)).value_or(std::chrono::sys_seconds{});
+  r.agentSlug = st.columnText(19);
   return r;
 }
 
-std::string snapshotJson(const Adventurer& a) {
-  nlohmann::json j;
-  j["name"] = a.name;
-  j["appearance"] = a.appearance;
-  j["loadout"] = nlohmann::json::object();
-  for (const auto& [slot, id] : a.loadout) j["loadout"][domain::slotName(slot)] = id;
-  return j.dump();
-}
+std::string snapshotJson(const Adventurer& a) { return domain::snapshotToJson({a.name, a.appearance, a.loadout}); }
 }  // namespace
 
 Result<QuestOutcome, QuestError> QuestService::createQuestLog(const std::string& userId, domain::QuestLogInput raw) {
@@ -416,6 +411,68 @@ Result<int> QuestService::purgeUser(const std::string& userId) {
     if (auto r = deleteQuestLog(userId, id); !r) return tl::unexpected(r.error());
   }
   return static_cast<int>(logs.size());
+}
+
+Result<QuestPage> QuestService::list(const QuestListQuery& query, const std::string& viewerId) {
+  return db::guarded([&]() -> QuestPage {
+    QuestPage out;
+    std::string where = " WHERE q.hidden = 0 AND a.status = 'APPROVED'";
+    if (query.agentId) where += " AND q.agent_id = ?";
+    if (query.questType) where += " AND q.quest_type = ?";
+    const auto bindFilters = [&](db::Statement& st) {
+      int i = 1;
+      if (query.agentId) st.bind(i++, *query.agentId);
+      if (query.questType) st.bind(i++, domain::storageName(*query.questType));
+      return i;
+    };
+
+    auto count = db_.prepare("SELECT COUNT(*) FROM quest_log q JOIN agent a ON a.id = q.agent_id" + where);
+    bindFilters(count);
+    count.step();
+    out.total = static_cast<std::size_t>(count.columnInt(0));
+    out.slice = domain::paginate(out.total, query.page, QUEST_PAGE_SIZE);
+
+    const char* order = query.sort == QuestSort::MostHelpful ? " ORDER BY q.helpful_count DESC, q.created_at DESC, q.id DESC"
+                                                             : " ORDER BY q.created_at DESC, q.id DESC";
+    auto st = db_.prepare(std::string("SELECT ") + ROW_COLUMNS +
+                          " FROM quest_log q JOIN user u ON u.id = q.author_id JOIN agent a ON a.id = q.agent_id" + where +
+                          order + " LIMIT ? OFFSET ?");
+    int next = bindFilters(st);
+    st.bind(next++, static_cast<std::int64_t>(out.slice.count));
+    st.bind(next, static_cast<std::int64_t>(out.slice.first));
+    while (st.step()) out.logs.push_back(readRecord(st));
+
+    if (!viewerId.empty()) {
+      auto voted = db_.prepare("SELECT 1 FROM helpful_vote WHERE quest_log_id = ? AND user_id = ?");
+      for (const auto& log : out.logs) {
+        voted.bind(1, log.id).bind(2, viewerId);
+        if (voted.step()) out.helpedByViewer.insert(log.id);
+        voted.reset();
+      }
+    }
+    return out;
+  });
+}
+
+Result<std::vector<QuestLogRecord>> QuestService::topHelpful(const std::string& agentId, std::size_t limit) {
+  return db::guarded([&]() -> std::vector<QuestLogRecord> {
+    std::vector<QuestLogRecord> out;
+    auto st = db_.prepare(std::string("SELECT ") + ROW_COLUMNS +
+                          " FROM quest_log q JOIN user u ON u.id = q.author_id JOIN agent a ON a.id = q.agent_id "
+                          "WHERE q.agent_id = ? AND q.hidden = 0 AND a.status = 'APPROVED' "
+                          "ORDER BY q.helpful_count DESC, q.created_at DESC, q.id DESC LIMIT ?");
+    st.bind(1, agentId).bind(2, static_cast<std::int64_t>(limit));
+    while (st.step()) out.push_back(readRecord(st));
+    return out;
+  });
+}
+
+Result<bool> QuestService::hasVoted(const std::string& userId, const std::string& questLogId) {
+  return db::guarded([&]() -> bool {
+    auto st = db_.prepare("SELECT 1 FROM helpful_vote WHERE quest_log_id = ? AND user_id = ?");
+    st.bind(1, questLogId).bind(2, userId);
+    return st.step();
+  });
 }
 
 Result<std::optional<QuestLogRecord>> QuestService::get(const std::string& questLogId) {

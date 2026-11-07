@@ -13,7 +13,7 @@
 
 namespace as::app {
 
-enum class ScreenId { Login, World, Costumer, Codex, CodexCard, Propose, Proving, QuestScroll, Tavern, Hiscores, Graveyard, Keeper, DevGallery, DevAvatars };
+enum class ScreenId { Login, World, Costumer, Codex, CodexCard, Propose, Proving, QuestScroll, QuestDetail, Tavern, Hiscores, Graveyard, Keeper, DevGallery, DevAvatars };
 
 // Navigation parameters, e.g. {"agent", "<slug>"} when opening an examine card.
 using ScreenParams = std::map<std::string, std::string>;

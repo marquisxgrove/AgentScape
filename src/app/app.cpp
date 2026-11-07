@@ -28,7 +28,9 @@
 #include "screens/codex/proving_screen.hpp"
 #include "screens/costumer/costumer_screen.hpp"
 #include "screens/login/login_screen.hpp"
+#include "screens/quest/quest_detail_screen.hpp"
 #include "screens/quest/quest_scroll_screen.hpp"
+#include "screens/quest/tavern_screen.hpp"
 #include "screens/world/world_screen.hpp"
 #include "ui/layout.hpp"
 #include "ui/tab_panel.hpp"
@@ -311,6 +313,8 @@ void App::registerScreens() {
   screens_.registerScreen(ScreenId::Keeper, [] { return std::make_unique<screens::KeeperScreen>(); });
   screens_.registerScreen(ScreenId::Proving, [] { return std::make_unique<screens::ProvingScreen>(); });
   screens_.registerScreen(ScreenId::Graveyard, [] { return std::make_unique<screens::GraveyardScreen>(); });
+  screens_.registerScreen(ScreenId::Tavern, [] { return std::make_unique<screens::TavernScreen>(); });
+  screens_.registerScreen(ScreenId::QuestDetail, [] { return std::make_unique<screens::QuestDetailScreen>(); });
   screens_.registerScreen(ScreenId::QuestScroll, [] { return std::make_unique<screens::QuestScrollScreen>(); });
   screens_.registerScreen(ScreenId::Propose, [] { return std::make_unique<screens::ProposeScreen>(); });
   screens_.registerScreen(ScreenId::CodexCard, [] { return std::make_unique<screens::CodexCardScreen>(); });
@@ -332,28 +336,40 @@ void App::registerScreens() {
         if (name == "costumer-adventurers") postLoginParams_["tab"] = "adventurers";
       }
     }
-    for (const char* name : {"codex", "codex-table", "codex-search", "codex-card", "codex-card-debug", "codex-card-notes", "codex-card-compose", "codex-propose", "codex-propose-error", "codex-keeper", "proving", "proving-pick", "graveyard", "graveyard-list", "quest-scroll", "quest-scroll-rating", "quest-scroll-story", "quest-scroll-demo"}) {
-      if (*config_.startScreen == name) {
-        const std::string n = name;
-        postLoginScreen_ = n.rfind("codex-card", 0) == 0 ? ScreenId::CodexCard : (n.rfind("codex-propose", 0) == 0 ? ScreenId::Propose : (n == "codex-keeper" ? ScreenId::Keeper : (n.rfind("proving", 0) == 0 ? ScreenId::Proving : (n.rfind("graveyard", 0) == 0 ? ScreenId::Graveyard : (n.rfind("quest-scroll", 0) == 0 ? ScreenId::QuestScroll : ScreenId::Codex)))));
-        if (n.rfind("quest-scroll", 0) == 0) postLoginParams_["agent"] = "gryphon";
-        if (n == "quest-scroll-rating") postLoginParams_["step"] = "2";
-        if (n == "quest-scroll-story") postLoginParams_["step"] = "3";
-        if (n == "quest-scroll-demo") {
-          postLoginParams_["demo"] = "1";
-          postLoginParams_["submit"] = "1";
-        }
-        if (n == "graveyard-list") postLoginParams_["view"] = "list";
-        if (n.rfind("proving", 0) == 0) postLoginParams_["with"] = "gryphon,cairn,gryphon-chat";
-        if (n == "proving-pick") postLoginParams_["pick"] = "2";
-        if (n == "codex-propose-error") postLoginParams_["demo"] = "1";
-        if (n == "codex-propose-error") postLoginParams_["name"] = "Gryphon";
-        if (n == "codex-table") postLoginParams_["view"] = "table";
-        if (n == "codex-search") postLoginParams_["q"] = "lanternfold";
-        if (n.rfind("codex-card", 0) == 0) postLoginParams_["agent"] = "gryphon";
-        if (n == "codex-card-debug") postLoginParams_["scope"] = "DEBUGGING";
-        if (n == "codex-card-notes" || n == "codex-card-compose") postLoginParams_["scroll"] = "end";
-        if (n == "codex-card-compose") postLoginParams_["compose"] = "bane";
+    // Dev QA aliases: `--screen=<name>` opens this screen with these parameters right after sign-in.
+    struct DevView {
+      const char* name;
+      ScreenId screen;
+      ScreenParams params;
+    };
+    static const std::vector<DevView> DEV_VIEWS = {
+        {"codex", ScreenId::Codex, {}},
+        {"codex-table", ScreenId::Codex, {{"view", "table"}}},
+        {"codex-search", ScreenId::Codex, {{"q", "lanternfold"}}},
+        {"codex-card", ScreenId::CodexCard, {{"agent", "gryphon"}}},
+        {"codex-card-debug", ScreenId::CodexCard, {{"agent", "gryphon"}, {"scope", "DEBUGGING"}}},
+        {"codex-card-notes", ScreenId::CodexCard, {{"agent", "gryphon"}, {"scroll", "end"}}},
+        {"codex-card-compose", ScreenId::CodexCard, {{"agent", "gryphon"}, {"scroll", "end"}, {"compose", "bane"}}},
+        {"codex-propose", ScreenId::Propose, {}},
+        {"codex-propose-error", ScreenId::Propose, {{"demo", "1"}, {"name", "Gryphon"}}},
+        {"codex-keeper", ScreenId::Keeper, {}},
+        {"proving", ScreenId::Proving, {{"with", "gryphon,cairn,gryphon-chat"}}},
+        {"proving-pick", ScreenId::Proving, {{"with", "gryphon,cairn,gryphon-chat"}, {"pick", "2"}}},
+        {"graveyard", ScreenId::Graveyard, {}},
+        {"graveyard-list", ScreenId::Graveyard, {{"view", "list"}}},
+        {"quest-scroll", ScreenId::QuestScroll, {{"agent", "gryphon"}}},
+        {"quest-scroll-rating", ScreenId::QuestScroll, {{"agent", "gryphon"}, {"step", "2"}}},
+        {"quest-scroll-story", ScreenId::QuestScroll, {{"agent", "gryphon"}, {"step", "3"}}},
+        {"quest-scroll-demo", ScreenId::QuestScroll, {{"agent", "gryphon"}, {"demo", "1"}, {"submit", "1"}}},
+        {"tavern", ScreenId::Tavern, {}},
+        {"tavern-helpful", ScreenId::Tavern, {{"sort", "helpful"}}},
+        {"tavern-gryphon", ScreenId::Tavern, {{"agent", "gryphon"}}},
+        {"quest-detail", ScreenId::QuestDetail, {{"id", "devlog03"}}},   // needs a Quest Log with this id (dev fixture)
+    };
+    for (const auto& view : DEV_VIEWS) {
+      if (*config_.startScreen == view.name) {
+        postLoginScreen_ = view.screen;
+        postLoginParams_ = view.params;
       }
     }
     if (*config_.startScreen == "avatar-looks") {
@@ -612,6 +628,7 @@ SDL_AppResult App::iterate() {
 
   frame_->beginFrame();
   ImGui_ImplSDLRenderer3_RenderDrawData(ImGui::GetDrawData(), renderer_);
+  if (avatars_) avatars_->endFrame();
   if (config_.snapshotPath && framesRendered_ + 1 == SNAPSHOT_FRAME) saveSnapshot();
   if (config_.exportAvatarPath && framesRendered_ == 0) {
     // Dev QA: prove the 4x transparent portrait export path without a dialog.
@@ -804,6 +821,34 @@ bool App::runCodexStep() {
       if (effects_.bursts().empty()) return fail("expected level-up fireworks");
       if (screens_.currentId() == ScreenId::QuestScroll) return fail("the scroll should close after saving");
       shoot("x6-level-up.png");
+      screens_.navigate(ScreenId::Tavern);
+      return false;
+    }
+    case 9: {   // the Tavern board shows the new Quest Log; open it
+      if (screens_.currentId() != ScreenId::Tavern) return fail("did not reach the Tavern");
+      services::QuestListQuery q;
+      q.agentId = std::string("seed:agent:gryphon");
+      auto page = svc.quests.list(q, me);
+      if (!page || page->logs.empty()) return fail("the Tavern board should hold the new Quest Log");
+      const auto mine = std::find_if(page->logs.begin(), page->logs.end(), [&](const services::QuestLogRecord& l) { return l.authorId == me; });
+      if (mine == page->logs.end()) return fail("the board should list my own Quest Log");
+      auto top = svc.quests.topHelpful("seed:agent:gryphon", 5);
+      if (!top || top->empty()) return fail("Gryphon's card should list its Quest Logs");
+      smokeQuestLogId_ = mine->id;
+      shoot("x7-tavern.png");
+      screens_.navigate(ScreenId::QuestDetail, {{"id", mine->id}});
+      return false;
+    }
+    case 10: {  // the detail screen is up; another adventurer marks it helpful and the author is paid
+      if (screens_.currentId() != ScreenId::QuestDetail) return fail("did not reach the Quest Log detail");
+      shoot("x8-quest-detail.png");
+      auto other = svc.profile.createGuest();
+      if (!other) return fail("second guest failed");
+      const auto before = totalXp_;
+      auto voted = svc.quests.toggleHelpful(other->id, smokeQuestLogId_);
+      if (!voted || !*voted) return fail("another adventurer's Helpful vote failed");
+      if (totalXp_ != before + 25) return fail("a Helpful vote should have paid the author 25 XP");
+      if (svc.quests.toggleHelpful(me, smokeQuestLogId_)) return fail("voting on your own Quest Log was allowed");
       SDL_Log("SMOKE OK: codex flow completed (%zu tombstones, level %d)", smokeTombstones_, currentLevel_);
       return true;
     }

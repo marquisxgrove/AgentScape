@@ -87,6 +87,7 @@ class App {
   std::size_t smokeTombstones_ = 0;    // --smoke-codex bookkeeping
   std::int64_t smokeXpBefore_ = 0;
   int smokeLevelBefore_ = 1;
+  std::string smokeQuestLogId_;
   int demoStep_ = 0;   // index into the --smoke-demo sequence
   bool demoFailed_ = false;
 

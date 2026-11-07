@@ -10,6 +10,7 @@
 #include "domain/voting.hpp"
 #include "services/codex_service.hpp"
 #include "services/keeper_service.hpp"
+#include "services/quest_service.hpp"
 
 namespace as::screens {
 
@@ -25,6 +26,7 @@ class CodexCardScreen : public app::Screen {
   void reload(app::FrameCtx& ctx);
   void drawHeader(app::FrameCtx& ctx);
   void drawSkills();
+  void drawQuestLogs(app::FrameCtx& ctx);
   void drawNotes(app::FrameCtx& ctx, const char* title, services::NoteKind kind);
   void drawCompose(app::FrameCtx& ctx);
   void vote(app::FrameCtx& ctx, const services::NoteView& note, domain::VoteValue value);
@@ -42,6 +44,7 @@ class CodexCardScreen : public app::Screen {
   std::vector<services::NoteView> allBoons_;
   std::vector<services::NoteView> allBanes_;
   std::map<std::string, domain::VoteValue> myVotes_;
+  std::vector<services::QuestLogRecord> topLogs_;   // the Agent's most helpful Quest Logs (Requirement 3.3)
 
   // The open report form: which Note (or the Agent) is being reported, and the reason typed so far.
   std::string reportNoteId_;
