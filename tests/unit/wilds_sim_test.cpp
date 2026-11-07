@@ -7,7 +7,7 @@
 using namespace as::game;
 
 TEST_CASE("every fight's hits add up to the bug's health exactly", "[unit][coding-sessions]") {
-  for (std::uint64_t seed : {1ULL, 42ULL, wildsSeed("01JABCDEF")}) {
+  for (const std::uint64_t seed : {std::uint64_t{1}, std::uint64_t{42}, wildsSeed("01JABCDEF")}) {   // one type: 1ULL is not uint64_t on Linux
     for (std::int64_t fight = 0; fight < 200; ++fight) {
       const auto d = fightDamage(seed, fight);
       const auto hp = combatAt(seed, static_cast<double>(fight) * FIGHT_SECONDS, false).hpMax;
