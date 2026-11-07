@@ -47,7 +47,7 @@ struct FrameCtx {
   // Default "Reduce motion" for a NEW guest (web: the browser preference). Desktop: false.
   bool reduceMotionDefault = false;
   // A screen calls this after a successful sign-in so App can adopt the user (remember settings,
-  // apply the font, optionally remember the profile). userId is a ULID; remember is for real players.
+  // apply the font, optionally remember the profile). userId is a ULID; remember keeps it signed in on this device until Log out.
   std::function<void(const std::string& userId, bool remember)> onSignedIn;
 };
 

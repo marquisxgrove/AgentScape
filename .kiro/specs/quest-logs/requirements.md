@@ -119,4 +119,4 @@ Contributions earn **Questing XP**. XP raises the player's **Questing level**, w
 #### Acceptance Criteria
 
 1. WHEN a Guest User is created, THE system SHALL seed it with `XP_TABLE[14] − 100` XP (Questing level 13). This makes all early unlocks and the Reaper's Scythe claimable, and the first Quest Log triggers a level-up.
-2. WHEN the app starts, THE system SHALL delete Guest Users whose last activity is older than 24 hours, together with their content. Their ratings SHALL be removed from aggregates through the normal delete path.
+2. WHEN the app starts, THE system SHALL delete Guest Users whose last activity is older than 24 hours, together with their content, except the Guest remembered on this device (game-shell Requirement 2.1) until it Logs out. Their ratings SHALL be removed from aggregates through the normal delete path.

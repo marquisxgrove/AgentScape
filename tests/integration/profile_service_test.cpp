@@ -76,11 +76,16 @@ TEST_CASE("listLocalUsers returns players only, most recent first", "[integratio
   CHECK((*users)[1].name == "Alde");
 }
 
-TEST_CASE("only players can be remembered; guests and NPCs are refused", "[integration][profile]") {
+TEST_CASE("players and guests can be remembered; NPCs and missing users are refused", "[integration][profile]") {
   Harness h;
   auto guest = h.profiles.createGuest();
   h.insertNpc("seed:npc:y", "Quill");
-  CHECK_FALSE(h.profiles.rememberUser(guest->id).has_value());
+  REQUIRE(h.profiles.rememberUser(guest->id).has_value());
+  auto rememberedGuest = h.profiles.rememberedUser();
+  REQUIRE(rememberedGuest.has_value());
+  REQUIRE(rememberedGuest->has_value());
+  CHECK((*rememberedGuest)->id == guest->id);
+
   CHECK_FALSE(h.profiles.rememberUser("seed:npc:y").has_value());
   CHECK_FALSE(h.profiles.rememberUser("01P0000000000000000000000Z").has_value());  // missing
 
@@ -114,12 +119,12 @@ TEST_CASE("cleanupGuests removes only guests idle beyond 24h and clears a dangli
   Harness h;
   auto fresh = h.profiles.createGuest();
   auto stale = h.profiles.createGuest();
-  // Make `stale` idle for 25 hours; point the remembered key at it (shouldn't normally happen).
-  h.db.prepare("UPDATE user SET last_seen_at = ? WHERE id = ?")
+  h.db.prepare("UPDATE user SET last_seen_at = ? WHERE id = ?")  // idle for 25+ hours
       .bind(1, "2026-11-03T00:00:00Z")
       .bind(2, stale->id)
       .run();
-  h.db.prepare("INSERT INTO app_state(key, value) VALUES ('remembered_user_id', ?)").bind(1, stale->id).run();
+  // A remembered pointer to a user that no longer exists (shouldn't normally happen).
+  h.db.prepare("INSERT INTO app_state(key, value) VALUES ('remembered_user_id', 'gone')").run();
 
   auto removed = h.profiles.cleanupGuests();
   REQUIRE(removed.has_value());
@@ -129,4 +134,28 @@ TEST_CASE("cleanupGuests removes only guests idle beyond 24h and clears a dangli
   auto remembered = h.profiles.rememberedUser();
   REQUIRE(remembered.has_value());
   CHECK_FALSE(remembered->has_value());  // pointer cleared
+}
+
+TEST_CASE("the remembered guest survives the idle cleanup until it is forgotten", "[integration][profile]") {
+  Harness h;
+  auto kept = h.profiles.createGuest();
+  auto other = h.profiles.createGuest();
+  REQUIRE(h.profiles.rememberUser(kept->id).has_value());
+  h.clock.advance(std::chrono::hours{48});  // both are now idle beyond 24h
+
+  auto removed = h.profiles.cleanupGuests();
+  REQUIRE(removed.has_value());
+  CHECK(*removed == 1);
+  CHECK(h.profiles.getUser(kept->id).has_value());
+  CHECK_FALSE(h.profiles.getUser(other->id).has_value());
+  auto remembered = h.profiles.rememberedUser();
+  REQUIRE(remembered.has_value());
+  REQUIRE(remembered->has_value());
+  CHECK((*remembered)->id == kept->id);
+
+  REQUIRE(h.profiles.forgetRemembered().has_value());  // Log out
+  removed = h.profiles.cleanupGuests();
+  REQUIRE(removed.has_value());
+  CHECK(*removed == 1);
+  CHECK_FALSE(h.profiles.getUser(kept->id).has_value());
 }

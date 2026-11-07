@@ -151,7 +151,7 @@ void LoginScreen::drawChoices(app::FrameCtx& ctx) {
     guestDefaults.reduceMotion = ctx.reduceMotionDefault;
     auto guest = ctx.services->profile.createGuest(guestDefaults);
     if (guest) {
-      afterSignIn(ctx, *guest, /*remember=*/false);  // guests are never remembered
+      afterSignIn(ctx, *guest, /*remember=*/true);  // kept on this device until Log out
       return;
     }
     error_ = guest.error().message;
