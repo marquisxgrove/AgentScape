@@ -185,7 +185,8 @@ void App::openStore(bool resetData) {
   services_.emplace(Services{services::ProfileService{store_->db, clock_, rng_},
                              services::ActivityService{store_->db, clock_, bus_},
                              services::AdventurerService{store_->db, clock_, rng_},
-                             services::CodexService{store_->db, codexCache_}});
+                             services::CodexService{store_->db, codexCache_},
+                             services::NoteService{store_->db, clock_, rng_, bus_}});
   chatbox_.emplace(bus_);
   onStoreReady();
   dataState_ = DataState::Ready;
@@ -288,14 +289,16 @@ void App::registerScreens() {
         if (name == "costumer-adventurers") postLoginParams_["tab"] = "adventurers";
       }
     }
-    for (const char* name : {"codex", "codex-table", "codex-search", "codex-card", "codex-card-debug"}) {
+    for (const char* name : {"codex", "codex-table", "codex-search", "codex-card", "codex-card-debug", "codex-card-notes", "codex-card-compose"}) {
       if (*config_.startScreen == name) {
         const std::string n = name;
-        postLoginScreen_ = n == "codex-card" || n == "codex-card-debug" ? ScreenId::CodexCard : ScreenId::Codex;
+        postLoginScreen_ = n.rfind("codex-card", 0) == 0 ? ScreenId::CodexCard : ScreenId::Codex;
         if (n == "codex-table") postLoginParams_["view"] = "table";
         if (n == "codex-search") postLoginParams_["q"] = "lanternfold";
         if (n.rfind("codex-card", 0) == 0) postLoginParams_["agent"] = "gryphon";
         if (n == "codex-card-debug") postLoginParams_["scope"] = "DEBUGGING";
+        if (n == "codex-card-notes" || n == "codex-card-compose") postLoginParams_["scroll"] = "end";
+        if (n == "codex-card-compose") postLoginParams_["compose"] = "bane";
       }
     }
     if (*config_.startScreen == "avatar-looks") {

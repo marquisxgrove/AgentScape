@@ -121,6 +121,7 @@ add_library(as_services STATIC
   src/services/adventurer_service.cpp
   src/services/codex_cache.cpp
   src/services/codex_service.cpp
+  src/services/note_service.cpp
   src/services/codex_store.cpp
   src/services/profile_service.cpp)
 target_include_directories(as_services PUBLIC src)
@@ -252,6 +253,7 @@ if(AS_BUILD_TESTS)
     tests/integration/activity_service_test.cpp
     tests/integration/adventurer_service_test.cpp
     tests/integration/codex_service_test.cpp
+    tests/integration/note_service_test.cpp
     tests/integration/codex_store_test.cpp
     tests/integration/db_test.cpp
     tests/integration/local_store_test.cpp

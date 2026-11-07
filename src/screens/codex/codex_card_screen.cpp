@@ -20,6 +20,11 @@ void CodexCardScreen::onEnter(const app::ScreenParams& params) {
     slug_ = it->second;
     scope_.reset();
     if (const auto s = params.find("scope"); s != params.end()) scope_ = domain::questTypeFromStorage(s->second);
+    scrollToEnd_ = params.count("scroll") != 0 ? 3 : 0;
+    if (const auto c = params.find("compose"); c != params.end()) {
+      composing_ = true;
+      composeKind_ = c->second == "bane" ? services::NoteKind::Bane : services::NoteKind::Boon;
+    }
     confirmLeave_ = false;
     showAllBoons_ = showAllBanes_ = false;
   }
@@ -32,6 +37,7 @@ void CodexCardScreen::reload(app::FrameCtx& ctx) {
   card_.reset();
   allBoons_.clear();
   allBanes_.clear();
+  myVotes_.clear();
   if (ctx.services == nullptr) return;
   auto card = ctx.services->codex.card(slug_, scope_);
   if (!card) {
@@ -43,6 +49,7 @@ void CodexCardScreen::reload(app::FrameCtx& ctx) {
     return;
   }
   card_ = std::move(**card);
+  if (auto votes = ctx.services->notes.myVotes(ctx.userId, card_->agent.id)) myVotes_ = std::move(*votes);
   if (showAllBoons_) {
     if (auto n = ctx.services->codex.notes(card_->agent.id, services::NoteKind::Boon)) allBoons_ = *n;
   }
@@ -77,6 +84,11 @@ void CodexCardScreen::draw(app::FrameCtx& ctx) {
   drawSkills();
   drawNotes(ctx, "Boons (what players praise)", services::NoteKind::Boon);
   drawNotes(ctx, "Banes (what players warn about)", services::NoteKind::Bane);
+  drawCompose(ctx);
+  if (scrollToEnd_ > 0) {
+    ImGui::SetScrollY(ImGui::GetScrollMaxY());
+    --scrollToEnd_;
+  }
   ImGui::EndChild();
 }
 
@@ -168,6 +180,21 @@ void CodexCardScreen::drawNotes(app::FrameCtx& ctx, const char* title, services:
                    ui::PaletteColor::Parchment);
     ui::RichText(ui::escapeMarkup(n.text), ui::PaletteColor::TextYellow, ImGui::GetContentRegionAvail().x);
     ui::ShadowText("- " + n.authorName, ui::PaletteColor::Parchment);
+    if (n.authorId == ctx.userId) {
+      ImGui::SameLine();
+      ui::ShadowText("(your words)", ui::PaletteColor::TextCyan);
+    } else {
+      const auto mine = myVotes_.find(n.id);
+      const bool agreed = mine != myVotes_.end() && mine->second == domain::VoteValue::Agree;
+      const bool disagreed = mine != myVotes_.end() && mine->second == domain::VoteValue::Disagree;
+      if (ui::PixelButton(((agreed ? "[Agree]" : "Agree") + std::string("##a")).c_str(), {0, 0})) {
+        vote(ctx, n, domain::VoteValue::Agree);
+      }
+      ImGui::SameLine();
+      if (ui::PixelButton(((disagreed ? "[Disagree]" : "Disagree") + std::string("##d")).c_str(), {0, 0})) {
+        vote(ctx, n, domain::VoteValue::Disagree);
+      }
+    }
     ImGui::Spacing();
     ImGui::PopID();
   }
@@ -177,8 +204,65 @@ void CodexCardScreen::drawNotes(app::FrameCtx& ctx, const char* title, services:
       dirty_ = true;
     }
   }
-  (void)ctx;
   ImGui::Spacing();
+}
+
+void CodexCardScreen::vote(app::FrameCtx& ctx, const services::NoteView& note, domain::VoteValue value) {
+  // Choosing the vote you already have takes it back.
+  const auto mine = myVotes_.find(note.id);
+  const bool same = mine != myVotes_.end() && mine->second == value;
+  auto r = ctx.services->notes.voteOnNote(ctx.userId, note.id, same ? std::nullopt : std::optional{value});
+  if (!r) ui::pushGameMessage(r.error().message);
+  dirty_ = true;
+}
+
+void CodexCardScreen::drawCompose(app::FrameCtx& ctx) {
+  ImGui::Separator();
+  if (!composing_) {
+    if (ui::PixelButton("Write a Boon", {0, 0})) {
+      composing_ = true;
+      composeKind_ = services::NoteKind::Boon;
+    }
+    ImGui::SameLine();
+    if (ui::PixelButton("Write a Bane", {0, 0})) {
+      composing_ = true;
+      composeKind_ = services::NoteKind::Bane;
+    }
+    return;
+  }
+  const bool boon = composeKind_ == services::NoteKind::Boon;
+  ui::ShadowText(boon ? "Write a Boon (10 to 280 characters, plain text):" : "Write a Bane (10 to 280 characters, plain text):",
+                 ui::PaletteColor::TextOrange);
+  ImGui::SetNextItemWidth(ImGui::GetContentRegionAvail().x - 8);
+  ImGui::InputText("##notetext", composeText_.data(), composeText_.size());
+  bool first = true;
+  const std::string skillLabel = std::string("Skill: ") + (composeSkill_ < 0 ? "General" : domain::displayName(domain::SKILLS[static_cast<std::size_t>(composeSkill_)]));
+  if (codex::flowButton(skillLabel, "noteskill", first)) {
+    composeSkill_ = codex::cycleNext(composeSkill_, static_cast<int>(domain::SKILLS.size()));
+  }
+  ImGui::SetNextItemWidth(110);
+  ImGui::SameLine();
+  ImGui::InputTextWithHint("##noteversion", "Version (optional)", composeVersion_.data(), composeVersion_.size());
+  if (ui::PixelButton("Post##note", {0, 0})) {
+    services::NewNote n;
+    n.agentId = card_->agent.id;
+    n.kind = composeKind_;
+    n.text = composeText_.data();
+    if (composeSkill_ >= 0) n.skill = domain::SKILLS[static_cast<std::size_t>(composeSkill_)];
+    n.version = composeVersion_.data();
+    auto r = ctx.services->notes.createNote(ctx.userId, n);
+    if (r) {
+      composeText_.fill('\0');
+      composeVersion_.fill('\0');
+      composing_ = false;
+      ui::pushGameMessage(boon ? "Your Boon has been recorded." : "Your Bane has been recorded.");
+      dirty_ = true;
+    } else {
+      ui::pushGameMessage(r.error().message);
+    }
+  }
+  ImGui::SameLine();
+  if (ui::PixelButton("Cancel##note", {0, 0})) composing_ = false;
 }
 
 }  // namespace as::screens
