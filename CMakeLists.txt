@@ -41,6 +41,7 @@ add_library(as_domain STATIC
   src/domain/appearance.cpp
   src/domain/codex_query.cpp
   src/domain/compare.cpp
+  src/domain/graveyard.cpp
   src/domain/codex_validation.cpp
   src/domain/device_flow.cpp
   src/domain/frame.cpp
@@ -169,6 +170,7 @@ if(AS_BUILD_APP)
     src/screens/codex/propose_screen.cpp
     src/screens/codex/proving_screen.cpp
     src/screens/costumer/costumer_screen.cpp
+    src/screens/graveyard/graveyard_screen.cpp
     src/screens/login/login_screen.cpp
     src/screens/world/world_screen.cpp
     src/ui/chatbox.cpp
@@ -223,6 +225,7 @@ if(AS_BUILD_TESTS)
     tests/unit/civil_time_test.cpp
     tests/unit/codex_query_test.cpp
     tests/unit/compare_test.cpp
+    tests/unit/graveyard_test.cpp
     tests/unit/codex_scoring_test.cpp
     tests/unit/codex_validation_test.cpp
     tests/unit/config_test.cpp

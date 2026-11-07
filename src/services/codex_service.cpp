@@ -83,6 +83,24 @@ Result<std::vector<NoteView>> CodexService::notes(const std::string& agentId, No
   });
 }
 
+Result<std::vector<Tombstone>> CodexService::tombstones() {
+  return db::guarded([&]() -> std::vector<Tombstone> {
+    std::vector<Tombstone> all;
+    std::vector<domain::BaneCandidate> candidates;
+    auto st = db_.prepare("SELECT n.id, a.slug, a.name, n.skill, n.text, n.agree, n.disagree, n.hidden "
+                          "FROM note n JOIN agent a ON a.id = n.agent_id "
+                          "WHERE n.kind = 'BANE' AND a.status = 'APPROVED'");
+    while (st.step()) {
+      all.push_back({st.columnText(0), st.columnText(1), st.columnText(2), st.columnOptText(3), st.columnText(4),
+                     st.columnInt(5), st.columnInt(6)});
+      candidates.push_back({st.columnText(0), st.columnInt(5), st.columnInt(6), st.columnInt(7) == 1});
+    }
+    std::vector<Tombstone> out;
+    for (const auto i : domain::pickTombstones(candidates)) out.push_back(std::move(all[i]));
+    return out;
+  });
+}
+
 Result<std::vector<Agent>> CodexService::approvedAgents() {
   auto data = loaded();
   if (!data) return tl::unexpected(data.error());

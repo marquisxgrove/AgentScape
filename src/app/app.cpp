@@ -20,6 +20,7 @@
 #include "screens/codex/codex_screen.hpp"
 #include "screens/codex/keeper_screen.hpp"
 #include "screens/codex/propose_screen.hpp"
+#include "screens/graveyard/graveyard_screen.hpp"
 #include "screens/codex/proving_screen.hpp"
 #include "screens/costumer/costumer_screen.hpp"
 #include "screens/login/login_screen.hpp"
@@ -281,6 +282,7 @@ void App::registerScreens() {
   screens_.registerScreen(ScreenId::Codex, [] { return std::make_unique<screens::CodexScreen>(); });
   screens_.registerScreen(ScreenId::Keeper, [] { return std::make_unique<screens::KeeperScreen>(); });
   screens_.registerScreen(ScreenId::Proving, [] { return std::make_unique<screens::ProvingScreen>(); });
+  screens_.registerScreen(ScreenId::Graveyard, [] { return std::make_unique<screens::GraveyardScreen>(); });
   screens_.registerScreen(ScreenId::Propose, [] { return std::make_unique<screens::ProposeScreen>(); });
   screens_.registerScreen(ScreenId::CodexCard, [] { return std::make_unique<screens::CodexCardScreen>(); });
 #ifdef AS_ENABLE_DEV_SCREENS
@@ -301,10 +303,11 @@ void App::registerScreens() {
         if (name == "costumer-adventurers") postLoginParams_["tab"] = "adventurers";
       }
     }
-    for (const char* name : {"codex", "codex-table", "codex-search", "codex-card", "codex-card-debug", "codex-card-notes", "codex-card-compose", "codex-propose", "codex-propose-error", "codex-keeper", "proving", "proving-pick"}) {
+    for (const char* name : {"codex", "codex-table", "codex-search", "codex-card", "codex-card-debug", "codex-card-notes", "codex-card-compose", "codex-propose", "codex-propose-error", "codex-keeper", "proving", "proving-pick", "graveyard", "graveyard-list"}) {
       if (*config_.startScreen == name) {
         const std::string n = name;
-        postLoginScreen_ = n.rfind("codex-card", 0) == 0 ? ScreenId::CodexCard : (n.rfind("codex-propose", 0) == 0 ? ScreenId::Propose : (n == "codex-keeper" ? ScreenId::Keeper : (n.rfind("proving", 0) == 0 ? ScreenId::Proving : ScreenId::Codex)));
+        postLoginScreen_ = n.rfind("codex-card", 0) == 0 ? ScreenId::CodexCard : (n.rfind("codex-propose", 0) == 0 ? ScreenId::Propose : (n == "codex-keeper" ? ScreenId::Keeper : (n.rfind("proving", 0) == 0 ? ScreenId::Proving : (n.rfind("graveyard", 0) == 0 ? ScreenId::Graveyard : ScreenId::Codex))));
+        if (n == "graveyard-list") postLoginParams_["view"] = "list";
         if (n.rfind("proving", 0) == 0) postLoginParams_["with"] = "gryphon,cairn,gryphon-chat";
         if (n == "proving-pick") postLoginParams_["pick"] = "2";
         if (n == "codex-propose-error") postLoginParams_["demo"] = "1";
