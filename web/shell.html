@@ -21,7 +21,10 @@
   <script>
     (function () {
       var canvas = document.getElementById('canvas');
-      var gl = canvas.getContext('webgl2') || canvas.getContext('webgl');
+      // Probe on a throwaway canvas. A canvas keeps the first context it hands out, so probing the game canvas
+      // would leave SDL no WebGL (or 2D) context of its own and the page would stay black.
+      var probe = document.createElement('canvas');
+      var gl = probe.getContext('webgl2') || probe.getContext('webgl');
       if (!gl) {
         document.getElementById('loading').style.display = 'none';
         document.getElementById('error').style.display = 'flex';
