@@ -920,7 +920,7 @@ bool App::runCostumerStep() {
         if (screens_.currentId() != ScreenId::Costumer) return fail("did not reach the Costumer");
         shoot("c1-create.png");  // the "name your first Adventurer" form
         const std::string uid = *currentUserId_;
-        auto created = svc.createAdventurer(uid, "Mossbeard");
+        auto created = svc.createAdventurer(uid, "Wanderer");
         if (!created || !created->isActive) return fail("createAdventurer failed or not active");
         // Claim the two Kiroween items (the Scythe needs level 13) and equip them through the domain rules.
         if (!svc.claimKiroweenItem(uid, "jack_mask", /*kiroweenActive=*/true, currentLevel_)) return fail("claim mask");
@@ -963,7 +963,7 @@ bool App::runCostumerStep() {
     case 1: {
       auto active = svc.getActive(*currentUserId_);
       if (!active || !*active) return fail("the Adventurer did not survive the restart");
-      if ((*active)->name != "Mossbeard") return fail("wrong Adventurer after restart");
+      if ((*active)->name != "Wanderer") return fail("wrong Adventurer after restart");
       if (!isEquipped(**active)) return fail("the gear did not survive the restart");
       if (screens_.currentId() != ScreenId::Costumer) return fail("not on the Costumer");
       shoot("c3-restored.png");

@@ -941,3 +941,14 @@ TEST_CASE("a saved snapshot draws the author's Adventurer as they were", "[integ
   CHECK(snap->appearance == adventurer->appearance);
   CHECK(snap->loadout == adventurer->loadout);
 }
+
+TEST_CASE("the NPC townsfolk's names are taken, so a player can't be an NPC", "[integration][seed][npc]") {
+  Fixture f;
+  f.player("dana", "Dana", false);
+  for (const char* name : {"Mossbeard", "mossbeard", "MOSSBEARD", "Lady Lambda", "lady_lambda", "LADY-LAMBDA"}) {
+    const auto r = f.adventurers.createAdventurer("dana", name);
+    REQUIRE_FALSE(r.has_value());
+    CHECK(r.error().message == "That name is not available.");
+  }
+  CHECK(f.adventurers.createAdventurer("dana", "Danas Hero").has_value());
+}
