@@ -1,6 +1,7 @@
 #include <catch2/catch_test_macros.hpp>
 
 #include <array>
+#include <functional>
 #include <string>
 
 #include "db/database.hpp"
@@ -230,4 +231,101 @@ TEST_CASE("a reseed retires seed Agents that left the seed, without deleting the
   CHECK(scalar(db, "SELECT COUNT(*) FROM agent WHERE id = 'seed:agent:old-one' AND status = 'REJECTED'") == 1);
   CHECK(scalar(db, "SELECT COUNT(*) FROM agent WHERE id = '01PLAYERMADE' AND status = 'APPROVED'") == 1);
   CHECK(scalar(db, "SELECT COUNT(*) FROM agent WHERE id = 'seed:agent:quillback' AND status = 'APPROVED'") == 1);
+}
+
+// --- NPC Adventurers and XP (the Hiscores' sample townsfolk) -----------------------------------------------------------
+
+#include <nlohmann/json.hpp>
+#include <vector>
+
+#include "domain/xp.hpp"
+
+namespace {
+// The embedded seed with the NPC file edited by `edit`.
+Result<SeedReport> seedWithNpcs(Database& db, const std::function<void(nlohmann::json&)>& edit) {
+  std::string npcsText;
+  for (const auto& f : embeddedSeedFiles()) {
+    if (f.name == "npcs.json") npcsText = std::string(f.json);
+  }
+  auto doc = nlohmann::json::parse(npcsText);
+  edit(doc);
+  npcsText = doc.dump();
+  std::vector<SeedFile> files;
+  for (const auto& f : embeddedSeedFiles()) files.push_back(f.name == "npcs.json" ? SeedFile{f.name, npcsText} : f);
+  return runSeed(db, files, NOW);
+}
+}  // namespace
+
+TEST_CASE("the seed gives each NPC an active Adventurer and a ledger row of sample XP", "[integration][seed][npc]") {
+  auto db = freshSeededDb();
+  CHECK(scalar(db, "SELECT COUNT(*) FROM adventurer WHERE user_id LIKE 'seed:npc:%' AND is_active = 1") == 8);
+  CHECK(scalar(db, "SELECT COUNT(*) FROM xp_entry WHERE id LIKE 'seed:xp:%' AND reason = 'SEED'") == 8);
+  CHECK(scalar(db, "SELECT total_xp FROM user WHERE id = 'seed:npc:mossbeard'") == domain::xpTable()[62]);
+  CHECK(domain::levelForXp(scalar(db, "SELECT total_xp FROM user WHERE id = 'seed:npc:nullwyn'")) == 9);
+  // The ledger is the truth and total_xp is its sum, for NPCs as for everyone.
+  CHECK(scalar(db, "SELECT COUNT(*) FROM user u WHERE u.total_xp <> (SELECT COALESCE(SUM(amount), 0) FROM xp_entry WHERE user_id = u.id)") == 0);
+  // An NPC can't be played, so it never earns more: its name key is reserved though.
+  CHECK(scalar(db, "SELECT COUNT(*) FROM adventurer WHERE name_key = 'mossbeard'") == 1);
+}
+
+TEST_CASE("reseeding the NPCs changes nothing, and follows the file when it changes", "[integration][seed][npc]") {
+  auto db = freshSeededDb();
+  const auto xpBefore = scalar(db, "SELECT SUM(total_xp) FROM user");
+  REQUIRE(runSeed(db, NOW).has_value());
+  CHECK(scalar(db, "SELECT SUM(total_xp) FROM user") == xpBefore);
+  CHECK(scalar(db, "SELECT COUNT(*) FROM adventurer") == 8);
+  CHECK(scalar(db, "SELECT COUNT(*) FROM xp_entry") == 8);
+
+  REQUIRE(seedWithNpcs(db, [](nlohmann::json& j) { j["npcs"][0]["xp"] = 70000; j["npcs"][7]["xp"] = 0; }).has_value());
+  CHECK(scalar(db, "SELECT total_xp FROM user WHERE id = 'seed:npc:mossbeard'") == 70000);
+  CHECK(scalar(db, "SELECT total_xp FROM user WHERE id = 'seed:npc:nullwyn'") == 0);
+  CHECK(scalar(db, "SELECT COUNT(*) FROM xp_entry WHERE user_id = 'seed:npc:nullwyn'") == 0);
+  CHECK(scalar(db, "SELECT COUNT(*) FROM user u WHERE u.total_xp <> (SELECT COALESCE(SUM(amount), 0) FROM xp_entry WHERE user_id = u.id)") == 0);
+
+  REQUIRE(runSeed(db, NOW).has_value());   // back to the shipped file
+  CHECK(scalar(db, "SELECT total_xp FROM user WHERE id = 'seed:npc:mossbeard'") == domain::xpTable()[62]);
+  CHECK(scalar(db, "SELECT COUNT(*) FROM xp_entry WHERE user_id = 'seed:npc:nullwyn'") == 1);
+}
+
+TEST_CASE("a reseed never touches a player's XP", "[integration][seed][npc]") {
+  auto db = freshSeededDb();
+  db.exec("INSERT INTO user(id, name, kind, total_xp, created_at, last_seen_at) VALUES ('p1', 'Marquis', 'PLAYER', 777, 't', 't')");
+  db.exec("INSERT INTO xp_entry(id, user_id, reason, ref_id, amount, created_at) VALUES ('x1', 'p1', 'QUEST_LOG', 'q', 777, 't')");
+  REQUIRE(runSeed(db, NOW).has_value());
+  CHECK(scalar(db, "SELECT total_xp FROM user WHERE id = 'p1'") == 777);
+  CHECK(scalar(db, "SELECT COUNT(*) FROM xp_entry WHERE user_id = 'p1'") == 1);
+}
+
+TEST_CASE("a player who already took an NPC's name keeps it; the NPC just has no look", "[integration][seed][npc]") {
+  auto d = Database::open(":memory:");
+  REQUIRE(d.has_value());
+  REQUIRE(applyMigrations(*d).has_value());
+  d->exec("INSERT INTO user(id, name, kind, created_at, last_seen_at) VALUES ('p1', 'Marquis', 'PLAYER', 't', 't')");
+  d->exec("INSERT INTO adventurer(id, user_id, name, name_key, appearance, loadout, is_active, created_at, updated_at) "
+          "VALUES ('player-adv', 'p1', 'MOSSBEARD', 'mossbeard', '{}', '{}', 1, 't', 't')");
+  const auto report = runSeed(*d, NOW);
+  REQUIRE(report.has_value());
+  CHECK(report->npcAdventurers == 7);
+  CHECK(report->npcAdventurersSkipped == 1);
+  CHECK(scalar(*d, "SELECT COUNT(*) FROM adventurer WHERE id = 'player-adv' AND user_id = 'p1' AND name = 'MOSSBEARD'") == 1);
+  CHECK(scalar(*d, "SELECT COUNT(*) FROM adventurer WHERE user_id = 'seed:npc:mossbeard'") == 0);
+  CHECK(scalar(*d, "SELECT total_xp FROM user WHERE id = 'seed:npc:mossbeard'") == domain::xpTable()[62]);   // XP still there
+}
+
+TEST_CASE("a bad NPC entry is refused and nothing is written", "[integration][seed][npc]") {
+  const auto refuses = [](const std::function<void(nlohmann::json&)>& edit) {
+    auto d = Database::open(":memory:");
+    REQUIRE(d.has_value());
+    REQUIRE(applyMigrations(*d).has_value());
+    const auto r = seedWithNpcs(*d, edit);
+    CHECK_FALSE(r.has_value());
+    CHECK(scalar(*d, "SELECT COUNT(*) FROM user") == 0);
+    CHECK(scalar(*d, "SELECT COUNT(*) FROM adventurer") == 0);
+  };
+  refuses([](nlohmann::json& j) { j["npcs"][0]["appearance"]["hair"] = 999; });                    // out of range
+  refuses([](nlohmann::json& j) { j["npcs"][0]["loadout"]["Head"] = "reapers_scythe"; });          // wrong slot
+  refuses([](nlohmann::json& j) { j["npcs"][0]["loadout"]["Head"] = "no_such_item"; });            // unknown item
+  refuses([](nlohmann::json& j) { j["npcs"][0]["xp"] = -5; });                                     // negative
+  refuses([](nlohmann::json& j) { j["npcs"][0]["xp"] = 999999999; });                              // absurd
+  refuses([](nlohmann::json& j) { j["npcs"][0].erase("appearance"); });                            // loadout without a look
 }

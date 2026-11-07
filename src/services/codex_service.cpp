@@ -101,6 +101,16 @@ Result<std::vector<Tombstone>> CodexService::tombstones() {
   });
 }
 
+Result<std::vector<CodexRow>> CodexService::allLevels(std::optional<domain::QuestType> scope) {
+  auto data = loaded();
+  if (!data) return tl::unexpected(data.error());
+  const Loaded& d = **data;
+  std::vector<CodexRow> out;
+  out.reserve(d.agents.size());
+  for (std::size_t i = 0; i < d.agents.size(); ++i) out.push_back({d.agents[i], domain::levelsFor(d.tables[i], scope)});
+  return out;
+}
+
 Result<std::vector<Agent>> CodexService::approvedAgents() {
   auto data = loaded();
   if (!data) return tl::unexpected(data.error());

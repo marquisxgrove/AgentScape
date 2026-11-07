@@ -49,7 +49,7 @@
   - Add `XpDrop`, the level-up chatbox message, `Fireworks` (reduced-motion aware), and "You have unlocked: …" messages driven by `QuestOutcome`. Add optional 8-bit level-up sound (off by default).
   - _Requirements: 5.5, 5.6, 6.1_
 
-- [ ] 7. Build the Hiscores
+- [x] 7. Build the Hiscores
   - Build the Hiscores screen with the Agents and Adventurers tabs, board selector, Quest_Type scope, competition ranks, pagination, and search-to-page.
   - _Requirements: 7.1–7.4_
 

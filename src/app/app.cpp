@@ -25,6 +25,7 @@
 #include "screens/codex/keeper_screen.hpp"
 #include "screens/codex/propose_screen.hpp"
 #include "screens/graveyard/graveyard_screen.hpp"
+#include "screens/hiscores/hiscores_screen.hpp"
 #include "screens/codex/proving_screen.hpp"
 #include "screens/costumer/costumer_screen.hpp"
 #include "screens/login/login_screen.hpp"
@@ -204,7 +205,8 @@ void App::openStore(bool resetData) {
                              services::AgentService{store_->db, clock_, rng_, bus_},
                              services::KeeperService{store_->db, clock_, rng_, bus_},
                              services::ProvingService{store_->db, clock_},
-                             services::QuestService{store_->db, clock_, rng_, bus_}});
+                             services::QuestService{store_->db, clock_, rng_, bus_},
+                             services::HiscoresService{store_->db, codexCache_}});
   // An idle Guest's content leaves the Codex through the normal delete paths, not by cascade (quest-logs Req 9.2).
   services_->profile.setBeforeGuestDelete([this](const std::string& userId) {
     if (auto r = services_->quests.purgeUser(userId); !r) logError("Purge Guest quest logs", r.error());
@@ -313,6 +315,7 @@ void App::registerScreens() {
   screens_.registerScreen(ScreenId::Keeper, [] { return std::make_unique<screens::KeeperScreen>(); });
   screens_.registerScreen(ScreenId::Proving, [] { return std::make_unique<screens::ProvingScreen>(); });
   screens_.registerScreen(ScreenId::Graveyard, [] { return std::make_unique<screens::GraveyardScreen>(); });
+  screens_.registerScreen(ScreenId::Hiscores, [] { return std::make_unique<screens::HiscoresScreen>(); });
   screens_.registerScreen(ScreenId::Tavern, [] { return std::make_unique<screens::TavernScreen>(); });
   screens_.registerScreen(ScreenId::QuestDetail, [] { return std::make_unique<screens::QuestDetailScreen>(); });
   screens_.registerScreen(ScreenId::QuestScroll, [] { return std::make_unique<screens::QuestScrollScreen>(); });
@@ -361,6 +364,10 @@ void App::registerScreens() {
         {"quest-scroll-rating", ScreenId::QuestScroll, {{"agent", "gryphon"}, {"step", "2"}}},
         {"quest-scroll-story", ScreenId::QuestScroll, {{"agent", "gryphon"}, {"step", "3"}}},
         {"quest-scroll-demo", ScreenId::QuestScroll, {{"agent", "gryphon"}, {"demo", "1"}, {"submit", "1"}}},
+        {"hiscores", ScreenId::Hiscores, {}},
+        {"hiscores-speed", ScreenId::Hiscores, {{"board", "9"}}},
+        {"hiscores-adventurers", ScreenId::Hiscores, {{"tab", "adventurers"}}},
+        {"hiscores-search", ScreenId::Hiscores, {{"tab", "adventurers"}, {"q", "nullwyn"}}},
         {"tavern", ScreenId::Tavern, {}},
         {"tavern-helpful", ScreenId::Tavern, {{"sort", "helpful"}}},
         {"tavern-gryphon", ScreenId::Tavern, {{"agent", "gryphon"}}},
@@ -849,7 +856,22 @@ bool App::runCodexStep() {
       if (!voted || !*voted) return fail("another adventurer's Helpful vote failed");
       if (totalXp_ != before + 25) return fail("a Helpful vote should have paid the author 25 XP");
       if (svc.quests.toggleHelpful(me, smokeQuestLogId_)) return fail("voting on your own Quest Log was allowed");
-      SDL_Log("SMOKE OK: codex flow completed (%zu tombstones, level %d)", smokeTombstones_, currentLevel_);
+      screens_.navigate(ScreenId::Hiscores, {{"tab", "adventurers"}, {"q", "Smokey"}});
+      return false;
+    }
+    case 11: {  // the Hiscores know about the Guest, at the rank its XP deserves
+      if (screens_.currentId() != ScreenId::Hiscores) return fail("did not reach the Hiscores");
+      auto board = svc.hiscores.adventurers(0, "Smokey");
+      if (!board || !board->match) return fail("the Hiscores should list the Guest's Adventurer by name");
+      const auto& row = board->rows[*board->match];
+      if (row.xp != totalXp_ || row.level != currentLevel_) return fail("the Hiscores row should match the Guest's XP and level");
+      int above = 0;
+      for (const auto& r : board->rows) above += r.xp > row.xp ? 1 : 0;
+      if (row.rank != 1 + above) return fail("the Guest's rank should be 1 plus the people with more XP");
+      auto agents = svc.hiscores.agents({}, 0, "");
+      if (!agents || agents->rows.empty() || agents->rows.front().rank != 1) return fail("the Agent board should start at rank 1");
+      shoot("x9-hiscores.png");
+      SDL_Log("SMOKE OK: codex flow completed (%zu tombstones, level %d, rank %d)", smokeTombstones_, currentLevel_, row.rank);
       return true;
     }
     default:

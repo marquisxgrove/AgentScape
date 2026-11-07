@@ -7,7 +7,11 @@
 #include <optional>
 
 #include "core/civil_time.hpp"
+#include "domain/adventurer_name.hpp"
+#include "domain/appearance_json.hpp"
 #include "domain/codex_validation.hpp"
+#include "domain/items.hpp"
+#include "domain/loadout_json.hpp"
 #include "domain/skills.hpp"
 #include "domain/slug.hpp"
 
@@ -20,6 +24,9 @@ using nlohmann::json;
 struct NpcSeed {
   std::string id;
   std::string name;
+  std::int64_t xp = 0;                      // sample Questing XP (a SEED ledger row), so the Hiscores are alive
+  std::optional<std::string> appearance;    // JSON; with it the NPC gets an active Adventurer to draw
+  std::string loadout = "{}";
 };
 
 struct AgentSeed {
@@ -92,10 +99,34 @@ Result<void> parseNpcs(std::string_view file, const json& doc, ParsedSeed& out) 
         !item["name"].is_string()) {
       return invalid(file, "each npc needs string id and name");
     }
-    NpcSeed npc{item["id"].get<std::string>(), item["name"].get<std::string>()};
+    NpcSeed npc;
+    npc.id = item["id"].get<std::string>();
+    npc.name = item["name"].get<std::string>();
     if (!validSeedId(npc.id, "npc")) return invalid(file, "bad npc id '" + npc.id + "' (want seed:npc:<slug>)");
     // Placeholder bounds until character-creator's validateName lands (it applies to NPCs too).
     if (npc.name.empty() || npc.name.size() > 24) return invalid(file, "npc name must be 1-24 bytes: " + npc.id);
+    if (item.contains("xp")) {
+      if (!item["xp"].is_number_integer() || item["xp"].get<std::int64_t>() < 0 || item["xp"].get<std::int64_t>() > 200000) {
+        return invalid(file, "npc xp must be an integer 0..200000: " + npc.id);
+      }
+      npc.xp = item["xp"].get<std::int64_t>();
+    }
+    if (item.contains("appearance")) {
+      const auto look = domain::parseAppearance(item["appearance"].dump());
+      if (!look || !domain::validateAppearance(*look)) return invalid(file, "bad npc appearance: " + npc.id);
+      npc.appearance = item["appearance"].dump();
+      if (item.contains("loadout")) {
+        if (!item["loadout"].is_object()) return invalid(file, "npc loadout must be an object: " + npc.id);
+        for (const auto& [slotName, itemId] : item["loadout"].items()) {
+          const auto slot = domain::slotFromKey(slotName);
+          const domain::Item* gear = itemId.is_string() ? domain::findItem(itemId.get<std::string>()) : nullptr;
+          if (!slot || gear == nullptr || gear->slot != *slot) return invalid(file, "bad npc loadout entry " + slotName + ": " + npc.id);
+        }
+        npc.loadout = item["loadout"].dump();
+      }
+    } else if (item.contains("loadout")) {
+      return invalid(file, "npc loadout without an appearance: " + npc.id);
+    }
     if (std::find(seen.begin(), seen.end(), npc.id) != seen.end()) return invalid(file, "duplicate id " + npc.id);
     seen.push_back(npc.id);
     out.npcs.push_back(std::move(npc));
@@ -298,6 +329,57 @@ Result<SeedReport> runSeed(Database& db, std::span<const SeedFile> files, std::c
       upsertNpc.bind(1, npc.id).bind(2, npc.name).bind(3, parsed->snapshotAt).bind(4, parsed->snapshotAt).run();
       upsertNpc.reset();
       ++report.npcsUpserted;
+
+      // The NPC's Adventurer (its look, for the Hiscores). A player who already took that name keeps it: the NPC then
+      // simply has no thumbnail, as with an Agent whose slug a player took.
+      const std::string slug = npc.id.substr(std::string("seed:npc:").size());
+      if (npc.appearance) {
+        const std::string advId = "seed:adv:" + slug;
+        const std::string key = domain::nameKey(npc.name);
+        auto taken = db.prepare("SELECT 1 FROM adventurer WHERE name_key = ? AND id <> ?");
+        taken.bind(1, key).bind(2, advId);
+        if (taken.step()) {
+          ++report.npcAdventurersSkipped;
+        } else {
+          db.prepare("INSERT INTO adventurer(id, user_id, name, name_key, appearance, loadout, is_active, created_at, updated_at) "
+                     "VALUES (?, ?, ?, ?, ?, ?, 1, ?, ?) "
+                     "ON CONFLICT(id) DO UPDATE SET name = excluded.name, name_key = excluded.name_key, "
+                     "appearance = excluded.appearance, loadout = excluded.loadout, updated_at = excluded.updated_at")
+              .bind(1, advId)
+              .bind(2, npc.id)
+              .bind(3, npc.name)
+              .bind(4, key)
+              .bind(5, *npc.appearance)
+              .bind(6, npc.loadout)
+              .bind(7, parsed->snapshotAt)
+              .bind(8, parsed->snapshotAt)
+              .run();
+          ++report.npcAdventurers;
+        }
+      }
+
+      // The NPC's XP is one SEED ledger row, kept in step with the file on a reseed (NPCs earn nothing else).
+      const std::string xpId = "seed:xp:" + slug;
+      auto have = db.prepare("SELECT amount FROM xp_entry WHERE id = ?");
+      have.bind(1, xpId);
+      const bool exists = have.step();
+      const std::int64_t old = exists ? have.columnInt(0) : 0;
+      have.reset();
+      if (!exists && npc.xp > 0) {
+        db.prepare("INSERT INTO xp_entry(id, user_id, reason, ref_id, amount, created_at) VALUES (?, ?, 'SEED', 'seed', ?, ?)")
+            .bind(1, xpId)
+            .bind(2, npc.id)
+            .bind(3, npc.xp)
+            .bind(4, parsed->snapshotAt)
+            .run();
+      } else if (exists && npc.xp > 0 && old != npc.xp) {
+        db.prepare("UPDATE xp_entry SET amount = ? WHERE id = ?").bind(1, npc.xp).bind(2, xpId).run();
+      } else if (exists && npc.xp == 0) {
+        db.prepare("DELETE FROM xp_entry WHERE id = ?").bind(1, xpId).run();
+      }
+      if (npc.xp != old) {
+        db.prepare("UPDATE user SET total_xp = total_xp + ? WHERE id = ?").bind(1, npc.xp - old).bind(2, npc.id).run();
+      }
     }
 
     // Agents. A player's own Agent with the same slug wins; the seed Agent is skipped, along with its rows.

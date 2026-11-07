@@ -200,7 +200,7 @@ TEST_CASE("a user without an Adventurer is sent to the Costumer and nothing is w
   CHECK(e.error.message == "You need an Adventurer to go questing.");
   CHECK(e.error.code == GameErrorCode::Forbidden);
   CHECK(f.scalar("SELECT COUNT(*) FROM quest_log") == 0);
-  CHECK(f.scalar("SELECT COUNT(*) FROM xp_entry") == 0);
+  CHECK(f.scalar("SELECT COUNT(*) FROM xp_entry WHERE user_id NOT LIKE 'seed:%'") == 0);
   CHECK(f.scalar("SELECT COUNT(*) FROM activity_event") == 0);
   CHECK(f.storedAggregates().empty());
   CHECK(f.ratingEvents.empty());
@@ -398,7 +398,7 @@ TEST_CASE("deleting a log revokes the helpful XP it earned too", "[integration][
   CHECK(f.totalXp("alice") == 300);
   REQUIRE(f.quests.deleteQuestLog("alice", made->questLogId).has_value());
   CHECK(f.totalXp("alice") == 0);
-  CHECK(f.scalar("SELECT COUNT(*) FROM xp_entry") == 0);
+  CHECK(f.scalar("SELECT COUNT(*) FROM xp_entry WHERE user_id NOT LIKE 'seed:%'") == 0);
   CHECK(f.scalar("SELECT COUNT(*) FROM helpful_vote") == 0);   // cascaded
   f.checkInvariants();
 }
@@ -665,7 +665,7 @@ TEST_CASE("a seed Agent has no proposer, so approving one pays nobody", "[integr
   KeeperService keeper(f.db, f.clock, f.rng, f.bus);
   f.db.exec("UPDATE agent SET status = 'PENDING' WHERE id = '" + CAIRN + "'");
   REQUIRE(keeper.moderateAgent("kay", CAIRN, true).has_value());
-  CHECK(f.scalar("SELECT COUNT(*) FROM xp_entry") == 0);
+  CHECK(f.scalar("SELECT COUNT(*) FROM xp_entry WHERE user_id NOT LIKE 'seed:%'") == 0);
 }
 
 TEST_CASE("a new Guest starts at Questing level 13 from a seed ledger row", "[integration][quests][xp]") {
