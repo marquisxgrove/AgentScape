@@ -35,10 +35,10 @@
   - Add the parchment card, skills grid with original pixel skill icons, Quest_Type selector, top Boons/Banes, "Write a Quest Log" button, and the website link with confirmation (`platform::openUrl`).
   - _Requirements: 2.1–2.5_
 
-- [ ] 5. Add Boons, Banes, and votes
-  - [ ] 5.1 Implement the `createNote` and `voteOnNote` commands with rate limiting, the self-vote guard, and transactional count updates.
+- [x] 5. Add Boons, Banes, and votes
+  - [x] 5.1 Implement the `createNote` and `voteOnNote` commands with rate limiting, the self-vote guard, and transactional count updates.
     - _Requirements: 5.1–5.6_
-  - [ ] 5.2 Build the Note list UI with agree/disagree buttons, "view all", and plain-text rendering (`TextUnformatted`).
+  - [x] 5.2 Build the Note list UI with agree/disagree buttons, "view all", and plain-text rendering (`TextUnformatted`).
     - _Requirements: 5.5, 5.6_
 
 - [ ] 6. Build proposals and Keeper tools
