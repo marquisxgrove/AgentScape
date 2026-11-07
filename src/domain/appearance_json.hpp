@@ -2,6 +2,9 @@
 
 #include <nlohmann/json.hpp>
 
+#include <optional>
+#include <string_view>
+
 #include "domain/appearance.hpp"
 
 namespace as::domain {
@@ -36,6 +39,32 @@ inline void from_json(const nlohmann::json& j, Appearance& a) {
   j.at("arms").get_to(a.arms);
   j.at("legs").get_to(a.legs);
   j.at("colors").get_to(a.colors);
+}
+
+// Non-throwing parse for stored data: nullopt if the text isn't valid JSON, a field is missing or
+// has the wrong type. Does NOT range-check; callers also run validateAppearance.
+inline std::optional<Appearance> parseAppearance(std::string_view text) {
+  const auto j = nlohmann::json::parse(text.begin(), text.end(), nullptr, /*allow_exceptions=*/false);
+  if (!j.is_object()) return std::nullopt;
+  const auto intField = [&](const nlohmann::json& obj, const char* key, int& out) {
+    const auto it = obj.find(key);
+    if (it == obj.end() || !it->is_number_integer()) return false;
+    out = it->get<int>();
+    return true;
+  };
+  Appearance a;
+  const auto body = j.find("bodyType");
+  if (body == j.end() || !body->is_string()) return std::nullopt;
+  a.bodyType = body->get<std::string>() == "B" ? BodyType::B : BodyType::A;
+  const auto colors = j.find("colors");
+  if (colors == j.end() || !colors->is_object()) return std::nullopt;
+  const bool ok = intField(j, "hair", a.hair) && intField(j, "facialHair", a.facialHair) &&
+                  intField(j, "torso", a.torso) && intField(j, "arms", a.arms) && intField(j, "legs", a.legs) &&
+                  intField(*colors, "hair", a.colors.hair) && intField(*colors, "torso", a.colors.torso) &&
+                  intField(*colors, "legs", a.colors.legs) && intField(*colors, "feet", a.colors.feet) &&
+                  intField(*colors, "skin", a.colors.skin);
+  if (!ok) return std::nullopt;
+  return a;
 }
 
 }  // namespace as::domain

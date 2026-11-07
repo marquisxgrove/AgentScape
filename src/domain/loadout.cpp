@@ -11,6 +11,22 @@ bool isTwoHanded(const std::string& itemId) {
 }
 }  // namespace
 
+OwnedSet defaultOwnedSet() {
+  OwnedSet owned;
+  for (const auto& item : ITEMS()) {
+    if (isDefault(item)) owned.insert(std::string(item.id));
+  }
+  return owned;
+}
+
+Loadout defaultLoadout() {
+  Loadout loadout;
+  for (const auto& item : ITEMS()) {
+    if (isDefault(item)) loadout[item.slot] = std::string(item.id);
+  }
+  return loadout;
+}
+
 Result<Loadout, EquipError> equip(const Loadout& current, std::string_view itemId, const OwnedSet& owned) {
   const Item* item = findItem(itemId);
   if (item == nullptr) return tl::unexpected(EquipError::UnknownItem);

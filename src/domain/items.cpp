@@ -11,8 +11,8 @@ constexpr std::array<Layer, 2> HIDE_HAIR_FACIAL{Layer::Hair, Layer::FacialHair};
 constexpr std::array<Layer, 1> HIDE_FACIAL{Layer::FacialHair};
 constexpr std::array<Layer, 3> HIDE_ARMS_HANDS_LEGS{Layer::Arms, Layer::Hands, Layer::Legs};
 
-const std::array<Item, 26>& catalog() {
-  static const std::array<Item, 26> ITEMS_TABLE = {{
+const std::array<Item, 23>& catalog() {
+  static const std::array<Item, 23> ITEMS_TABLE = {{
       // HEAD
       {"apprentice_hood", "Apprentice Hood", Slot::Head, "A hood for those still learning the words of power.",
        "apprentice_hood", UnlockLevel{5}},
@@ -66,10 +66,6 @@ const std::array<Item, 26>& catalog() {
        UnlockDefault{}},
       {"cobweb_boots", "Cobweb Boots", Slot::Feet, "Trailing silk from some very large spider.", "cobweb_boots",
        UnlockKiroween{}},
-      // extra defaults to keep every default slot represented in art tests
-      {"plain_cap", "Plain Cap", Slot::Head, "A simple cap. Technically a hat.", "plain_cap", UnlockLevel{1}},
-      {"rope_belt", "Rope Belt", Slot::Neck, "Not quite jewellery, but it holds.", "rope_belt", UnlockLevel{2}},
-      {"work_gloves", "Work Gloves", Slot::Hands, "For honest, splintery labour.", "work_gloves", UnlockDefault{}},
   }};
   return ITEMS_TABLE;
 }

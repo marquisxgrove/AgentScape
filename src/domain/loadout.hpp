@@ -20,6 +20,11 @@ using OwnedSet = std::set<std::string, std::less<>>;
 
 enum class EquipError { UnknownItem, NotUnlocked };
 
+// Every UnlockDefault item id: what a brand-new account owns.
+OwnedSet defaultOwnedSet();
+// The default item of each slot that has one (Wooden Stick, Plain Tunic, Plain Trousers, Leather Boots).
+Loadout defaultLoadout();
+
 // Equips itemId: places it in its own slot, replaces any current occupant (Req 4.2); equipping a
 // two-handed weapon removes any shield and vice-versa (Req 4.3). Refuses unowned items, leaving the
 // loadout unchanged (Req 4.4).

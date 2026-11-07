@@ -100,6 +100,7 @@ as_enable_sanitizers(as_events)
 # Services own transactions and orchestrate domain + db (no SDL/ImGui).
 add_library(as_services STATIC
   src/services/activity_service.cpp
+  src/services/adventurer_service.cpp
   src/services/profile_service.cpp)
 target_include_directories(as_services PUBLIC src)
 target_link_libraries(as_services PUBLIC as_events as_db as_domain)
@@ -214,6 +215,7 @@ if(AS_BUILD_TESTS)
 
   add_executable(integration_tests
     tests/integration/activity_service_test.cpp
+    tests/integration/adventurer_service_test.cpp
     tests/integration/db_test.cpp
     tests/integration/local_store_test.cpp
     tests/integration/profile_service_test.cpp

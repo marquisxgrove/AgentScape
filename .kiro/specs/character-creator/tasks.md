@@ -30,12 +30,13 @@
     - **Property 5: Hiding does not mutate appearance** / **Property 6: Draw order is a filtered permutation**
     - **Validates: Requirements 3.1, 4.5**
 
-- [ ] 3. Add persistence and services
-  - [ ] 3.1 Add migration `0002_adventurers.sql` (`adventurer`, `item_unlock`, partial unique index) and the repositories.
+- [x] 3. Add persistence and services
+  - [x] 3.1 Add migration `0002_adventurers.sql` (`adventurer`, `item_unlock`, partial unique index) and the repositories.
     - _Requirements: 1.4, 6.3, 7.1, 7.2_
-  - [ ] 3.2 Implement `AdventurerService`: `createAdventurer`, `saveAdventurer`, `setActiveAdventurer`, `deleteAdventurer`, and `claimKiroweenItem`, with ownership checks and the single-active transaction.
+  - [x] 3.2 Implement `AdventurerService`: `createAdventurer`, `saveAdventurer`, `setActiveAdventurer`, `deleteAdventurer`, and `claimKiroweenItem`, with ownership checks and the single-active transaction.
     - _Requirements: 1.1–1.5, 6.2, 6.3, 7.1–7.3_
-  - [ ]* 3.3 Write integration tests for the single-active invariant and the 5-Adventurer limit.
+    - _Note: `claimKiroweenItem` takes the user's Questing level as an argument (the Reaper's Scythe needs 13). XP lives in the quest-logs spec, so the caller supplies it; guests start at level 13 there. `grantItem` is the hook quest-logs will use to write LEVEL unlocks. Repositories are SQL inside the service for now (one consumer)._
+  - [x]* 3.3 Write integration tests for the single-active invariant and the 5-Adventurer limit.
     - _Requirements: 1.4, 7.2, 7.3_
 
 - [ ] 4. Create sprites
