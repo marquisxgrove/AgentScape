@@ -2,31 +2,31 @@
 
 > Depends on: `game-shell` (tasks 1–8)
 
-- [ ] 1. Implement appearance and name domain
-  - [ ] 1.1 Implement `appearance` (types, limits, `cycle`, `randomAppearance`, `validateAppearance`, JSON codec) and `adventurer_name` (`validateName`, `nameKey`, blocklist).
+- [x] 1. Implement appearance and name domain
+  - [x] 1.1 Implement `appearance` (types, limits, `cycle`, `randomAppearance`, `validateAppearance`, JSON codec) and `adventurer_name` (`validateName`, `nameKey`, blocklist).
     - _Requirements: 1.1, 1.2, 2.1–2.5_
-  - [ ]* 1.2 Write property test for cycling (Property 7).
+  - [x]* 1.2 Write property test for cycling (Property 7).
     - **Property 7: Cycling wraps**
     - **Validates: Requirement 2.3**
-  - [ ]* 1.3 Write property test for random appearance validity (Property 8).
+  - [x]* 1.3 Write property test for random appearance validity (Property 8).
     - **Property 8: Random appearance is valid**
     - **Validates: Requirement 2.5**
-  - [ ]* 1.4 Write property test for name rules (Property 9).
+  - [x]* 1.4 Write property test for name rules (Property 9).
     - **Property 9: Name rules**
     - **Validates: Requirements 1.1, 1.2**
 
-- [ ] 2. Implement item catalog, loadout, and palette domain
-  - [ ] 2.1 Implement `items` with the full catalog, including all eight Kiroween items and their `twoHanded`/`hides` flags.
+- [x] 2. Implement item catalog, loadout, and palette domain
+  - [x] 2.1 Implement `items` with the full catalog, including all eight Kiroween items and their `twoHanded`/`hides` flags.
     - _Requirements: 5.1, 6.1_
-  - [ ] 2.2 Implement `loadout`: `equip`, `unequip`, `validateLoadout`, `hiddenLayers`, `DRAW_ORDER`, `drawOrder`, and the JSON codec. Implement `palette::buildPalette`.
+  - [x] 2.2 Implement `loadout`: `equip`, `unequip`, `validateLoadout`, `hiddenLayers`, `DRAW_ORDER`, `drawOrder`, and the JSON codec. Implement `palette::buildPalette`.
     - _Requirements: 4.1–4.5, 3.1_
-  - [ ]* 2.3 Write property test for appearance and loadout round-trip (Property 1).
+  - [x]* 2.3 Write property test for appearance and loadout round-trip (Property 1).
     - **Property 1: Appearance and loadout round-trip**
     - **Validates: Requirement 7.1**
-  - [ ]* 2.4 Write model-based property tests for slot integrity, two-handed exclusivity, and locked items (Properties 2–4).
+  - [x]* 2.4 Write model-based property tests for slot integrity, two-handed exclusivity, and locked items (Properties 2–4).
     - **Property 2: Slot integrity** / **Property 3: Two-handed exclusivity** / **Property 4: Locked items are never equipped**
     - **Validates: Requirements 4.1–4.4**
-  - [ ]* 2.5 Write property tests for hiding and draw order (Properties 5–6).
+  - [x]* 2.5 Write property tests for hiding and draw order (Properties 5–6).
     - **Property 5: Hiding does not mutate appearance** / **Property 6: Draw order is a filtered permutation**
     - **Validates: Requirements 3.1, 4.5**
 

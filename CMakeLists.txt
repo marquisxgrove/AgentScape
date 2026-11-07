@@ -37,9 +37,14 @@ as_enable_sanitizers(as_core)
 add_library(as_domain STATIC
   src/domain/chat_log.cpp
   src/domain/context_menu.cpp
+  src/domain/adventurer_name.cpp
+  src/domain/appearance.cpp
   src/domain/device_flow.cpp
   src/domain/frame.cpp
   src/domain/geometry.cpp
+  src/domain/items.cpp
+  src/domain/loadout.cpp
+  src/domain/palette.cpp
   src/domain/guest_name.cpp
   src/domain/kiroween.cpp
   src/domain/settings.cpp)
@@ -189,6 +194,7 @@ if(AS_BUILD_TESTS)
     tests/unit/geometry_test.cpp
     tests/unit/kiroween_fx_test.cpp
     tests/unit/markup_test.cpp
+    tests/unit/palette_test.cpp
     tests/unit/regressions_game_shell.cpp
     tests/unit/screen_stack_test.cpp)
   target_link_libraries(unit_tests PRIVATE as_app_core as_events as_platform_core as_ui_core as_domain Catch2::Catch2WithMain)
@@ -196,7 +202,10 @@ if(AS_BUILD_TESTS)
   as_enable_sanitizers(unit_tests)
   catch_discover_tests(unit_tests PROPERTIES LABELS "unit")
 
-  add_executable(property_tests tests/property/game_shell_props.cpp)
+  add_executable(property_tests
+    tests/property/game_shell_props.cpp
+    tests/property/character_creator_props.cpp
+    tests/property/loadout_props.cpp)
   target_link_libraries(property_tests PRIVATE as_domain Catch2::Catch2WithMain rapidcheck)
   target_include_directories(property_tests PRIVATE tests)
   as_enable_warnings(property_tests)
