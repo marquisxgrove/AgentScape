@@ -45,25 +45,28 @@
   - _Requirements: 3.1, 6.1_
   - _Note: drawn procedurally by `tools/gen_avatar.py` (deterministic). One set of layers serves both body types: type B is the same art with the torso band pulled in by one pixel per side at composite time (`render::narrowedForBodyB`), which keeps the atlas small. Plain Tunic/Trousers/Boots have no overlay (they are the base layers). Art quality is "readable procedural pixel art", reviewed via the avatar gallery; a hand-drawn pass would be a drop-in replacement of the two atlas files._
 
-- [ ] 5. Build the AvatarRenderer (5.1 and 5.3 done; 5.2 Export button waits for the Costumer)
+- [x] 5. Build the AvatarRenderer
   - [x] 5.1 Implement `AvatarRenderer`: atlas loading, palette swap, layer compositing via `drawOrder`, the texture cache, facings, and idle animation that respects "Reduce motion".
     - _Requirements: 2.6, 3.1–3.3, 4.5_
-  - [~] 5.2 Implement `exportSurface`, `platform::exportPng` (desktop save dialog; web download), and the Export button.
+  - [x] 5.2 Implement `exportSurface`, `platform::exportPng` (desktop save dialog; web download), and the Export button.
     - _Requirements: 8.1, 8.2_
-    - _Done: `AvatarRenderer::exportSurface` (4x, transparent) and `platform::PngExporter` (desktop `SDL_ShowSaveFileDialog`, web browser download, cancel/failed outcomes, safe file names), verified end to end with `--export-avatar`. The Export button itself is part of the Costumer screen (task 6.1). The web download path is compiled only under Emscripten and is unverified here._
+    - _Done: `AvatarRenderer::exportSurface` (4x, transparent) and `platform::PngExporter` (desktop `SDL_ShowSaveFileDialog`, web browser download, cancel/failed outcomes, safe file names), verified end to end with `--export-avatar`. The Export button is on the Costumer preview. The save dialog cannot be driven headlessly, and the web download path is compiled only under Emscripten and is unverified here._
   - [x] 5.3 Add the dev-only avatar gallery screen for visual QA.
     - _Requirements: 3.1_
 
-- [ ] 6. Build the Costumer screen
-  - [ ] 6.1 Build the designer panel: arrow controls, colour swatches, Randomise, rotate buttons, and the "Describe" text toggle.
+- [x] 6. Build the Costumer screen
+  - [x] 6.1 Build the designer panel: arrow controls, colour swatches, Randomise, rotate buttons, and the "Describe" text toggle.
     - _Requirements: 2.1–2.6, 3.2, 3.4_
-  - [ ] 6.2 Build the paper-doll equipment panel (9 slots) with the context menu (Remove/Examine) and the wardrobe grid with slot and "Owned only" filters and locked states.
+  - [x] 6.2 Build the paper-doll equipment panel (9 slots) with the context menu (Remove/Examine) and the wardrobe grid with slot and "Owned only" filters and locked states.
     - _Requirements: 4.1–4.6, 5.1–5.3_
-  - [ ] 6.3 Add Kiroween claim actions and the "Returns next Kiroween" state.
+    - _Note: the wardrobe is a text list with Wear/Claim buttons, not an icon grid: there is no per-item icon art yet (items are only drawn on the avatar). Examine text shows on hover, and a worn slot's menu offers Remove / Examine._
+  - [x] 6.3 Add Kiroween claim actions and the "Returns next Kiroween" state.
     - _Requirements: 6.2–6.4_
-  - [ ] 6.4 Add the Adventurer switcher and delete confirmation, and show the active Adventurer on the World_Map.
+  - [x] 6.4 Add the Adventurer switcher and delete confirmation, and show the active Adventurer on the World_Map.
     - _Requirements: 7.2, 7.3_
+    - _Note: switching is refused while there are unsaved edits ("Save your changes before switching Adventurers."), so edits are never lost silently. The active Adventurer stands in the World town square._
 
-- [ ] 7. Checkpoint
+- [x] 7. Checkpoint
   - Extend the smoke test: create an Adventurer → claim and equip Jack-o'-Lantern Mask + Reaper's Scythe (Guest users start at level 13) → Save → restart the `App` on the same database → still equipped.
   - Make sure all tests pass, and ask the user if questions arise.
+  - _Note: `ctest -L smoke` runs `smoke_costumer` (cmake/RunSmokeCostumer.cmake): phase 1 creates "Mossbeard" as a Guest, claims and equips the Jack-o'-Lantern Mask and Reaper's Scythe, and saves; phase 2 is a separate app process on the same database and asserts the gear is still equipped. Mutation-checked (skipping Save fails it)._

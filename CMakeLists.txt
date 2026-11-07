@@ -45,6 +45,7 @@ add_library(as_domain STATIC
   src/domain/items.cpp
   src/domain/loadout.cpp
   src/domain/palette.cpp
+  src/domain/wardrobe.cpp
   src/domain/guest_name.cpp
   src/domain/kiroween.cpp
   src/domain/settings.cpp)
@@ -83,6 +84,7 @@ as_enable_sanitizers(as_platform_core)
 add_library(as_ui_core STATIC
   src/game/kiroween_fx.cpp
   src/ui/chat_model.cpp
+  src/ui/costumer_draft.cpp
   src/ui/context_menu_model.cpp
   src/ui/markup.cpp)
 target_include_directories(as_ui_core PUBLIC src)
@@ -145,6 +147,7 @@ if(AS_BUILD_APP)
     src/render/game_frame.cpp
     src/render/nine_slice.cpp
     src/render/texture_cache.cpp
+    src/screens/costumer/costumer_screen.cpp
     src/screens/login/login_screen.cpp
     src/screens/world/world_screen.cpp
     src/ui/chatbox.cpp
@@ -195,6 +198,7 @@ if(AS_BUILD_TESTS)
 
   add_executable(unit_tests
     tests/unit/avatar_render_test.cpp
+    tests/unit/costumer_draft_test.cpp
     tests/unit/civil_time_test.cpp
     tests/unit/config_test.cpp
     tests/unit/core_test.cpp
@@ -208,6 +212,7 @@ if(AS_BUILD_TESTS)
     tests/unit/kiroween_fx_test.cpp
     tests/unit/markup_test.cpp
     tests/unit/palette_test.cpp
+    tests/unit/wardrobe_test.cpp
     tests/unit/regressions_game_shell.cpp
     tests/unit/screen_stack_test.cpp)
   target_link_libraries(unit_tests PRIVATE as_app_core as_events as_platform_core as_render_core as_ui_core as_domain Catch2::Catch2WithMain)
@@ -247,6 +252,13 @@ if(AS_BUILD_TESTS)
         -DOUTDIR=${CMAKE_BINARY_DIR}/smoke
         -P ${CMAKE_SOURCE_DIR}/cmake/RunSmoke.cmake)
     set_tests_properties(smoke_demo PROPERTIES LABELS "smoke"
+      ENVIRONMENT "SDL_VIDEO_DRIVER=dummy;SDL_RENDER_DRIVER=software")
+    add_test(NAME smoke_costumer
+      COMMAND ${CMAKE_COMMAND}
+        -DAGENTSCAPE=$<TARGET_FILE:agentscape>
+        -DOUTDIR=${CMAKE_BINARY_DIR}/smoke-costumer
+        -P ${CMAKE_SOURCE_DIR}/cmake/RunSmokeCostumer.cmake)
+    set_tests_properties(smoke_costumer PROPERTIES LABELS "smoke"
       ENVIRONMENT "SDL_VIDEO_DRIVER=dummy;SDL_RENDER_DRIVER=software")
   endif()
 endif()

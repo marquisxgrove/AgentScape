@@ -8,6 +8,7 @@
 #include "domain/adventurer_name.hpp"
 #include "domain/appearance_json.hpp"
 #include "domain/loadout_json.hpp"
+#include "domain/wardrobe.hpp"
 
 namespace as::services {
 
@@ -259,6 +260,25 @@ Result<void> AdventurerService::grantItem(const std::string& userId, std::string
         .bind(4, core::formatIso8601(clock_.now()))
         .run();
     tx.commit();
+  });
+}
+
+Result<std::vector<std::string>> AdventurerService::syncLevelUnlocks(const std::string& userId, int level) {
+  return db::guarded([&] {
+    std::vector<std::string> granted;
+    const std::string stamp = core::formatIso8601(clock_.now());
+    db::Transaction tx{db_};
+    for (const std::string& id : domain::levelUnlockIds(level)) {
+      db_.prepare("INSERT INTO item_unlock(user_id, item_id, source, unlocked_at) VALUES (?, ?, 'LEVEL', ?) "
+                  "ON CONFLICT(user_id, item_id) DO NOTHING")
+          .bind(1, userId)
+          .bind(2, id)
+          .bind(3, stamp)
+          .run();
+      if (db_.changes() == 1) granted.push_back(id);
+    }
+    tx.commit();
+    return granted;
   });
 }
 
