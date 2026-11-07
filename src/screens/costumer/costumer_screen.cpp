@@ -2,6 +2,7 @@
 
 #include <imgui.h>
 
+#include <cmath>
 #include <cstdint>
 
 #include "app/context_request.hpp"
@@ -213,14 +214,17 @@ void CostumerScreen::drawLook() {
 void CostumerScreen::drawGear(app::FrameCtx& ctx) {
   // The nine paper-doll slots: click an occupied slot for Remove / Examine.
   ui::ShadowText("Equipped (click a slot):", ui::PaletteColor::Parchment);
+  // Two equal columns, measured once (after SameLine the space left on the line is smaller).
+  const float slotW = std::floor((ImGui::GetContentRegionAvail().x - ImGui::GetStyle().ItemSpacing.x) / 2.0F);
   for (std::size_t i = 0; i < SLOTS.size(); ++i) {
     const auto [slot, name] = SLOTS[i];
     const auto it = draft_.loadout().find(slot);
     const bool filled = it != draft_.loadout().end();
     const domain::Item* item = filled ? domain::findItem(it->second) : nullptr;
-    const std::string label = std::string(name) + ": " + (item ? std::string(item->name) : "-") + "##slot" +
-                              std::to_string(i);
-    if (ui::PixelButton(label.c_str(), {158, 0}) && filled && ctx.contextRequest != nullptr) {
+    // A worn item shows its name (the slot is in the hover text, so long names fit); an empty slot shows the slot.
+    const std::string label = (item ? std::string(item->name) : std::string(name) + ": -") + "##slot" + std::to_string(i);
+    const std::string hover = std::string(name) + ": " + (item ? std::string(item->name) : "empty");
+    if (ui::PixelButton(label.c_str(), {slotW, 0}, ui::escapeMarkup(hover)) && filled && ctx.contextRequest != nullptr) {
       std::vector<domain::MenuAction> actions{{"remove:" + std::string(name), "Remove", std::string(name), true}};
       const ImVec2 at = ImGui::GetItemRectMin();
       ctx.contextRequest->open(actions, std::string(item->examine), at.x + 8, at.y + 8);
@@ -328,7 +332,7 @@ void CostumerScreen::drawAdventurers(app::FrameCtx& ctx) {
     ImGui::PopID();
   }
   if (!pendingDeleteId_.empty()) {
-    ui::RichText("<col=red>Type the Adventurer's name to confirm deletion.</col>");
+    ui::RichText("<col=orange>Type the Adventurer's name to confirm deletion.</col>");
   }
   ImGui::Spacing();
   if (static_cast<int>(list_.size()) < services::MAX_ADVENTURERS) {

@@ -47,7 +47,11 @@ jobs:
         uses: actions/upload-artifact@v5
         with:
           name: smoke-snapshots-${{ matrix.name }}
-          path: build/dev/smoke/*.png
+          path: |
+            build/dev/smoke/*.png
+            build/dev/smoke-costumer/*.png
+            build/dev/smoke-codex/*.png
+            build/dev/smoke-path/*.png
           if-no-files-found: ignore
 
   asan:

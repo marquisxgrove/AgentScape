@@ -172,7 +172,7 @@ void LoginScreen::drawChoices(app::FrameCtx& ctx) {
 
   if (!error_.empty()) {
     ImGui::Spacing();
-    ui::RichText(std::string("<col=red>") + ui::escapeMarkup(error_) + "</col>", ui::PaletteColor::TextYellow,
+    ui::RichText(std::string("<col=orange>") + ui::escapeMarkup(error_) + "</col>", ui::PaletteColor::TextYellow,
                  COLUMN_W);
   }
 }

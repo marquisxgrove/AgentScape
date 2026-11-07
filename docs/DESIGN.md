@@ -218,13 +218,14 @@ Each spec's `design.md` has the exact tables (SQL migrations in `data/migrations
 
 - Every map or scene interaction has an equivalent list control: the hotspot list, the bookshelf table, and the graveyard list.
 - Full keyboard and gamepad navigation includes the context menu (`Menu` key / Shift+F10, or the gamepad), with a visible yellow nav cursor.
-- A "Plain font" toggle, reduced-motion support (static fog, idle, and fireworks), and an AA-contrast palette. On the web, reduced motion defaults to the browser setting.
+- A "Plain font" toggle, reduced-motion support (static fog, idle, and fireworks), and a 12 px pixel font (1.5× its design size) so body text is readable on the 765×503 frame. On the web, reduced motion defaults to the browser setting.
+- **Contrast, measured** (WCAG ratio on the stone panel `#5d5447`): yellow 6.9, cyan 5.9, green 5.4 (AA); parchment 3.8 and orange 3.5 (large text only); red 1.9, blue 1.2 and purple 1.1 (fail). Red, blue and purple are therefore not used for text on stone: errors use orange, Banes use a red chip with white text, and highlights always pair colour with a symbol or number (`*`, `4/5`, `[Agree]`).
 - Level-ups and errors always appear as Chatbox text, not only as effects.
 - **Known limitation:** Dear ImGui has no accessibility tree, so screen readers aren't supported in the MVP. AccessKit integration is a stretch goal.
 
 ## 12. Trust, safety, and fairness
 
-- Agent text is neutral and factual. We don't use logos, and every Agent has an official link, which opens only after a "Leave AgentScape?" confirmation.
+- The shipped familiars are fictional (sample data), so no real product is rated by us. Agent text is neutral, there are no logos, and an Agent's website opens only after a "Leave AgentScape to visit <host>?" confirmation. Proposed Agents need an `https:` website.
 - Rate limits: 5 Quest Logs per hour, 10 Notes per hour, 3 proposals per day.
 - One Quest Log per (user, Agent, version). No self-votes. Helpful-vote XP is capped daily.
 - Report → Codex Keeper queue → hide (content) or exclude (ratings).
@@ -237,13 +238,13 @@ Property-based tests (RapidCheck) cover every pure domain rule; each spec's `des
 
 ## 14. Milestones
 
-| # | Milestone | Exit criteria |
-|---|---|---|
-| M1 | Shell | Guest login → world map → context menu → chatbox. Desktop and web builds green in CI. Web build deployed to GitHub Pages, and data survives a reload. |
-| M2 | Costumer | Create, dress, and save an Adventurer. Kiroween gear claimable. PNG export works on desktop and web. |
-| M3 | Codex | Seeded Agents and NPC adventurers, examine cards, notes and votes, compare view. |
-| M4 | Quests | Quest Logs update levels. XP, level-ups, unlocks, Hiscores. |
-| M5 | Polish and demo | Graveyard, fireworks, art pass, a11y pass, smoke test green, release binaries published, video recorded, submission filed. |
+| # | Milestone | Exit criteria | Status at submission |
+|---|---|---|---|
+| M1 | Shell | Guest login → world map → context menu → chatbox. Desktop and web builds green in CI. Web build deployed to GitHub Pages, and data survives a reload. | Done; CI green on all targets. Pages deployment workflow added; the reload check in browsers is manual. |
+| M2 | Costumer | Create, dress, and save an Adventurer. Kiroween gear claimable. PNG export works on desktop and web. | Done (desktop export tested headlessly; web download is manual). |
+| M3 | Codex | Seeded Agents and NPC adventurers, examine cards, notes and votes, compare view. | Done, plus proposals, Keeper tools and the Hall of Hallucinations. |
+| M4 | Quests | Quest Logs update levels. XP, level-ups, unlocks, Hiscores. | Done, plus sample Quest Logs from the townsfolk. |
+| M5 | Polish and demo | Graveyard, fireworks, art pass, a11y pass, smoke test green, release binaries published, video recorded, submission filed. | Graveyard, fireworks, smoke tests and release workflow done; video, release tag and Devpost form are the remaining manual steps. |
 
 ## 15. Risks and mitigations
 
@@ -260,8 +261,14 @@ Property-based tests (RapidCheck) cover every pure domain rule; each spec's `des
 
 ## 16. Open questions
 
-- Final list of seed Agents and their examine text.
+Decided during the build:
+
+- **Seed Agents:** fictional familiars and vendors, not real products, so the sample ratings never misrepresent a real tool.
+- **Font size:** the pixel font is drawn at 12 px; "Plain font" remains for anyone who wants a vector face.
+
+Still open:
+
 - Do we want a second seasonal event to show the system is generic?
 - Should Quest Logs support an optional "prompt used" field (privacy implications)?
-- After the hackathon, do we add an optional sync server so contributions can be shared?
-- Do we sign and notarise the macOS build?
+- After the hackathon, do we add an optional sync server, or Codex bundles (export/import), so contributions can be shared?
+- Sound effects: the setting exists, the sounds don't yet.

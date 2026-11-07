@@ -129,11 +129,12 @@ void TavernScreen::drawBoard(app::FrameCtx& ctx) {
   ImGui::BeginChild("##board", {0, ImGui::GetContentRegionAvail().y - bottomReserve});
   const float colW = std::floor((ImGui::GetContentRegionAvail().x - gap - 6.0F) / 2.0F);
   const ImVec2 origin = ImGui::GetCursorScreenPos();
+  const float cardH = quest::questCardHeight();
   for (std::size_t i = 0; i < page_->logs.size(); ++i) {
     const auto& log = page_->logs[i];
     const float col = static_cast<float>(i % 2);
     const float row = static_cast<float>(i / 2);
-    ImGui::SetCursorScreenPos({origin.x + col * (colW + gap), origin.y + row * (quest::QUEST_CARD_HEIGHT + gap)});
+    ImGui::SetCursorScreenPos({origin.x + col * (colW + gap), origin.y + row * (cardH + gap)});
     if (quest::questCard(log.id.c_str(), log, snapshots_[i], ctx.avatars, page_->helpedByViewer.count(log.id) != 0, colW) &&
         ctx.nav != nullptr) {
       ctx.nav->navigate(app::ScreenId::QuestDetail, {{"id", log.id}});
@@ -141,7 +142,7 @@ void TavernScreen::drawBoard(app::FrameCtx& ctx) {
   }
   const float rows = std::ceil(static_cast<float>(page_->logs.size()) / 2.0F);
   ImGui::SetCursorScreenPos(origin);
-  ImGui::Dummy({1.0F, rows * (quest::QUEST_CARD_HEIGHT + gap)});   // tells the child how tall the board is
+  ImGui::Dummy({1.0F, rows * (cardH + gap)});   // tells the child how tall the board is
   ImGui::EndChild();
 }
 
