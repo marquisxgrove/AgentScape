@@ -3,6 +3,7 @@
 #include "core/civil_time.hpp"
 #include "core/ids.hpp"
 #include "domain/guest_name.hpp"
+#include "domain/xp.hpp"
 
 namespace as::services {
 
@@ -59,6 +60,15 @@ Result<User> ProfileService::createGuest(const domain::Settings& defaults) {
         .bind(4, stamp)
         .bind(5, stamp)
         .run();
+    // A Guest starts at Questing level 13 (quest-logs Requirement 9.1): every early unlock and the Reaper's Scythe are
+    // claimable, and the first Quest Log is a level-up.
+    db_.prepare("INSERT INTO xp_entry(id, user_id, reason, ref_id, amount, created_at) VALUES (?, ?, 'SEED', 'seed', ?, ?)")
+        .bind(1, core::newUlid(now, rng_))
+        .bind(2, id)
+        .bind(3, domain::guestSeedXp())
+        .bind(4, stamp)
+        .run();
+    db_.prepare("UPDATE user SET total_xp = ? WHERE id = ?").bind(1, domain::guestSeedXp()).bind(2, id).run();
     tx.commit();
 
     User u;
@@ -204,8 +214,18 @@ Result<User> ProfileService::updateSettings(const std::string& id, const domain:
 }
 
 Result<int> ProfileService::cleanupGuests() {
+  const auto cutoff = clock_.now() - GUEST_MAX_IDLE;
+  if (beforeGuestDelete_) {
+    std::vector<std::string> idle;
+    const auto listed = db::guarded([&] {
+      auto st = db_.prepare("SELECT id FROM user WHERE kind = 'GUEST' AND last_seen_at < ?");
+      st.bind(1, core::formatIso8601(cutoff));
+      while (st.step()) idle.push_back(st.columnText(0));
+    });
+    if (!listed) return tl::unexpected(listed.error());
+    for (const auto& id : idle) beforeGuestDelete_(id);   // each hook call is its own transaction
+  }
   return db::guarded([&] {
-    const auto cutoff = clock_.now() - GUEST_MAX_IDLE;
     db::Transaction tx{db_};
     db_.prepare("DELETE FROM user WHERE kind = 'GUEST' AND last_seen_at < ?")
         .bind(1, core::formatIso8601(cutoff))

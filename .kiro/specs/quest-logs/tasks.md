@@ -22,18 +22,18 @@
     - **Property 3: XP table and level** / **Property 4: Level monotonicity** / **Property 5: Unlocks are monotone and idempotent** / **Property 6: Helpful XP daily cap** / **Property 7: Competition ranking**
     - **Validates: Requirements 5.1, 5.4, 6.1, 6.3, 7.3**
 
-- [ ] 3. Add persistence and services
-  - [ ] 3.1 Add migration `0004_quests.sql` (`quest_log`, `helpful_vote`, `xp_entry`, `user.total_xp`) and the repositories.
+- [x] 3. Add persistence and services
+  - [x] 3.1 Add migration `0004_quests.sql` (`quest_log`, `helpful_vote`, `xp_entry`, `user.total_xp`) and the repositories.
     - _Requirements: 1.3, 4.1, 5.2_
-  - [ ] 3.2 Implement `XpService::award` / `revoke` with `ON CONFLICT DO NOTHING` idempotency, level recompute, unlock grants, and level-milestone ActivityEvents.
+  - [x] 3.2 Implement `XpService::award` / `revoke` with `ON CONFLICT DO NOTHING` idempotency, level recompute, unlock grants, and level-milestone ActivityEvents.
     - _Requirements: 5.1–5.4, 6.1–6.3, 8.2_
-  - [ ] 3.3 Implement `QuestService` create, update, and delete (single transaction: ratings → `applyRatingDelta` → XP → unlocks → ActivityEvent; events published after commit), returning `QuestOutcome`.
+  - [x] 3.3 Implement `QuestService` create, update, and delete (single transaction: ratings → `applyRatingDelta` → XP → unlocks → ActivityEvent; events published after commit), returning `QuestOutcome`.
     - _Requirements: 1.2–1.5, 2.1–2.3, 5.3, 8.1_
-  - [ ] 3.4 Implement `toggleHelpful` with the self-vote guard and daily cap, plus Quest Log moderation (hide/exclude, Keeper only).
+  - [x] 3.4 Implement `toggleHelpful` with the self-vote guard and daily cap, plus Quest Log moderation (hide/exclude, Keeper only).
     - _Requirements: 2.3, 4.1, 4.2, 5.1_
-  - [ ] 3.5 Wire XP awards into agent-codex `createNote` (50) and `moderateAgent` approval (500).
+  - [x] 3.5 Wire XP awards into agent-codex `createNote` (50) and `moderateAgent` approval (500).
     - _Requirements: 5.1_
-  - [ ]* 3.6 Write an integration test: 50 random operations against `:memory:`, then aggregates equal the SQL recompute and `total_xp` equals the ledger sum.
+  - [x]* 3.6 Write an integration test: 50 random operations against `:memory:`, then aggregates equal the SQL recompute and `total_xp` equals the ledger sum.
     - _Requirements: 2.2, 5.4_
 
 - [ ] 4. Build the quest scroll
@@ -54,7 +54,7 @@
   - _Requirements: 7.1–7.4_
 
 - [ ] 8. Set up guest and demo data
-  - On Guest User creation, seed `XP_TABLE[14] − 100` XP (`xp_entry` reason `SEED`).
+  - [x] (done in the services slice: Guest seed, cleanup through the normal delete paths, `--repair-xp`) On Guest User creation, seed `XP_TABLE[14] − 100` XP (`xp_entry` reason `SEED`).
   - Add Guest cleanup at startup through the normal delete path, and the `--repair-xp` flag.
   - _Requirements: 9.1, 9.2_
 

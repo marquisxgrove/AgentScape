@@ -15,6 +15,7 @@ struct Config {
   std::optional<domain::KiroweenSetting> kiroween;  // CLI > env > URL query > build default
   std::optional<std::string> dataDir;               // --data-dir, else AGENTSCAPE_DATA_DIR (desktop only)
   bool reseed = false;                              // --reseed
+  bool repairXp = false;                            // --repair-xp: recompute every user's total_xp from the ledger
   bool resetData = false;                           // --reset-data
   bool headlessSmoke = false;                       // --smoke: run a few frames and quit (CI)
   std::optional<std::string> startScreen;           // --screen=<name> (dev builds: "ui-gallery")

@@ -7,6 +7,7 @@
 #include "services/keeper_service.hpp"
 #include "services/note_service.hpp"
 #include "services/proving_service.hpp"
+#include "services/quest_service.hpp"
 #include "services/profile_service.hpp"
 
 namespace as::app {
@@ -21,6 +22,7 @@ struct Services {
   services::AgentService agents;
   services::KeeperService keeper;
   services::ProvingService proving;
+  services::QuestService quests;
 };
 
 }  // namespace as::app

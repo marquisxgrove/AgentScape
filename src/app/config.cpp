@@ -30,6 +30,8 @@ Config parseConfig(const ConfigSources& sources) {
       }
     } else if (startsWith(arg, kDataDirEq)) {
       cfg.dataDir = std::string(arg.substr(kDataDirEq.size()));
+    } else if (arg == "--repair-xp") {
+      cfg.repairXp = true;
     } else if (arg == "--reseed") {
       cfg.reseed = true;
     } else if (arg == "--reset-data") {

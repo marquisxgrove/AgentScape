@@ -77,7 +77,8 @@ void KeeperScreen::draw(app::FrameCtx& ctx) {
   for (const auto& r : q.reports) {
     ImGui::PushID(r.id.c_str());
     const bool note = r.target == services::ReportTarget::Note;
-    plain(std::string(note ? "Note on " : "Familiar ") + r.agentName + ": " + r.targetText);
+    const bool questLog = r.target == services::ReportTarget::QuestLog;
+    plain(std::string(note ? "Note on " : (questLog ? "Quest Log on " : "Familiar ")) + r.agentName + ": " + r.targetText);
     plain("Reported by " + r.reporterName + ": " + r.reason, ui::PaletteColor::Parchment);
     if (note) {
       const char* label = r.targetHidden ? "Unhide##h" : "Hide##h";
