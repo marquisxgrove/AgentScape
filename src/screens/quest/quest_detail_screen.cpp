@@ -21,6 +21,16 @@ void QuestDetailScreen::onEnter(const app::ScreenParams& params) {
   dirty_ = true;
 }
 
+// Escape closes the delete confirmation or the report form before it leaves the log.
+bool QuestDetailScreen::onEscape(app::FrameCtx&) {
+  if (confirmDelete_ || reporting_) {
+    confirmDelete_ = false;
+    reporting_ = false;
+    return true;
+  }
+  return false;
+}
+
 void QuestDetailScreen::reload(app::FrameCtx& ctx) {
   dirty_ = false;
   log_.reset();

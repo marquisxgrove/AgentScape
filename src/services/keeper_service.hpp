@@ -58,6 +58,12 @@ class KeeperService {
  public:
   KeeperService(db::Database& db, const core::Clock& clock, core::Rng& rng, app::EventBus& bus)
       : db_(db), clock_(clock), rng_(rng), bus_(bus), activity_(db, clock, bus), xp_(db, clock, rng, activity_) {}
+  // xp_ refers to activity_, a sibling member, so a defaulted move would leave it pointing into the moved-from
+  // object (the App builds its service bundle as a temporary and moves it). Rebuild both instead.
+  KeeperService(KeeperService&& other) noexcept : KeeperService(other.db_, other.clock_, other.rng_, other.bus_) {}
+  KeeperService(const KeeperService&) = delete;
+  KeeperService& operator=(const KeeperService&) = delete;
+  KeeperService& operator=(KeeperService&&) = delete;
 
   // Turns the Keeper tools on or off for the user (KEEPER / USER). NPCs can't hold the role.
   Result<void> setKeeper(const std::string& userId, bool on);

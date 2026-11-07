@@ -161,6 +161,7 @@ if(AS_BUILD_APP)
   add_executable(agentscape
     src/main.cpp
     src/app/app.cpp
+    src/app/smoke_runs.cpp
     src/platform/paths_sdl.cpp
     src/platform/persist.cpp
     src/platform/accessibility.cpp

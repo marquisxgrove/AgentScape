@@ -14,9 +14,6 @@ namespace as::services {
 
 namespace {
 
-constexpr std::array<std::string_view, 7> NAME_BLOCKLIST{"admin",  "moderator", "codex keeper", "agentscape",
-                                                         "system", "keeper",    "staff"};
-
 constexpr const char* COLUMNS = "id, user_id, name, appearance, loadout, is_active, created_at, updated_at";
 
 constexpr const char* MSG_NAME_TAKEN = "That name is not available.";
@@ -86,7 +83,7 @@ Result<Adventurer> notFound() { return makeError(GameErrorCode::NotFound, MSG_GE
 }  // namespace
 
 Result<Adventurer> AdventurerService::createAdventurer(const std::string& userId, std::string_view rawName) {
-  const auto name = domain::validateName(rawName, NAME_BLOCKLIST);
+  const auto name = domain::validateName(rawName, domain::RESERVED_NAMES);
   if (!name) return makeError(GameErrorCode::InvalidInput, MSG_NAME_TAKEN);
 
   struct Outcome {

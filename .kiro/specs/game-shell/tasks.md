@@ -94,3 +94,17 @@
   - Make sure all tests pass, and ask the user if questions arise.
   - _Requirements: 2.3, 3.3, 3.4, 8.4_
   - _Note: `--smoke-demo=<dir>` drives the real app (SDL dummy video + software renderer) through the demo path, snapshotting each step (01-login, 02-world, 03-context-menu, 04-entered); CTest `smoke` label (`cmake/RunSmoke.cmake`) runs it and checks the snapshots; CI uploads them as artifacts. **Web build + Chrome/Firefox reload check is still outstanding** — it needs an Emscripten toolchain (not available in this environment); the CI `web` job compiles it but the in-browser reload test must be run by a human or added to CI with a headless browser._
+
+- [x] 12. Navigation pass
+  - Give every screen past the World a way out: "Back" on the Grand Codex list and the Costumer, "To town" in the Tab_Panel, and `Escape` / gamepad B to go back.
+  - Make `Escape` close what a screen has open before it leaves (`Screen::onEscape`), and warn once before discarding a started Quest Log, unsaved Costumer changes or a started proposal.
+  - Ask a Guest to confirm "Log out", since a Guest can't be signed back into.
+  - _Requirements: 2.8, 7.6–7.8_
+  - _Note: checked with real mouse and keyboard input on a desktop build (Codex Back, Tavern + Escape, "To town" from a Quest Log, Escape inside the Codex search box, the quest scroll stepping back, the Boon form closing before the card, the Guest log-out prompt). Escape is ignored while a text field is active or a Context_Menu is open, so the first press leaves the field or closes the menu._
+
+- [x] 13. Local profiles and a working GitHub sign-in
+  - Add "Create a profile" to the login screen: `ProfileService::createPlayer` makes a permanent named Player that is listed to continue as.
+  - Share the reserved-name list between Adventurers and profiles (`domain::RESERVED_NAMES`).
+  - Build libcurl with the platform TLS library, and pass the repository variable `AS_GITHUB_CLIENT_ID` to the release builds.
+  - _Requirements: 2.2, 2.4, 2.9_
+  - _Note: libcurl had been configured with no TLS library at all, so every device-flow request would have failed; nobody had built with a client ID before. A Windows build with a placeholder client ID now reaches github.com over HTTPS (GitHub answers 404 for an unknown client), and failures are logged with the step, the HTTP status and GitHub's error code. The macOS (Secure Transport) and Linux (OpenSSL) curl builds have not been run yet; the first release with the variable set will build them. A real sign-in needs a real OAuth App._

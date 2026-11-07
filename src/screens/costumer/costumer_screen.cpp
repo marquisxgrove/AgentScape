@@ -43,9 +43,25 @@ CostumerScreen::CostumerScreen() = default;
 
 void CostumerScreen::onEnter(const app::ScreenParams& params) {
   loaded_ = false;
+  escapeArmed_ = false;
   if (const auto it = params.find("tab"); it != params.end()) {  // dev QA: --screen=costumer-gear etc.
     tab_ = it->second == "gear" ? Tab::Gear : (it->second == "adventurers" ? Tab::Adventurers : Tab::Look);
   }
+}
+
+// Escape closes a delete confirmation first, and warns once before leaving unsaved look or gear changes behind.
+bool CostumerScreen::onEscape(app::FrameCtx&) {
+  if (!pendingDeleteId_.empty()) {
+    pendingDeleteId_.clear();
+    confirmBuf_.fill('\0');
+    return true;
+  }
+  if (draft_.dirty() && !escapeArmed_) {
+    escapeArmed_ = true;
+    ui::pushGameMessage("Press Escape again to leave without saving your changes.");
+    return true;
+  }
+  return false;
 }
 
 void CostumerScreen::reload(app::FrameCtx& ctx) {
@@ -71,7 +87,18 @@ void CostumerScreen::draw(app::FrameCtx& ctx) {
     drawCreate(ctx);  // no way out until the first Adventurer exists (Req 2.6)
     return;
   }
-  if (ui::PixelButton("Back", {70, 0}) && ctx.nav != nullptr) ctx.nav->back();
+  if (firstAdventurer_) {
+    // Just created the first Adventurer: the way on is into town, not "back" (Requirement 1.6).
+    if (ui::PixelButton("Begin", {90, 0}, ui::hoverText("Begin", "your adventure", ui::PaletteColor::TextCyan, 0))) {
+      begin(ctx);
+      return;
+    }
+    ImGui::SameLine();
+    ui::AlignTextToButton();
+    ui::ShadowText("Dress " + active_->name + " up, then Begin your adventure.", ui::PaletteColor::TextYellow);
+  } else if (ui::PixelButton("Back", {70, 0}) && ctx.nav != nullptr) {
+    ctx.nav->back();
+  }
 
   // Left: the live preview. Right: the tabbed controls, with the save bar pinned under them. The
   // columns stop short of the panel bottom so the bar always fits (a full-height child pushed it out).
@@ -370,11 +397,23 @@ void CostumerScreen::save(app::FrameCtx& ctx) {
   }
 }
 
+// Leaves character creation for town, keeping whatever the player dressed the new Adventurer in.
+void CostumerScreen::begin(app::FrameCtx& ctx) {
+  if (draft_.dirty()) {
+    save(ctx);
+    if (draft_.dirty()) return;   // the save was refused; its message is in the Chatbox, so stay and let them fix it
+  }
+  ui::pushGameMessage("Your adventure begins, " + active_->name + ".");
+  if (ctx.nav != nullptr) ctx.nav->navigate(app::ScreenId::World);   // the World is a hub: history resets
+}
+
 void CostumerScreen::create(app::FrameCtx& ctx) {
   const std::string name = nameBuf_.data();
+  const bool first = !active_;   // the "name your first Adventurer" form
   auto r = ctx.services->adventurers.createAdventurer(ctx.userId, name);
   if (r) {
     nameBuf_.fill('\0');
+    firstAdventurer_ = firstAdventurer_ || first;
     reload(ctx);
   } else {
     ui::pushGameMessage(r.error().message);

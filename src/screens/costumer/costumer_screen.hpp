@@ -22,6 +22,7 @@ class CostumerScreen : public app::Screen {
   void onEnter(const app::ScreenParams& params) override;
   void draw(app::FrameCtx& ctx) override;
   void onContextAction(app::FrameCtx& ctx, const domain::MenuAction& action) override;
+  bool onEscape(app::FrameCtx& ctx) override;
 
  private:
   enum class Tab { Look, Gear, Adventurers };
@@ -34,6 +35,7 @@ class CostumerScreen : public app::Screen {
   void drawAdventurers(app::FrameCtx& ctx);
   void save(app::FrameCtx& ctx);
   void create(app::FrameCtx& ctx);
+  void begin(app::FrameCtx& ctx);   // "Begin": save, then into town
   void claim(app::FrameCtx& ctx, const domain::Item& item);
 
   bool loaded_ = false;
@@ -51,6 +53,8 @@ class CostumerScreen : public app::Screen {
   std::array<char, 16> nameBuf_{};
   std::string pendingDeleteId_;
   std::array<char, 16> confirmBuf_{};
+  bool escapeArmed_ = false;   // Escape with unsaved changes warned once; the next one leaves without saving
+  bool firstAdventurer_ = false;   // this visit created the first Adventurer: show "Begin" instead of "Back"
 };
 
 }  // namespace as::screens
