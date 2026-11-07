@@ -64,7 +64,7 @@ bool isAllowed(std::span<const std::chrono::sys_seconds> history, std::chrono::s
 - The seeded snapshot writes `seed_sum`/`seed_count` and adjusts `sum`/`count` by the difference between the new and previous baseline, so reseeding is idempotent and never touches ratings players added. Seeded Quest Logs (quest-logs spec) are display-only: their ratings are already inside the snapshot baseline and must not be applied again.
 - Commands: `proposeAgent`, `moderateAgent`, `createNote`, `voteOnNote`, `reportContent`, `setNoteHidden`, `resolveReport`, `setKeeper`. Keeper-only commands return `GameError::NotAllowed` for users without the `KEEPER` role.
 - Denormalised `agree`/`disagree` counts on `note` are updated in the same transaction as the `note_vote` upsert or delete.
-- `ProvingGroundsService::remember(userId, agents, questType)` stores the last comparison in the user's settings JSON. `toPlainText(comparison)` formats the clipboard table.
+- `ProvingGroundsService::remember(userId, agents, questType)` stores the last comparison in its own `proving_selection` table (migration 0004, cascades with the user). Deviation: the Settings tab writes the whole settings JSON back on every toggle, which would overwrite a comparison saved in between. `toPlainText(comparison)` formats the clipboard table.
 
 ### Screens
 

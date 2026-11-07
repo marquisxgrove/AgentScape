@@ -6,6 +6,7 @@
 #include "services/codex_service.hpp"
 #include "services/keeper_service.hpp"
 #include "services/note_service.hpp"
+#include "services/proving_service.hpp"
 #include "services/profile_service.hpp"
 
 namespace as::app {
@@ -19,6 +20,7 @@ struct Services {
   services::NoteService notes;
   services::AgentService agents;
   services::KeeperService keeper;
+  services::ProvingService proving;
 };
 
 }  // namespace as::app

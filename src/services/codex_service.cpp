@@ -83,6 +83,26 @@ Result<std::vector<NoteView>> CodexService::notes(const std::string& agentId, No
   });
 }
 
+Result<std::vector<Agent>> CodexService::approvedAgents() {
+  auto data = loaded();
+  if (!data) return tl::unexpected(data.error());
+  return (*data)->agents;   // loaded() already holds approved Agents only, in name order
+}
+
+Result<std::vector<domain::CompareColumn>> CodexService::compareColumns(const std::vector<std::string>& slugs,
+                                                                         std::optional<domain::QuestType> scope) {
+  auto data = loaded();
+  if (!data) return tl::unexpected(data.error());
+  const Loaded& d = **data;
+  std::vector<domain::CompareColumn> out;
+  for (const auto& slug : slugs) {
+    const auto it = std::find_if(d.agents.begin(), d.agents.end(), [&](const Agent& a) { return a.slug == slug; });
+    if (it == d.agents.end()) continue;
+    out.push_back({it->name, domain::levelsFor(d.tables[static_cast<std::size_t>(it - d.agents.begin())], scope)});
+  }
+  return out;
+}
+
 Result<std::optional<AgentCard>> CodexService::card(const std::string& slug, std::optional<domain::QuestType> scope,
                                                     std::size_t topNotes) {
   auto data = loaded();

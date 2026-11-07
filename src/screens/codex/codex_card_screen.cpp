@@ -143,6 +143,12 @@ void CodexCardScreen::drawHeader(app::FrameCtx& ctx) {
     ui::pushGameMessage("The Quest Log scribes aren't open for business yet.");
   }
   ImGui::SameLine();
+  if (ui::PixelButton("Compare##agent", {0, 0}) && ctx.nav != nullptr) {
+    app::ScreenParams p{{"add", card_->agent.slug}};
+    if (scope_) p["scope"] = domain::storageName(*scope_);
+    ctx.nav->navigate(app::ScreenId::Proving, p);
+  }
+  ImGui::SameLine();
   if (ui::PixelButton("Report##agent", {0, 0})) {
     reportAgent_ = !reportAgent_;
     reportNoteId_.clear();
