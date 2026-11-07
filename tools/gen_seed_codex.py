@@ -4,10 +4,9 @@
 Standard library only and deterministic. Review the AGENTS and NOTES tables below; ratings are derived from
 a fixed formula.
 
-IMPORTANT - the ratings and notes are SYNTHETIC SAMPLE DATA for the demo. They are not real measurements or
-real opinions, they say nothing about how any product actually performs, and they are generated from a hash
-so that no product is deliberately ranked above another. The app labels them as a sample snapshot. Product
-names are used only to identify what is being rated (docs/ASSETS.md: no logos, no vendor imagery).
+IMPORTANT - everything here is FICTIONAL SAMPLE DATA for the demo. The agents, vendors and websites are
+invented (websites use the reserved .example domain), and the ratings and notes are generated from a hash. They
+describe no real product. The app labels them as a sample snapshot.
 
     python3 tools/gen_seed_codex.py
 """
@@ -23,40 +22,41 @@ SKILLS = ['CODING', 'REASONING', 'WRITING', 'RESEARCH', 'CREATIVITY', 'TOOL_USE'
 QUEST_TYPES = ['CODING', 'DEBUGGING', 'WRITING', 'RESEARCH', 'DATA', 'BRAINSTORMING', 'AGENTIC', 'OTHER']
 NPCS = ['mossbeard', 'quillwright', 'tokenmancer', 'lady-lambda', 'stacktrace', 'hexlint', 'brambleprompt', 'nullwyn']
 
-# slug, name, vendor, kind, examine (<= 200 chars, neutral and factual), about, official website
+# slug, name, vendor, kind, examine (<= 200 chars), about, website.
+# Every agent, vendor and website here is FICTIONAL (websites use the reserved .example domain).
 AGENTS = [
-    ('claude', 'Claude', 'Anthropic', 'MODEL', 'A family of large language models from Anthropic.',
-     'Claude models are offered through Anthropic\'s apps and API. Capabilities differ between versions.', 'https://www.anthropic.com'),
-    ('gpt', 'GPT', 'OpenAI', 'MODEL', 'A family of large language models from OpenAI.',
-     'GPT models are offered through OpenAI\'s products and API. Capabilities differ between versions.', 'https://openai.com'),
-    ('gemini', 'Gemini', 'Google', 'MODEL', 'A family of multimodal large language models from Google.',
-     'Gemini models are offered through Google\'s apps and API. Capabilities differ between versions.', 'https://gemini.google.com'),
-    ('llama', 'Llama', 'Meta', 'MODEL', 'A family of openly available large language models from Meta.',
-     'Llama model weights are published by Meta and can be run by anyone under the published license terms.', 'https://www.llama.com'),
-    ('mistral', 'Mistral', 'Mistral AI', 'MODEL', 'A family of large language models from Mistral AI.',
-     'Mistral AI publishes some models openly and offers others through its API.', 'https://mistral.ai'),
-    ('deepseek', 'DeepSeek', 'DeepSeek', 'MODEL', 'A family of large language models from DeepSeek.',
-     'DeepSeek publishes model weights and offers an app and an API.', 'https://www.deepseek.com'),
-    ('grok', 'Grok', 'xAI', 'MODEL', 'A family of large language models from xAI.',
-     'Grok models are offered through xAI\'s products and API.', 'https://x.ai'),
-    ('qwen', 'Qwen', 'Alibaba Cloud', 'MODEL', 'A family of large language models from Alibaba Cloud.',
-     'Qwen publishes many model sizes, several with open weights.', 'https://qwenlm.github.io'),
-    ('kiro', 'Kiro', 'AWS', 'TOOL', 'An agentic coding tool and editor built around specs, steering files and hooks.',
-     'Kiro turns prompts into requirements, designs and task lists, then works through them with the developer.', 'https://kiro.dev'),
-    ('github-copilot', 'GitHub Copilot', 'GitHub', 'TOOL', 'An AI coding assistant for editors and the command line.',
-     'GitHub Copilot offers code suggestions, chat and agent modes inside popular editors.', 'https://github.com/features/copilot'),
-    ('cursor', 'Cursor', 'Anysphere', 'TOOL', 'A code editor with built-in AI assistance.',
-     'Cursor is an editor with AI chat, code completion and agent features.', 'https://cursor.com'),
-    ('chatgpt', 'ChatGPT', 'OpenAI', 'TOOL', 'OpenAI\'s conversational assistant app.',
-     'ChatGPT is a chat app that can answer questions, write, analyse files and use connected tools.', 'https://chatgpt.com'),
-    ('perplexity', 'Perplexity', 'Perplexity AI', 'TOOL', 'An AI answer engine that cites its web sources.',
-     'Perplexity answers questions by searching the web and linking the sources it used.', 'https://www.perplexity.ai'),
-    ('v0', 'v0', 'Vercel', 'TOOL', 'A tool that generates web interface code from prompts.',
-     'v0 turns text prompts into user-interface code that can be edited and deployed.', 'https://v0.dev'),
+    ('quillback', 'Quillback', 'Hollowmere Labs', 'MODEL', 'A well-read language model that never leaves home without a spare quill.',
+     'Quillback answers questions and drafts text for Hollowmere Labs customers. Made-up for the AgentScape demo.', 'https://quillback.example'),
+    ('gryphon', 'Gryphon', 'Lanternfold', 'MODEL', 'A sharp-eyed language model that circles a problem before it strikes.',
+     'Gryphon is the flagship model of Lanternfold. Made-up for the AgentScape demo.', 'https://gryphon.example'),
+    ('twinwick', 'Twinwick', 'Ashgrove Systems', 'MODEL', 'A two-flame model that reads pictures as well as words.',
+     'Twinwick is a multimodal model from Ashgrove Systems. Made-up for the AgentScape demo.', 'https://twinwick.example'),
+    ('mossling', 'Mossling', 'Fen Commons', 'MODEL', 'A small, open-handed model that anyone may carry and run.',
+     'Mossling is published by the Fen Commons collective for anyone to run. Made-up for the AgentScape demo.', 'https://mossling.example'),
+    ('mistwren', 'Mistwren', 'Brindle Co', 'MODEL', 'A quick little model that flits between tasks.',
+     'Mistwren comes in several sizes from Brindle Co. Made-up for the AgentScape demo.', 'https://mistwren.example'),
+    ('deepwell', 'Deepwell', 'Underhill Research', 'MODEL', 'A patient model that likes to think a question all the way down.',
+     'Deepwell is a reasoning-focused model from Underhill Research. Made-up for the AgentScape demo.', 'https://deepwell.example'),
+    ('grimble', 'Grimble', 'Cinderpost', 'MODEL', 'A cheeky model with strong opinions and a short fuse.',
+     'Grimble is the chatty model from Cinderpost. Made-up for the AgentScape demo.', 'https://grimble.example'),
+    ('quartzen', 'Quartzen', 'Tallow Cloud', 'MODEL', 'A many-faceted model offered in a great range of sizes.',
+     'Quartzen is a family of models from Tallow Cloud. Made-up for the AgentScape demo.', 'https://quartzen.example'),
+    ('spellforge', 'Spellforge', 'Anvilworks', 'TOOL', 'An agentic coding editor that plans before it hammers.',
+     'Spellforge turns a request into a plan and a task list, then works through it with you. Made-up for the AgentScape demo.', 'https://spellforge.example'),
+    ('pocket-familiar', 'Pocket Familiar', 'Hearthbyte', 'TOOL', 'A little coding companion that sits in your editor and mutters suggestions.',
+     'Pocket Familiar offers completions, chat and helper modes inside popular editors. Made-up for the AgentScape demo.', 'https://pocket-familiar.example'),
+    ('cairn', 'Cairn', 'Pebblecraft', 'TOOL', 'A code editor that stacks AI help one stone at a time.',
+     'Cairn is an editor with chat, completion and agent features. Made-up for the AgentScape demo.', 'https://cairn.example'),
+    ('gryphon-chat', 'Gryphon Chat', 'Lanternfold', 'TOOL', 'The conversational assistant app built on Gryphon.',
+     'Gryphon Chat answers questions, drafts text and analyses files. Made-up for the AgentScape demo.', 'https://gryphon-chat.example'),
+    ('pathfinder', 'Pathfinder', 'Wayfarer Labs', 'TOOL', 'An answer engine that shows the trail it followed.',
+     'Pathfinder searches the web and links the sources it used. Made-up for the AgentScape demo.', 'https://pathfinder.example'),
+    ('sketchling', 'Sketchling', 'Pebblecraft', 'TOOL', 'A tool that sketches web interfaces from a few words.',
+     'Sketchling turns text prompts into interface code you can edit. Made-up for the AgentScape demo.', 'https://sketchling.example'),
 ]
 
 # Generic observations in the community's voice. They are deliberately about common traits of AI assistants
-# and are attached to products by the generator, NOT claims researched about any product.
+# and are attached to fictional agents by the generator.
 BOONS = [
     ('CODING', 'Writes working boilerplate quickly, which saves a lot of typing on routine tasks.'),
     ('REASONING', 'Explains its reasoning step by step, which makes mistakes easier to spot.'),
@@ -148,21 +148,21 @@ def gen_notes():
 def main():
     os.makedirs(OUT, exist_ok=True)
     agents = {
-        '_note': 'Neutral, factual descriptions. No logos or vendor imagery. Names identify the product only.',
+        '_note': 'FICTIONAL agents and vendors invented for the demo. They describe no real product.',
         'snapshotAt': SNAPSHOT,
         'agents': [{'slug': s, 'name': n, 'vendor': v, 'kind': k, 'examine': e, 'about': a, 'website': w}
                    for (s, n, v, k, e, a, w) in AGENTS],
     }
     ratings = {
-        '_note': 'SYNTHETIC SAMPLE DATA for the demo. Not real measurements or opinions. Generated by '
-                 'tools/gen_seed_codex.py from a hash; no product is deliberately ranked above another.',
+        '_note': 'SYNTHETIC SAMPLE DATA for FICTIONAL agents. Not real measurements or opinions. Generated by '
+                 'tools/gen_seed_codex.py from a hash.',
         'snapshotAt': SNAPSHOT,
         'synthetic': True,
         'agents': gen_ratings(),
     }
     notes = {
-        '_note': 'SYNTHETIC SAMPLE DATA: generic observations about AI assistants, attached to products for the '
-                 'demo. They are not researched claims about any product.',
+        '_note': 'SYNTHETIC SAMPLE DATA: generic observations attached to FICTIONAL agents for the demo. '
+                 'They are not claims about any real product.',
         'snapshotAt': SNAPSHOT,
         'synthetic': True,
         'notes': [{'id': f'seed:note:{key}', 'agent': slug, 'author': f'seed:npc:{NPCS[(i + idx) % len(NPCS)]}',

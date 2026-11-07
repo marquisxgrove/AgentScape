@@ -127,11 +127,8 @@ def main():
     write_png(os.path.join(OUT, "button.png"), 24, 24, button(24, 4, STONE, False, 3))
     write_png(os.path.join(OUT, "button_hover.png"), 24, 24, button(24, 4, shade(STONE, 14), False, 3))
     write_png(os.path.join(OUT, "button_pressed.png"), 24, 24, button(24, 4, shade(STONE, -8), True, 3))
+    gen_skill_icons()
     print("wrote", OUT)
-
-
-if __name__ == "__main__":
-    main()
 
 
 # --- Kiroween overlays (appended; call gen_kiroween() or just run this file) ------------------
@@ -198,5 +195,80 @@ def gen_kiroween():
     print("wrote kiroween sprites in", sprites)
 
 
+# --- Skill icons (examine card): ten 11x11 pictograms in a 110x11 strip ------------------------------
+SKILL_ICON_ART = {
+    # '#' = ink outline, 'o' = gold fill, '.' = transparent
+    'coding': [
+        "...........", "...#...#...", "..#.....#..", ".#...o...#.", "#....o....#", ".#...o...#.",
+        "..#.....#..", "...#...#...", "...........", "...........", "...........",
+    ],
+    'reasoning': [  # light bulb
+        "....###....", "...#ooo#...", "..#ooooo#..", "..#ooooo#..", "...#ooo#...", "....#o#....",
+        "....###....", "....#.#....", "....###....", "...........", "...........",
+    ],
+    'writing': [  # pencil
+        "........##.", ".......#oo#", "......#oo#.", ".....#oo#..", "....#oo#...", "...#oo#....",
+        "..#oo#.....", ".#oo#......", ".##........", "#..........", "...........",
+    ],
+    'research': [  # magnifying glass
+        "...####....", "..#....#...", ".#......#..", ".#......#..", ".#......#..", "..#....#...",
+        "...####.#..", ".........#.", "..........#", "...........", "...........",
+    ],
+    'creativity': [  # four-point star
+        ".....#.....", "....#o#....", "....#o#....", "..###o###..", "#ooooooooo#", "..###o###..",
+        "....#o#....", "....#o#....", ".....#.....", "...........", "...........",
+    ],
+    'tool_use': [  # hammer
+        "..#####....", "..#ooo#....", "..#ooo#....", "..#####....", "....#o#....", "....#o#....",
+        "....#o#....", "....#o#....", "....###....", "...........", "...........",
+    ],
+    'context': [  # a page of text
+        ".#########.", ".#.......#.", ".#.#####.#.", ".#.......#.", ".#.#####.#.", ".#.......#.",
+        ".#.#####.#.", ".#.......#.", ".#########.", "...........", "...........",
+    ],
+    'reliability': [  # shield with a tick
+        ".#########.", ".#ooooooo#.", ".#ooooooo#.", ".#ooooooo#.", ".#ooooooo#.", "..#ooooo#..",
+        "...#ooo#...", "....#o#....", ".....#.....", "...........", "...........",
+    ],
+    'speed': [  # lightning bolt
+        ".....####..", "....#oo#...", "...#oo#....", "..#oooooo#.", ".....#oo#..", "....#oo#...",
+        "...#oo#....", "..##o#.....", "..#........", "...........", "...........",
+    ],
+    'value': [  # coin
+        "...#####...", "..#ooooo#..", ".#oo#o#oo#.", "#ooo#o#ooo#", "#oo#ooo#oo#", "#ooo#o#ooo#",
+        ".#oo#o#oo#.", "..#ooooo#..", "...#####...", "...........", "...........",
+    ],
+}
+SKILL_ICON_ORDER = ['coding', 'reasoning', 'writing', 'research', 'creativity', 'tool_use', 'context',
+                    'reliability', 'speed', 'value']
+
+
+def gen_skill_icons():
+    ink = hex_rgb("#1e1912") + (255,)
+    gold = hex_rgb("#c9962e") + (255,)
+    clear = (0, 0, 0, 0)
+    size = 11
+    # the shield gets a tick drawn in ink over its fill
+    art = {k: [list(r) for r in v] for k, v in SKILL_ICON_ART.items()}
+    for (x, y) in [(3, 3), (4, 4), (5, 5), (6, 4), (7, 3), (8, 2)]:
+        art['reliability'][y][x] = '#'
+    rows = [[clear] * (size * len(SKILL_ICON_ORDER)) for _ in range(size)]
+    for n, name in enumerate(SKILL_ICON_ORDER):
+        grid = art[name]
+        assert len(grid) == size and all(len(r) == size for r in grid), name
+        for y in range(size):
+            for x in range(size):
+                ch = grid[y][x]
+                if ch == '#':
+                    rows[y][n * size + x] = ink
+                elif ch == 'o':
+                    rows[y][n * size + x] = gold
+    write_png(os.path.join(OUT, "skill_icons.png"), size * len(SKILL_ICON_ORDER), size, rows)
+
+
 if __name__ == "__main__" and os.environ.get("AS_KIROWEEN"):
     gen_kiroween()
+
+
+if __name__ == "__main__":
+    main()

@@ -90,7 +90,7 @@ TEST_CASE("seeding twice is a no-op", "[integration][seed][codex]") {
 TEST_CASE("a reseed keeps the ratings players added", "[integration][seed][codex]") {
   auto db = freshSeededDb();
   const auto stat = [&] {
-    return domain::scopedAgg(*loadStats(db, "seed:agent:claude"), domain::StatKey{domain::Skill::Coding},
+    return domain::scopedAgg(*loadStats(db, "seed:agent:quillback"), domain::StatKey{domain::Skill::Coding},
                              domain::QuestType::Coding);
   };
   const domain::Agg baseline = stat();
@@ -99,7 +99,7 @@ TEST_CASE("a reseed keeps the ratings players added", "[integration][seed][codex
   {  // a player's Quest Log adds a 5-star Coding rating
     Transaction tx{db};
     const RatingDelta d[] = {{domain::StatKey{domain::Skill::Coding}, 5, 1}};
-    REQUIRE(applyRatingDelta(db, "seed:agent:claude", domain::QuestType::Coding, d).has_value());
+    REQUIRE(applyRatingDelta(db, "seed:agent:quillback", domain::QuestType::Coding, d).has_value());
     tx.commit();
   }
   CHECK(stat() == domain::Agg{baseline.sum + 5, baseline.count + 1});
@@ -114,16 +114,16 @@ TEST_CASE("a reseed restores a seeded baseline that was changed, without touchin
   auto db = freshSeededDb();
   // Simulate an older snapshot: the stored baseline differs from the file, plus a player rating on top.
   db.exec("UPDATE agent_skill_stat SET sum = sum + 1, count = count + 1, seed_sum = seed_sum + 1, seed_count = seed_count + 1 "
-          "WHERE agent_id = 'seed:agent:kiro' AND skill = 'SPEED' AND quest_type = 'OTHER'");
+          "WHERE agent_id = 'seed:agent:spellforge' AND skill = 'SPEED' AND quest_type = 'OTHER'");
   {
     Transaction tx{db};
     const RatingDelta d[] = {{domain::StatKey{domain::Skill::Speed}, 4, 1}};
-    REQUIRE(applyRatingDelta(db, "seed:agent:kiro", domain::QuestType::Other, d).has_value());
+    REQUIRE(applyRatingDelta(db, "seed:agent:spellforge", domain::QuestType::Other, d).has_value());
     tx.commit();
   }
   auto row = [&] {
     auto st = db.prepare("SELECT sum, count, seed_sum, seed_count FROM agent_skill_stat "
-                         "WHERE agent_id = 'seed:agent:kiro' AND skill = 'SPEED' AND quest_type = 'OTHER'");
+                         "WHERE agent_id = 'seed:agent:spellforge' AND skill = 'SPEED' AND quest_type = 'OTHER'");
     REQUIRE(st.step());
     return std::array<std::int64_t, 4>{st.columnInt(0), st.columnInt(1), st.columnInt(2), st.columnInt(3)};
   };
@@ -142,7 +142,7 @@ TEST_CASE("a reseed never touches the player's own Agents and Notes", "[integrat
   db.exec("INSERT INTO agent(id, slug, name, vendor, kind, examine, status, proposed_by_id, created_at, updated_at) "
           "VALUES ('01PLAYERAGENT', 'my-tool', 'My Tool', 'Me', 'TOOL', 'Mine.', 'PENDING', 'p1', 't', 't')");
   db.exec("INSERT INTO note(id, agent_id, author_id, kind, text, created_at) "
-          "VALUES ('01PLAYERNOTE', 'seed:agent:kiro', 'p1', 'BOON', 'A note the player wrote themselves.', 't')");
+          "VALUES ('01PLAYERNOTE', 'seed:agent:spellforge', 'p1', 'BOON', 'A note the player wrote themselves.', 't')");
   const auto before = scalar(db, "SELECT COUNT(*) FROM agent WHERE proposed_by_id IS NOT NULL");
   REQUIRE(runSeed(db, NOW).has_value());
   CHECK(scalar(db, "SELECT COUNT(*) FROM agent WHERE proposed_by_id IS NOT NULL") == before);
@@ -153,17 +153,17 @@ TEST_CASE("a reseed never touches the player's own Agents and Notes", "[integrat
 TEST_CASE("a reseed keeps votes, hidden notes and Keeper decisions", "[integration][seed][codex]") {
   auto db = freshSeededDb();
   db.exec("INSERT INTO user(id, name, kind, created_at, last_seen_at) VALUES ('p1', 'Marquis', 'PLAYER', 't', 't')");
-  db.exec("UPDATE note SET hidden = 1, agree = agree + 1 WHERE id = 'seed:note:kiro-bane-1'");
-  db.exec("INSERT INTO note_vote(note_id, user_id, value) VALUES ('seed:note:kiro-boon-1', 'p1', 1)");
-  db.exec("UPDATE note SET agree = agree + 1 WHERE id = 'seed:note:kiro-boon-1'");
-  db.exec("UPDATE agent SET status = 'REJECTED' WHERE id = 'seed:agent:grok'");
-  const auto agree = scalar(db, "SELECT agree FROM note WHERE id = 'seed:note:kiro-boon-1'");
+  db.exec("UPDATE note SET hidden = 1, agree = agree + 1 WHERE id = 'seed:note:spellforge-bane-1'");
+  db.exec("INSERT INTO note_vote(note_id, user_id, value) VALUES ('seed:note:spellforge-boon-1', 'p1', 1)");
+  db.exec("UPDATE note SET agree = agree + 1 WHERE id = 'seed:note:spellforge-boon-1'");
+  db.exec("UPDATE agent SET status = 'REJECTED' WHERE id = 'seed:agent:grimble'");
+  const auto agree = scalar(db, "SELECT agree FROM note WHERE id = 'seed:note:spellforge-boon-1'");
 
   REQUIRE(runSeed(db, NOW).has_value());
-  CHECK(scalar(db, "SELECT hidden FROM note WHERE id = 'seed:note:kiro-bane-1'") == 1);
-  CHECK(scalar(db, "SELECT agree FROM note WHERE id = 'seed:note:kiro-boon-1'") == agree);
+  CHECK(scalar(db, "SELECT hidden FROM note WHERE id = 'seed:note:spellforge-bane-1'") == 1);
+  CHECK(scalar(db, "SELECT agree FROM note WHERE id = 'seed:note:spellforge-boon-1'") == agree);
   CHECK(scalar(db, "SELECT COUNT(*) FROM note_vote WHERE user_id = 'p1'") == 1);
-  CHECK(scalar(db, "SELECT COUNT(*) FROM agent WHERE id = 'seed:agent:grok' AND status = 'REJECTED'") == 1);
+  CHECK(scalar(db, "SELECT COUNT(*) FROM agent WHERE id = 'seed:agent:grimble' AND status = 'REJECTED'") == 1);
 }
 
 TEST_CASE("a seed Agent whose slug a player already took is skipped, not fatal", "[integration][seed][codex]") {
@@ -172,14 +172,14 @@ TEST_CASE("a seed Agent whose slug a player already took is skipped, not fatal",
   REQUIRE(applyMigrations(*d).has_value());
   d->exec("INSERT INTO user(id, name, kind, created_at, last_seen_at) VALUES ('p1', 'Marquis', 'PLAYER', 't', 't')");
   d->exec("INSERT INTO agent(id, slug, name, vendor, kind, examine, status, proposed_by_id, created_at, updated_at) "
-          "VALUES ('01PLAYERKIRO', 'kiro', 'Kiro', 'Me', 'TOOL', 'The player got here first.', 'APPROVED', 'p1', 't', 't')");
+          "VALUES ('01PLAYERKIRO', 'spellforge', 'Spellforge', 'Me', 'TOOL', 'The player got here first.', 'APPROVED', 'p1', 't', 't')");
   const auto report = runSeed(*d, NOW);
   REQUIRE(report.has_value());
   CHECK(report->agentsSkipped == 1);
-  CHECK(scalar(*d, "SELECT COUNT(*) FROM agent WHERE slug = 'kiro'") == 1);
+  CHECK(scalar(*d, "SELECT COUNT(*) FROM agent WHERE slug = 'spellforge'") == 1);
   CHECK(scalar(*d, "SELECT COUNT(*) FROM agent WHERE id = '01PLAYERKIRO' AND vendor = 'Me'") == 1);   // untouched
-  CHECK(scalar(*d, "SELECT COUNT(*) FROM agent_skill_stat WHERE agent_id = 'seed:agent:kiro'") == 0);  // no orphan rows
-  CHECK(scalar(*d, "SELECT COUNT(*) FROM note WHERE agent_id = 'seed:agent:kiro'") == 0);
+  CHECK(scalar(*d, "SELECT COUNT(*) FROM agent_skill_stat WHERE agent_id = 'seed:agent:spellforge'") == 0);  // no orphan rows
+  CHECK(scalar(*d, "SELECT COUNT(*) FROM note WHERE agent_id = 'seed:agent:spellforge'") == 0);
   CHECK(scalar(*d, "SELECT COUNT(*) FROM agent") == 14);
 }
 
@@ -218,4 +218,16 @@ TEST_CASE("bad Codex seed files are rejected whole, before anything is written",
   rejects({{"npcs.json", npcs}, {"agents.json", agents},
            {"notes.json", R"({"snapshotAt":"2026-10-01T00:00:00Z","notes":[{"id":"seed:note:n1","agent":"x","author":"seed:npc:a","kind":"BOON","text":"short","agree":1,"disagree":0}]})"}});   // too short
   rejects({{"agents.json", agents}, {"notes.json", R"({"snapshotAt":"2026-10-01T00:00:00Z","notes":[{"id":"seed:note:n1","agent":"x","author":"seed:npc:a","kind":"BOON","text":"A fine long note here.","agree":1,"disagree":0}]})"}});   // npcs missing
+}
+
+TEST_CASE("a reseed retires seed Agents that left the seed, without deleting them", "[integration][seed][codex]") {
+  auto db = freshSeededDb();
+  db.exec("INSERT INTO agent(id, slug, name, vendor, kind, examine, status, created_at, updated_at) "
+          "VALUES ('seed:agent:old-one', 'old-one', 'Old One', 'Gone', 'MODEL', 'From an older seed.', 'APPROVED', 't', 't')");
+  db.exec("INSERT INTO agent(id, slug, name, vendor, kind, examine, status, created_at, updated_at) "
+          "VALUES ('01PLAYERMADE', 'player-made', 'Player Made', 'Me', 'TOOL', 'Mine.', 'APPROVED', 't', 't')");
+  REQUIRE(runSeed(db, NOW).has_value());
+  CHECK(scalar(db, "SELECT COUNT(*) FROM agent WHERE id = 'seed:agent:old-one' AND status = 'REJECTED'") == 1);
+  CHECK(scalar(db, "SELECT COUNT(*) FROM agent WHERE id = '01PLAYERMADE' AND status = 'APPROVED'") == 1);
+  CHECK(scalar(db, "SELECT COUNT(*) FROM agent WHERE id = 'seed:agent:quillback' AND status = 'APPROVED'") == 1);
 }

@@ -1,461 +1,461 @@
 {
- "_note": "SYNTHETIC SAMPLE DATA: generic observations about AI assistants, attached to products for the demo. They are not researched claims about any product.",
+ "_note": "SYNTHETIC SAMPLE DATA: generic observations attached to FICTIONAL agents for the demo. They are not claims about any real product.",
  "snapshotAt": "2026-10-01T00:00:00Z",
  "synthetic": true,
  "notes": [
   {
-   "id": "seed:note:claude-boon-1",
-   "agent": "claude",
+   "id": "seed:note:quillback-boon-1",
+   "agent": "quillback",
    "author": "seed:npc:mossbeard",
    "kind": "BOON",
    "skill": "CODING",
    "text": "Writes working boilerplate quickly, which saves a lot of typing on routine tasks.",
-   "agree": 3,
-   "disagree": 2
+   "agree": 16,
+   "disagree": 3
   },
   {
-   "id": "seed:note:claude-boon-2",
-   "agent": "claude",
+   "id": "seed:note:quillback-boon-2",
+   "agent": "quillback",
    "author": "seed:npc:tokenmancer",
    "kind": "BOON",
    "skill": "TOOL_USE",
    "text": "Uses connected tools sensibly and reports back on what it did.",
-   "agree": 26,
-   "disagree": 5
+   "agree": 17,
+   "disagree": 3
   },
   {
-   "id": "seed:note:claude-bane-1",
-   "agent": "claude",
+   "id": "seed:note:quillback-bane-1",
+   "agent": "quillback",
    "author": "seed:npc:stacktrace",
    "kind": "BANE",
    "skill": "RELIABILITY",
    "text": "Sometimes states things with total confidence that turn out to be wrong.",
-   "agree": 6,
-   "disagree": 1
+   "agree": 19,
+   "disagree": 3
   },
   {
-   "id": "seed:note:claude-bane-2",
-   "agent": "claude",
+   "id": "seed:note:quillback-bane-2",
+   "agent": "quillback",
    "author": "seed:npc:brambleprompt",
    "kind": "BANE",
    "skill": "VALUE",
    "text": "Heavy use adds up quickly, so costs are worth watching.",
-   "agree": 2,
-   "disagree": 3
-  },
-  {
-   "id": "seed:note:gpt-boon-1",
-   "agent": "gpt",
-   "author": "seed:npc:stacktrace",
-   "kind": "BOON",
-   "skill": "RESEARCH",
-   "text": "Good at summarising a long document into the few points that matter.",
-   "agree": 22,
-   "disagree": 0
-  },
-  {
-   "id": "seed:note:gpt-boon-2",
-   "agent": "gpt",
-   "author": "seed:npc:brambleprompt",
-   "kind": "BOON",
-   "skill": "VALUE",
-   "text": "Gives a lot of useful output for the price.",
-   "agree": 24,
-   "disagree": 5
-  },
-  {
-   "id": "seed:note:gpt-bane-1",
-   "agent": "gpt",
-   "author": "seed:npc:mossbeard",
-   "kind": "BANE",
-   "skill": "RELIABILITY",
-   "text": "Can invent a source or a function name that looks real but does not exist.",
    "agree": 4,
    "disagree": 2
   },
   {
-   "id": "seed:note:gemini-boon-1",
-   "agent": "gemini",
-   "author": "seed:npc:nullwyn",
+   "id": "seed:note:gryphon-boon-1",
+   "agent": "gryphon",
+   "author": "seed:npc:stacktrace",
    "kind": "BOON",
-   "skill": "CONTEXT",
-   "text": "Keeps track of details across a long conversation without being reminded.",
-   "agree": 21,
-   "disagree": 2
-  },
-  {
-   "id": "seed:note:gemini-boon-2",
-   "agent": "gemini",
-   "author": "seed:npc:quillwright",
-   "kind": "BOON",
-   "skill": "REASONING",
-   "text": "Explains its reasoning step by step, which makes mistakes easier to spot.",
+   "skill": "RESEARCH",
+   "text": "Good at summarising a long document into the few points that matter.",
    "agree": 10,
-   "disagree": 1
+   "disagree": 5
   },
   {
-   "id": "seed:note:gemini-bane-1",
-   "agent": "gemini",
-   "author": "seed:npc:lady-lambda",
-   "kind": "BANE",
-   "skill": "CONTEXT",
-   "text": "Loses track of earlier instructions when a conversation gets very long.",
-   "agree": 11,
-   "disagree": 3
-  },
-  {
-   "id": "seed:note:gemini-bane-2",
-   "agent": "gemini",
-   "author": "seed:npc:hexlint",
-   "kind": "BANE",
-   "skill": "CREATIVITY",
-   "text": "Ideas can feel samey after a few rounds of brainstorming.",
-   "agree": 1,
-   "disagree": 3
-  },
-  {
-   "id": "seed:note:llama-boon-1",
-   "agent": "llama",
-   "author": "seed:npc:lady-lambda",
-   "kind": "BOON",
-   "skill": "RELIABILITY",
-   "text": "Usually admits when it is unsure instead of guessing.",
-   "agree": 24,
-   "disagree": 2
-  },
-  {
-   "id": "seed:note:llama-boon-2",
-   "agent": "llama",
-   "author": "seed:npc:hexlint",
-   "kind": "BOON",
-   "skill": "CREATIVITY",
-   "text": "Offers plenty of varied ideas when brainstorming, including some surprising ones.",
-   "agree": 10,
-   "disagree": 1
-  },
-  {
-   "id": "seed:note:llama-bane-1",
-   "agent": "llama",
-   "author": "seed:npc:nullwyn",
-   "kind": "BANE",
-   "skill": "WRITING",
-   "text": "Long answers can bury the one line you actually needed.",
-   "agree": 17,
-   "disagree": 0
-  },
-  {
-   "id": "seed:note:mistral-boon-1",
-   "agent": "mistral",
+   "id": "seed:note:gryphon-boon-2",
+   "agent": "gryphon",
    "author": "seed:npc:brambleprompt",
    "kind": "BOON",
-   "skill": "WRITING",
-   "text": "Produces clear, readable drafts that need only light editing.",
+   "skill": "VALUE",
+   "text": "Gives a lot of useful output for the price.",
    "agree": 14,
    "disagree": 5
   },
   {
-   "id": "seed:note:mistral-boon-2",
-   "agent": "mistral",
+   "id": "seed:note:gryphon-bane-1",
+   "agent": "gryphon",
+   "author": "seed:npc:mossbeard",
+   "kind": "BANE",
+   "skill": "RELIABILITY",
+   "text": "Can invent a source or a function name that looks real but does not exist.",
+   "agree": 7,
+   "disagree": 0
+  },
+  {
+   "id": "seed:note:twinwick-boon-1",
+   "agent": "twinwick",
+   "author": "seed:npc:nullwyn",
+   "kind": "BOON",
+   "skill": "CONTEXT",
+   "text": "Keeps track of details across a long conversation without being reminded.",
+   "agree": 10,
+   "disagree": 0
+  },
+  {
+   "id": "seed:note:twinwick-boon-2",
+   "agent": "twinwick",
+   "author": "seed:npc:quillwright",
+   "kind": "BOON",
+   "skill": "REASONING",
+   "text": "Explains its reasoning step by step, which makes mistakes easier to spot.",
+   "agree": 25,
+   "disagree": 0
+  },
+  {
+   "id": "seed:note:twinwick-bane-1",
+   "agent": "twinwick",
+   "author": "seed:npc:lady-lambda",
+   "kind": "BANE",
+   "skill": "CONTEXT",
+   "text": "Loses track of earlier instructions when a conversation gets very long.",
+   "agree": 14,
+   "disagree": 2
+  },
+  {
+   "id": "seed:note:twinwick-bane-2",
+   "agent": "twinwick",
+   "author": "seed:npc:hexlint",
+   "kind": "BANE",
+   "skill": "CREATIVITY",
+   "text": "Ideas can feel samey after a few rounds of brainstorming.",
+   "agree": 6,
+   "disagree": 2
+  },
+  {
+   "id": "seed:note:mossling-boon-1",
+   "agent": "mossling",
+   "author": "seed:npc:lady-lambda",
+   "kind": "BOON",
+   "skill": "RELIABILITY",
+   "text": "Usually admits when it is unsure instead of guessing.",
+   "agree": 28,
+   "disagree": 5
+  },
+  {
+   "id": "seed:note:mossling-boon-2",
+   "agent": "mossling",
+   "author": "seed:npc:hexlint",
+   "kind": "BOON",
+   "skill": "CREATIVITY",
+   "text": "Offers plenty of varied ideas when brainstorming, including some surprising ones.",
+   "agree": 18,
+   "disagree": 1
+  },
+  {
+   "id": "seed:note:mossling-bane-1",
+   "agent": "mossling",
+   "author": "seed:npc:nullwyn",
+   "kind": "BANE",
+   "skill": "WRITING",
+   "text": "Long answers can bury the one line you actually needed.",
+   "agree": 10,
+   "disagree": 3
+  },
+  {
+   "id": "seed:note:mistwren-boon-1",
+   "agent": "mistwren",
+   "author": "seed:npc:brambleprompt",
+   "kind": "BOON",
+   "skill": "WRITING",
+   "text": "Produces clear, readable drafts that need only light editing.",
+   "agree": 6,
+   "disagree": 2
+  },
+  {
+   "id": "seed:note:mistwren-boon-2",
+   "agent": "mistwren",
    "author": "seed:npc:mossbeard",
    "kind": "BOON",
    "skill": "SPEED",
    "text": "Responds fast enough that it stays in the flow of the work.",
-   "agree": 15,
-   "disagree": 0
+   "agree": 21,
+   "disagree": 3
   },
   {
-   "id": "seed:note:mistral-bane-1",
-   "agent": "mistral",
+   "id": "seed:note:mistwren-bane-1",
+   "agent": "mistwren",
    "author": "seed:npc:tokenmancer",
    "kind": "BANE",
    "skill": "CODING",
    "text": "Generated code may compile but quietly miss an edge case, so it needs real tests.",
-   "agree": 8,
-   "disagree": 0
+   "agree": 14,
+   "disagree": 2
   },
   {
-   "id": "seed:note:mistral-bane-2",
-   "agent": "mistral",
+   "id": "seed:note:mistwren-bane-2",
+   "agent": "mistwren",
    "author": "seed:npc:stacktrace",
    "kind": "BANE",
    "skill": "RELIABILITY",
    "text": "Answers to the same question can differ from one run to the next.",
-   "agree": 3,
-   "disagree": 2
-  },
-  {
-   "id": "seed:note:deepseek-boon-1",
-   "agent": "deepseek",
-   "author": "seed:npc:tokenmancer",
-   "kind": "BOON",
-   "skill": "TOOL_USE",
-   "text": "Uses connected tools sensibly and reports back on what it did.",
-   "agree": 8,
-   "disagree": 2
-  },
-  {
-   "id": "seed:note:deepseek-boon-2",
-   "agent": "deepseek",
-   "author": "seed:npc:stacktrace",
-   "kind": "BOON",
-   "skill": "CODING",
-   "text": "Writes working boilerplate quickly, which saves a lot of typing on routine tasks.",
    "agree": 5,
    "disagree": 1
   },
   {
-   "id": "seed:note:deepseek-bane-1",
-   "agent": "deepseek",
+   "id": "seed:note:deepwell-boon-1",
+   "agent": "deepwell",
+   "author": "seed:npc:tokenmancer",
+   "kind": "BOON",
+   "skill": "TOOL_USE",
+   "text": "Uses connected tools sensibly and reports back on what it did.",
+   "agree": 10,
+   "disagree": 5
+  },
+  {
+   "id": "seed:note:deepwell-boon-2",
+   "agent": "deepwell",
+   "author": "seed:npc:stacktrace",
+   "kind": "BOON",
+   "skill": "CODING",
+   "text": "Writes working boilerplate quickly, which saves a lot of typing on routine tasks.",
+   "agree": 24,
+   "disagree": 4
+  },
+  {
+   "id": "seed:note:deepwell-bane-1",
+   "agent": "deepwell",
    "author": "seed:npc:brambleprompt",
    "kind": "BANE",
    "skill": "TOOL_USE",
    "text": "Occasionally calls a tool with the wrong arguments and then repeats the mistake.",
-   "agree": 19,
-   "disagree": 4
+   "agree": 7,
+   "disagree": 3
   },
   {
-   "id": "seed:note:grok-boon-1",
-   "agent": "grok",
+   "id": "seed:note:grimble-boon-1",
+   "agent": "grimble",
    "author": "seed:npc:hexlint",
    "kind": "BOON",
    "skill": "VALUE",
    "text": "Gives a lot of useful output for the price.",
-   "agree": 23,
+   "agree": 15,
    "disagree": 5
   },
   {
-   "id": "seed:note:grok-boon-2",
-   "agent": "grok",
+   "id": "seed:note:grimble-boon-2",
+   "agent": "grimble",
    "author": "seed:npc:nullwyn",
    "kind": "BOON",
    "skill": "RESEARCH",
    "text": "Good at summarising a long document into the few points that matter.",
-   "agree": 9,
-   "disagree": 5
+   "agree": 14,
+   "disagree": 3
   },
   {
-   "id": "seed:note:grok-bane-1",
-   "agent": "grok",
+   "id": "seed:note:grimble-bane-1",
+   "agent": "grimble",
    "author": "seed:npc:quillwright",
    "kind": "BANE",
    "skill": "SPEED",
    "text": "Can be slow on big requests, which breaks concentration.",
-   "agree": 9,
-   "disagree": 1
+   "agree": 13,
+   "disagree": 0
   },
   {
-   "id": "seed:note:grok-bane-2",
-   "agent": "grok",
+   "id": "seed:note:grimble-bane-2",
+   "agent": "grimble",
    "author": "seed:npc:lady-lambda",
    "kind": "BANE",
    "skill": "CODING",
    "text": "Tends to rewrite more code than the change actually required.",
    "agree": 4,
-   "disagree": 2
+   "disagree": 1
   },
   {
-   "id": "seed:note:qwen-boon-1",
-   "agent": "qwen",
+   "id": "seed:note:quartzen-boon-1",
+   "agent": "quartzen",
    "author": "seed:npc:quillwright",
    "kind": "BOON",
    "skill": "REASONING",
    "text": "Explains its reasoning step by step, which makes mistakes easier to spot.",
-   "agree": 25,
-   "disagree": 0
+   "agree": 11,
+   "disagree": 2
   },
   {
-   "id": "seed:note:qwen-boon-2",
-   "agent": "qwen",
+   "id": "seed:note:quartzen-boon-2",
+   "agent": "quartzen",
    "author": "seed:npc:lady-lambda",
    "kind": "BOON",
    "skill": "CONTEXT",
    "text": "Keeps track of details across a long conversation without being reminded.",
-   "agree": 17,
-   "disagree": 5
+   "agree": 12,
+   "disagree": 4
   },
   {
-   "id": "seed:note:qwen-bane-1",
-   "agent": "qwen",
+   "id": "seed:note:quartzen-bane-1",
+   "agent": "quartzen",
    "author": "seed:npc:hexlint",
    "kind": "BANE",
    "skill": "VALUE",
    "text": "Heavy use adds up quickly, so costs are worth watching.",
-   "agree": 11,
-   "disagree": 4
+   "agree": 16,
+   "disagree": 2
   },
   {
-   "id": "seed:note:kiro-boon-1",
-   "agent": "kiro",
+   "id": "seed:note:spellforge-boon-1",
+   "agent": "spellforge",
    "author": "seed:npc:stacktrace",
    "kind": "BOON",
    "skill": "CREATIVITY",
    "text": "Offers plenty of varied ideas when brainstorming, including some surprising ones.",
-   "agree": 26,
+   "agree": 16,
    "disagree": 1
   },
   {
-   "id": "seed:note:kiro-boon-2",
-   "agent": "kiro",
+   "id": "seed:note:spellforge-boon-2",
+   "agent": "spellforge",
    "author": "seed:npc:brambleprompt",
    "kind": "BOON",
    "skill": "RELIABILITY",
    "text": "Usually admits when it is unsure instead of guessing.",
-   "agree": 11,
-   "disagree": 4
+   "agree": 30,
+   "disagree": 1
   },
   {
-   "id": "seed:note:kiro-bane-1",
-   "agent": "kiro",
+   "id": "seed:note:spellforge-bane-1",
+   "agent": "spellforge",
    "author": "seed:npc:mossbeard",
    "kind": "BANE",
    "skill": "REASONING",
    "text": "Can follow a plausible chain of logic to a wrong conclusion.",
-   "agree": 19,
-   "disagree": 4
+   "agree": 20,
+   "disagree": 0
   },
   {
-   "id": "seed:note:kiro-bane-2",
-   "agent": "kiro",
+   "id": "seed:note:spellforge-bane-2",
+   "agent": "spellforge",
    "author": "seed:npc:tokenmancer",
    "kind": "BANE",
    "skill": "RELIABILITY",
    "text": "Can invent a source or a function name that looks real but does not exist.",
-   "agree": 4,
-   "disagree": 0
+   "agree": 6,
+   "disagree": 3
   },
   {
-   "id": "seed:note:github-copilot-boon-1",
-   "agent": "github-copilot",
+   "id": "seed:note:pocket-familiar-boon-1",
+   "agent": "pocket-familiar",
    "author": "seed:npc:mossbeard",
    "kind": "BOON",
    "skill": "SPEED",
    "text": "Responds fast enough that it stays in the flow of the work.",
-   "agree": 9,
-   "disagree": 2
+   "agree": 5,
+   "disagree": 3
   },
   {
-   "id": "seed:note:github-copilot-boon-2",
-   "agent": "github-copilot",
+   "id": "seed:note:pocket-familiar-boon-2",
+   "agent": "pocket-familiar",
    "author": "seed:npc:tokenmancer",
    "kind": "BOON",
    "skill": "WRITING",
    "text": "Produces clear, readable drafts that need only light editing.",
-   "agree": 10,
-   "disagree": 5
+   "agree": 19,
+   "disagree": 2
   },
   {
-   "id": "seed:note:github-copilot-bane-1",
-   "agent": "github-copilot",
+   "id": "seed:note:pocket-familiar-bane-1",
+   "agent": "pocket-familiar",
    "author": "seed:npc:stacktrace",
    "kind": "BANE",
    "skill": "CREATIVITY",
    "text": "Ideas can feel samey after a few rounds of brainstorming.",
-   "agree": 7,
-   "disagree": 0
+   "agree": 11,
+   "disagree": 1
   },
   {
-   "id": "seed:note:cursor-boon-1",
-   "agent": "cursor",
+   "id": "seed:note:cairn-boon-1",
+   "agent": "cairn",
    "author": "seed:npc:lady-lambda",
    "kind": "BOON",
    "skill": "CODING",
    "text": "Writes working boilerplate quickly, which saves a lot of typing on routine tasks.",
-   "agree": 16,
+   "agree": 11,
    "disagree": 2
   },
   {
-   "id": "seed:note:cursor-boon-2",
-   "agent": "cursor",
+   "id": "seed:note:cairn-boon-2",
+   "agent": "cairn",
    "author": "seed:npc:hexlint",
    "kind": "BOON",
    "skill": "TOOL_USE",
    "text": "Uses connected tools sensibly and reports back on what it did.",
-   "agree": 16,
-   "disagree": 2
-  },
-  {
-   "id": "seed:note:cursor-bane-1",
-   "agent": "cursor",
-   "author": "seed:npc:nullwyn",
-   "kind": "BANE",
-   "skill": "RESEARCH",
-   "text": "Summaries sometimes flatten important caveats from the original text.",
-   "agree": 12,
-   "disagree": 0
-  },
-  {
-   "id": "seed:note:cursor-bane-2",
-   "agent": "cursor",
-   "author": "seed:npc:quillwright",
-   "kind": "BANE",
-   "skill": "WRITING",
-   "text": "Long answers can bury the one line you actually needed.",
-   "agree": 5,
-   "disagree": 2
-  },
-  {
-   "id": "seed:note:chatgpt-boon-1",
-   "agent": "chatgpt",
-   "author": "seed:npc:nullwyn",
-   "kind": "BOON",
-   "skill": "RESEARCH",
-   "text": "Good at summarising a long document into the few points that matter.",
-   "agree": 24,
-   "disagree": 3
-  },
-  {
-   "id": "seed:note:chatgpt-boon-2",
-   "agent": "chatgpt",
-   "author": "seed:npc:quillwright",
-   "kind": "BOON",
-   "skill": "VALUE",
-   "text": "Gives a lot of useful output for the price.",
-   "agree": 25,
-   "disagree": 1
-  },
-  {
-   "id": "seed:note:chatgpt-bane-1",
-   "agent": "chatgpt",
-   "author": "seed:npc:lady-lambda",
-   "kind": "BANE",
-   "skill": "RELIABILITY",
-   "text": "Answers to the same question can differ from one run to the next.",
-   "agree": 22,
-   "disagree": 3
-  },
-  {
-   "id": "seed:note:perplexity-boon-1",
-   "agent": "perplexity",
-   "author": "seed:npc:tokenmancer",
-   "kind": "BOON",
-   "skill": "CONTEXT",
-   "text": "Keeps track of details across a long conversation without being reminded.",
-   "agree": 23,
-   "disagree": 3
-  },
-  {
-   "id": "seed:note:perplexity-boon-2",
-   "agent": "perplexity",
-   "author": "seed:npc:stacktrace",
-   "kind": "BOON",
-   "skill": "REASONING",
-   "text": "Explains its reasoning step by step, which makes mistakes easier to spot.",
    "agree": 30,
    "disagree": 2
   },
   {
-   "id": "seed:note:perplexity-bane-1",
-   "agent": "perplexity",
+   "id": "seed:note:cairn-bane-1",
+   "agent": "cairn",
+   "author": "seed:npc:nullwyn",
+   "kind": "BANE",
+   "skill": "RESEARCH",
+   "text": "Summaries sometimes flatten important caveats from the original text.",
+   "agree": 5,
+   "disagree": 1
+  },
+  {
+   "id": "seed:note:cairn-bane-2",
+   "agent": "cairn",
+   "author": "seed:npc:quillwright",
+   "kind": "BANE",
+   "skill": "WRITING",
+   "text": "Long answers can bury the one line you actually needed.",
+   "agree": 6,
+   "disagree": 3
+  },
+  {
+   "id": "seed:note:gryphon-chat-boon-1",
+   "agent": "gryphon-chat",
+   "author": "seed:npc:nullwyn",
+   "kind": "BOON",
+   "skill": "RESEARCH",
+   "text": "Good at summarising a long document into the few points that matter.",
+   "agree": 27,
+   "disagree": 4
+  },
+  {
+   "id": "seed:note:gryphon-chat-boon-2",
+   "agent": "gryphon-chat",
+   "author": "seed:npc:quillwright",
+   "kind": "BOON",
+   "skill": "VALUE",
+   "text": "Gives a lot of useful output for the price.",
+   "agree": 5,
+   "disagree": 5
+  },
+  {
+   "id": "seed:note:gryphon-chat-bane-1",
+   "agent": "gryphon-chat",
+   "author": "seed:npc:lady-lambda",
+   "kind": "BANE",
+   "skill": "RELIABILITY",
+   "text": "Answers to the same question can differ from one run to the next.",
+   "agree": 16,
+   "disagree": 2
+  },
+  {
+   "id": "seed:note:pathfinder-boon-1",
+   "agent": "pathfinder",
+   "author": "seed:npc:tokenmancer",
+   "kind": "BOON",
+   "skill": "CONTEXT",
+   "text": "Keeps track of details across a long conversation without being reminded.",
+   "agree": 11,
+   "disagree": 3
+  },
+  {
+   "id": "seed:note:pathfinder-boon-2",
+   "agent": "pathfinder",
+   "author": "seed:npc:stacktrace",
+   "kind": "BOON",
+   "skill": "REASONING",
+   "text": "Explains its reasoning step by step, which makes mistakes easier to spot.",
+   "agree": 3,
+   "disagree": 0
+  },
+  {
+   "id": "seed:note:pathfinder-bane-1",
+   "agent": "pathfinder",
    "author": "seed:npc:brambleprompt",
    "kind": "BANE",
    "skill": "CONTEXT",
    "text": "Needs to be told the same project rules again in each new session.",
-   "agree": 13,
+   "agree": 20,
    "disagree": 3
   },
   {
-   "id": "seed:note:perplexity-bane-2",
-   "agent": "perplexity",
+   "id": "seed:note:pathfinder-bane-2",
+   "agent": "pathfinder",
    "author": "seed:npc:mossbeard",
    "kind": "BANE",
    "skill": "TOOL_USE",
@@ -464,34 +464,34 @@
    "disagree": 2
   },
   {
-   "id": "seed:note:v0-boon-1",
-   "agent": "v0",
+   "id": "seed:note:sketchling-boon-1",
+   "agent": "sketchling",
    "author": "seed:npc:brambleprompt",
    "kind": "BOON",
    "skill": "RELIABILITY",
    "text": "Usually admits when it is unsure instead of guessing.",
-   "agree": 13,
-   "disagree": 1
+   "agree": 5,
+   "disagree": 2
   },
   {
-   "id": "seed:note:v0-boon-2",
-   "agent": "v0",
+   "id": "seed:note:sketchling-boon-2",
+   "agent": "sketchling",
    "author": "seed:npc:mossbeard",
    "kind": "BOON",
    "skill": "CREATIVITY",
    "text": "Offers plenty of varied ideas when brainstorming, including some surprising ones.",
-   "agree": 10,
-   "disagree": 5
+   "agree": 26,
+   "disagree": 2
   },
   {
-   "id": "seed:note:v0-bane-1",
-   "agent": "v0",
+   "id": "seed:note:sketchling-bane-1",
+   "agent": "sketchling",
    "author": "seed:npc:tokenmancer",
    "kind": "BANE",
    "skill": "CODING",
    "text": "Tends to rewrite more code than the change actually required.",
-   "agree": 13,
-   "disagree": 3
+   "agree": 9,
+   "disagree": 2
   }
  ]
 }

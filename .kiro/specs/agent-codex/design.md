@@ -147,7 +147,7 @@ CREATE TABLE report (
 
 ### Seed Agents (initial set, factual text only)
 
-Models: Claude, GPT, Gemini, Llama, Mistral, DeepSeek, Grok, Qwen. Tools: Kiro, GitHub Copilot, Cursor, ChatGPT, Perplexity, v0. Each one has a one-line neutral examine text written in the game voice. Final list and wording are to be reviewed before the demo. Seed files live in `data/seed/agents.json`, `npcs.json`, `quest_logs.json`, and `notes.json`. Seed rows have stable IDs, so upserts are idempotent and never touch rows the player created.
+All seed Agents are FICTIONAL (decision: the demo must not attach invented ratings or opinions to real products). Models: Quillback, Gryphon, Twinwick, Mossling, Mistwren, Deepwell, Grimble, Quartzen. Tools: Spellforge, Pocket Familiar, Cairn, Gryphon Chat, Pathfinder, Sketchling. Vendors are invented and websites use the reserved `.example` domain. When a new seed version drops an Agent, the seeder marks it REJECTED rather than deleting it. Each one has a one-line neutral examine text written in the game voice. Final list and wording are to be reviewed before the demo. Seed files live in `data/seed/agents.json`, `npcs.json`, `quest_logs.json`, and `notes.json`. Seed rows have stable IDs, so upserts are idempotent and never touch rows the player created.
 
 ## Correctness properties
 
