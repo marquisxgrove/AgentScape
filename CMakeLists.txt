@@ -40,6 +40,7 @@ add_library(as_domain STATIC
   src/domain/adventurer_name.cpp
   src/domain/appearance.cpp
   src/domain/codex_query.cpp
+  src/domain/compare.cpp
   src/domain/codex_validation.cpp
   src/domain/device_flow.cpp
   src/domain/frame.cpp
@@ -124,6 +125,7 @@ add_library(as_services STATIC
   src/services/agent_service.cpp
   src/services/keeper_service.cpp
   src/services/note_service.cpp
+  src/services/proving_service.cpp
   src/services/codex_store.cpp
   src/services/profile_service.cpp)
 target_include_directories(as_services PUBLIC src)
@@ -165,6 +167,7 @@ if(AS_BUILD_APP)
     src/screens/codex/codex_widgets.cpp
     src/screens/codex/keeper_screen.cpp
     src/screens/codex/propose_screen.cpp
+    src/screens/codex/proving_screen.cpp
     src/screens/costumer/costumer_screen.cpp
     src/screens/login/login_screen.cpp
     src/screens/world/world_screen.cpp
@@ -219,6 +222,7 @@ if(AS_BUILD_TESTS)
     tests/unit/costumer_draft_test.cpp
     tests/unit/civil_time_test.cpp
     tests/unit/codex_query_test.cpp
+    tests/unit/compare_test.cpp
     tests/unit/codex_scoring_test.cpp
     tests/unit/codex_validation_test.cpp
     tests/unit/config_test.cpp
@@ -260,6 +264,7 @@ if(AS_BUILD_TESTS)
     tests/integration/agent_service_test.cpp
     tests/integration/keeper_service_test.cpp
     tests/integration/note_service_test.cpp
+    tests/integration/proving_service_test.cpp
     tests/integration/codex_store_test.cpp
     tests/integration/db_test.cpp
     tests/integration/local_store_test.cpp

@@ -47,7 +47,7 @@
   - [x] 6.2 Add the "Codex Keeper tools" setting (`setKeeper`) and the Keeper queue screen: approve/reject proposals, hide/unhide Notes, resolve Reports. Post an ActivityEvent on approval.
     - _Requirements: 4.4, 8.1–8.4_
 
-- [ ] 7. Build the Proving Grounds
+- [x] 7. Build the Proving Grounds
   - Add the Proving Grounds screen with 2–3 Agent pickers, Quest_Type scope, per-row highlight (ties included), remembered selection, and "Copy" (`SDL_SetClipboardText`).
   - _Requirements: 6.1–6.4_
 

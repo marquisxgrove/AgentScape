@@ -20,6 +20,7 @@
 #include "screens/codex/codex_screen.hpp"
 #include "screens/codex/keeper_screen.hpp"
 #include "screens/codex/propose_screen.hpp"
+#include "screens/codex/proving_screen.hpp"
 #include "screens/costumer/costumer_screen.hpp"
 #include "screens/login/login_screen.hpp"
 #include "screens/world/world_screen.hpp"
@@ -191,7 +192,8 @@ void App::openStore(bool resetData) {
                              services::CodexService{store_->db, codexCache_},
                              services::NoteService{store_->db, clock_, rng_, bus_},
                              services::AgentService{store_->db, clock_, rng_, bus_},
-                             services::KeeperService{store_->db, clock_, rng_, bus_}});
+                             services::KeeperService{store_->db, clock_, rng_, bus_},
+                             services::ProvingService{store_->db, clock_}});
   chatbox_.emplace(bus_);
   onStoreReady();
   dataState_ = DataState::Ready;
@@ -278,6 +280,7 @@ void App::registerScreens() {
   screens_.registerScreen(ScreenId::Costumer, [] { return std::make_unique<screens::CostumerScreen>(); });
   screens_.registerScreen(ScreenId::Codex, [] { return std::make_unique<screens::CodexScreen>(); });
   screens_.registerScreen(ScreenId::Keeper, [] { return std::make_unique<screens::KeeperScreen>(); });
+  screens_.registerScreen(ScreenId::Proving, [] { return std::make_unique<screens::ProvingScreen>(); });
   screens_.registerScreen(ScreenId::Propose, [] { return std::make_unique<screens::ProposeScreen>(); });
   screens_.registerScreen(ScreenId::CodexCard, [] { return std::make_unique<screens::CodexCardScreen>(); });
 #ifdef AS_ENABLE_DEV_SCREENS
@@ -298,10 +301,12 @@ void App::registerScreens() {
         if (name == "costumer-adventurers") postLoginParams_["tab"] = "adventurers";
       }
     }
-    for (const char* name : {"codex", "codex-table", "codex-search", "codex-card", "codex-card-debug", "codex-card-notes", "codex-card-compose", "codex-propose", "codex-propose-error", "codex-keeper"}) {
+    for (const char* name : {"codex", "codex-table", "codex-search", "codex-card", "codex-card-debug", "codex-card-notes", "codex-card-compose", "codex-propose", "codex-propose-error", "codex-keeper", "proving", "proving-pick"}) {
       if (*config_.startScreen == name) {
         const std::string n = name;
-        postLoginScreen_ = n.rfind("codex-card", 0) == 0 ? ScreenId::CodexCard : (n.rfind("codex-propose", 0) == 0 ? ScreenId::Propose : (n == "codex-keeper" ? ScreenId::Keeper : ScreenId::Codex));
+        postLoginScreen_ = n.rfind("codex-card", 0) == 0 ? ScreenId::CodexCard : (n.rfind("codex-propose", 0) == 0 ? ScreenId::Propose : (n == "codex-keeper" ? ScreenId::Keeper : (n.rfind("proving", 0) == 0 ? ScreenId::Proving : ScreenId::Codex)));
+        if (n.rfind("proving", 0) == 0) postLoginParams_["with"] = "gryphon,cairn,gryphon-chat";
+        if (n == "proving-pick") postLoginParams_["pick"] = "2";
         if (n == "codex-propose-error") postLoginParams_["demo"] = "1";
         if (n == "codex-propose-error") postLoginParams_["name"] = "Gryphon";
         if (n == "codex-table") postLoginParams_["view"] = "table";

@@ -166,6 +166,11 @@ void CodexScreen::drawControls(app::FrameCtx& ctx) {
   if (ctx.isKeeper && codex::flowButton("Keeper queue", "keeper", first) && ctx.nav != nullptr) {
     ctx.nav->navigate(app::ScreenId::Keeper);
   }
+  if (codex::flowButton("Proving Grounds", "proving", first) && ctx.nav != nullptr) {
+    app::ScreenParams p;
+    if (scope_) p["scope"] = domain::storageName(*scope_);
+    ctx.nav->navigate(app::ScreenId::Proving, p);
+  }
   if (codex::flowButton("Propose a familiar", "propose", first) && ctx.nav != nullptr) ctx.nav->navigate(app::ScreenId::Propose);
   ImGui::Spacing();
 }

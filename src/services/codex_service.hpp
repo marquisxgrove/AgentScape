@@ -9,6 +9,7 @@
 #include "core/result.hpp"
 #include "db/database.hpp"
 #include "domain/codex_query.hpp"
+#include "domain/compare.hpp"
 #include "domain/stat_table.hpp"
 #include "services/codex_cache.hpp"
 #include "services/codex_store.hpp"
@@ -67,6 +68,14 @@ class CodexService {
   // The card for an approved Agent, or nullopt if there is none by that slug (or it isn't approved).
   Result<std::optional<AgentCard>> card(const std::string& slug, std::optional<domain::QuestType> scope,
                                         std::size_t topNotes = 5);
+
+  // Every approved Agent, by name (for pickers).
+  Result<std::vector<Agent>> approvedAgents();
+
+  // The levels of each named approved Agent (by slug) in `scope`, in the order given. A slug that is not an
+  // approved Agent is skipped, so a stale selection can't break a comparison.
+  Result<std::vector<domain::CompareColumn>> compareColumns(const std::vector<std::string>& slugs,
+                                                            std::optional<domain::QuestType> scope);
 
   // Visible notes of one kind, best first (Wilson score, then newest). limit 0 = all.
   Result<std::vector<NoteView>> notes(const std::string& agentId, NoteKind kind, std::size_t limit = 0);
