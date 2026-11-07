@@ -42,6 +42,8 @@ add_library(as_domain STATIC
   src/domain/codex_query.cpp
   src/domain/compare.cpp
   src/domain/graveyard.cpp
+  src/domain/ratings.cpp
+  src/domain/xp.cpp
   src/domain/codex_validation.cpp
   src/domain/device_flow.cpp
   src/domain/frame.cpp
@@ -226,6 +228,7 @@ if(AS_BUILD_TESTS)
     tests/unit/codex_query_test.cpp
     tests/unit/compare_test.cpp
     tests/unit/graveyard_test.cpp
+    tests/unit/quest_domain_test.cpp
     tests/unit/codex_scoring_test.cpp
     tests/unit/codex_validation_test.cpp
     tests/unit/config_test.cpp
@@ -253,7 +256,8 @@ if(AS_BUILD_TESTS)
     tests/property/game_shell_props.cpp
     tests/property/character_creator_props.cpp
     tests/property/loadout_props.cpp
-    tests/property/agent_codex_props.cpp)
+    tests/property/agent_codex_props.cpp
+    tests/property/quest_logs_props.cpp)
   target_link_libraries(property_tests PRIVATE as_domain Catch2::Catch2WithMain rapidcheck)
   target_include_directories(property_tests PRIVATE tests)
   as_enable_warnings(property_tests)
