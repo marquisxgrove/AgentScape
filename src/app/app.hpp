@@ -80,6 +80,7 @@ class App {
   core::SystemRng rng_;
   core::SystemClock clock_;
   app::EventBus bus_;
+  services::CodexCache codexCache_{bus_};  // must outlive Services: CodexService holds a reference
   std::optional<ui::Chatbox> chatbox_;
   ui::ContextMenuHost contextMenu_;
   app::ContextRequest contextReq_;
