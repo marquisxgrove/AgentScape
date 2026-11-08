@@ -128,7 +128,8 @@ bool App::init() {
   ui_.kiroween = kiroween_;
   ui::applyTheme(kiroween_);
   const auto assets = platform::assetsDir();
-  ui_.fonts = ui::loadFonts(assets / "fonts");
+  frame_->updateLayout(window_, settings_.fullscreen ? domain::FrameScaling::Fit : domain::FrameScaling::Integer);
+  ui_.fonts = ui::loadFonts(assets / "fonts", frame_->res());
   textures_ = std::make_unique<render::TextureCache>(renderer_);
   ui_.skin = ui::loadSkin(*textures_, assets / "ui");
   ui_.textures = textures_.get();
@@ -639,7 +640,7 @@ void App::drawShell() {
 }
 
 void App::saveSnapshot() {
-  // Reads the 765x503 frame texture (the current render target), not the scaled window.
+  // Reads the frame texture (the current render target, 765x503 times the render resolution), not the window.
   SDL_Surface* shot = SDL_RenderReadPixels(renderer_, nullptr);
   if (shot == nullptr) {
     SDL_Log("Snapshot failed: %s", SDL_GetError());
@@ -662,7 +663,14 @@ SDL_AppResult App::iterate() {
     case platform::ExportOutcome::Cancelled:
     case platform::ExportOutcome::None: break;  // cancelling does nothing (Req 8.2)
   }
-  frame_->updateLayout(window_, settings_.pixelPerfect ? domain::FrameScaling::Integer : domain::FrameScaling::Fit);
+  frame_->updateLayout(window_, settings_.fullscreen ? domain::FrameScaling::Fit : domain::FrameScaling::Integer);
+  if (frame_->res() != ui_.fonts.res) {
+    // The frame's render resolution changed (the window was resized, or Fullscreen toggled): rasterise the fonts
+    // to match, so text stays sharp. Between frames the atlas is unlocked; the backend remakes its texture.
+    ImGui_ImplSDLRenderer3_DestroyFontsTexture();
+    ui_.fonts = ui::loadFonts(platform::assetsDir() / "fonts", frame_->res());
+    fontTextureNearest_ = false;
+  }
 
   screens_.applyPending();
 

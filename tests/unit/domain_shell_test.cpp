@@ -14,10 +14,15 @@ TEST_CASE("settings round-trip and tolerate malformed JSON", "[unit][settings]")
   s.plainFont = true;
   s.sound = true;
   CHECK(domain::settingsFromJson(domain::settingsToJson(s)) == s);
-  s.pixelPerfect = true;
+  s.fullscreen = false;
   CHECK(domain::settingsFromJson(domain::settingsToJson(s)) == s);
-  // Saves from before "Pixel-perfect scaling" existed get the Fit default.
-  CHECK_FALSE(domain::settingsFromJson(R"({"plainFont":false,"reduceMotion":false,"sound":false})").pixelPerfect);
+  // Fullscreen is on by default, including for saves from before the setting existed.
+  CHECK(domain::Settings{}.fullscreen);
+  CHECK(domain::settingsFromJson(R"({"plainFont":false,"reduceMotion":false,"sound":false})").fullscreen);
+  // Saves from when it was "Pixel-perfect scaling" keep their choice; the new key wins when both are present.
+  CHECK_FALSE(domain::settingsFromJson(R"({"pixelPerfect":true})").fullscreen);
+  CHECK(domain::settingsFromJson(R"({"pixelPerfect":false})").fullscreen);
+  CHECK(domain::settingsFromJson(R"({"pixelPerfect":true,"fullscreen":true})").fullscreen);
 
   domain::Settings defaults;
   defaults.reduceMotion = true;

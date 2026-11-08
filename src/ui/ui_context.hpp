@@ -21,6 +21,7 @@ struct FontSet {
 struct Fonts {
   FontSet pixel;  // Silkscreen (OFL), native 8 px grid
   FontSet plain;  // Atkinson Hyperlegible (OFL), for the "Plain font" setting
+  int res = 1;    // rasterised at res x their size and drawn at 1/res scale (see render::GameFrame)
 };
 
 struct Skin {
@@ -55,9 +56,11 @@ Surface currentSurface();
 void setContext(UiContext* ctx);
 UiContext& ctx();
 
-// Loads both font sets from <assets>/fonts into the ImGui atlas (before the first NewFrame).
-// Missing files fall back to ImGui's default font so the app still runs.
-Fonts loadFonts(const std::filesystem::path& fontsDir);
+// Loads both font sets from <assets>/fonts into a fresh ImGui atlas, rasterised at `res` times their size and
+// scaled by 1/res, so layout sizes are the same at every res. Call before NewFrame, and again (after destroying
+// the backend's font texture) when the frame's render resolution changes. Missing files fall back to ImGui's
+// default font so the app still runs.
+Fonts loadFonts(const std::filesystem::path& fontsDir, int res = 1);
 Skin loadSkin(render::TextureCache& textures, const std::filesystem::path& uiDir);
 
 const FontSet& activeFonts();  // pixel or plain, per the setting

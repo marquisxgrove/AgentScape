@@ -10,12 +10,12 @@ struct Settings {
   bool plainFont = false;
   bool reduceMotion = false;
   bool sound = false;  // sound effects are off by default (art-direction.md)
-  bool pixelPerfect = false;  // whole-number frame scaling only; off = fit the window
+  bool fullscreen = true;  // fill the window (fractional scaling); off = whole-number steps only ("pixel perfect")
 
   bool operator==(const Settings&) const = default;
 };
 
-// {"plainFont":bool,"reduceMotion":bool,"sound":bool,"pixelPerfect":bool}
+// {"plainFont":bool,"reduceMotion":bool,"sound":bool,"fullscreen":bool}
 std::string settingsToJson(const Settings& s);
 
 // Lenient by design: this reads a database column, so it never throws or rejects. Missing keys, wrong

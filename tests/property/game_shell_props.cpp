@@ -68,6 +68,31 @@ TEST_CASE("Property 1b: Fit scaling fills the window and maps the pointer", "[pr
   });
 }
 
+// Validates: game-shell Requirement 1.1 (text stays sharp at large scales)
+TEST_CASE("Property 1c: the render resolution never makes the final blit shrink or stretch unevenly", "[property][game-shell]") {
+  as::testing::checkProperty("res divides Integer scales and leaves Fit less than 2x to stretch", [](const int rawW, const int rawH, const bool fit, const int rawMax) {
+    const int w = 1 + std::abs(rawW % 8000);
+    const int h = 1 + std::abs(rawH % 6000);
+    const int maxTex = (rawMax % 3 == 0) ? 0 : 1024 + std::abs(rawMax % 16384);
+    const auto mode = fit ? FrameScaling::Fit : FrameScaling::Integer;
+    const auto layout = layoutFrame(w, h, mode);
+    const int res = frameRenderRes(layout, mode, maxTex);
+    RC_ASSERT(res >= 1);
+    RC_ASSERT(res <= MAX_FRAME_RES);
+    if (res > 1) {
+      RC_ASSERT(static_cast<float>(res) <= layout.scale + 1e-3F);   // the blit never shrinks a sharpened frame
+      if (maxTex > 0) {
+        RC_ASSERT(FRAME_W * res <= maxTex);
+      }
+    }
+    if (!fit) {
+      RC_ASSERT(layout.width % (FRAME_W * res) == 0);                 // Integer: an exact whole-number blit
+    } else if (maxTex == 0 && layout.scale < static_cast<float>(MAX_FRAME_RES + 1)) {
+      RC_ASSERT(layout.scale < 2.0F * static_cast<float>(res) + 1e-3F);   // Fit: stretched by less than 2x
+    }
+  });
+}
+
 namespace {
 bool inKiroweenWindow(sys_seconds t) {
   using namespace std::chrono;

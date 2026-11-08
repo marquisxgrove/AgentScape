@@ -8,7 +8,7 @@
 2. Starts an ImGui frame with `DisplaySize = 765×503`.
 3. Lays out the Game_Frame: the active Screen draws into the Viewport, then the Tab_Panel, Chatbox, hover text, and Context_Menu are drawn.
 4. Renders the scene sprites and ImGui draw data into the 765×503 frame texture.
-5. Presents the frame texture scaled to fit (or at the integer scale with "Pixel-perfect scaling"), with letterboxing.
+5. Presents the frame texture scaled to fit ("Fullscreen", the default) or at the integer scale ("Fullscreen" off), with letterboxing.
 
 Screens hold only view state. They call services for data and changes, and they listen to `EventBus` events (for example, `ActivityPosted` or `XpChanged`) to update the Chatbox and effects.
 
@@ -90,7 +90,7 @@ std::vector<ChatMessage> appendMessages(std::span<const ChatMessage> log,
 | `app::Config` | Parses `--kiroween`, `--data-dir`, `--reseed`, and `--reset-data`, plus env vars and (web) URL query parameters. |
 | `app::EventBus` | Synchronous publish/subscribe with typed events: `ActivityPosted`, `RatingsChanged`, `XpChanged`, `ItemUnlocked`, `GameMessage`. Events are delivered on the main thread, after the publishing service commits. |
 | `app::ScreenStack` | `navigate(ScreenId, Params)` and `back()`, both queued and applied at the start of the next frame. The World and the login screen are hubs: navigating to one clears the history, which is how "To town" works. Each Screen implements `onEnter`, `update(FrameCtx&)`, `draw(FrameCtx&)`, and optionally `tabOverride()`, `onContextAction()` and `onEscape(FrameCtx&)`. On `Escape` / gamepad B, App calls `onEscape` first; a screen returns true to stay (it closed a form, confirmation or step, or it is warning about unsaved work), and otherwise App calls `back()` (Requirements 7.6–7.8). |
-| `render::GameFrame` | Owns the 765×503 `SDL_TEXTUREACCESS_TARGET` texture (nearest). Uses `layoutFrame(SDL_GetWindowSizeInPixels, mode)` each frame. At a whole-number scale it presents nearest-neighbour; at a fractional (Fit) scale it upscales nearest-neighbour by `ceil(s)` into an intermediate texture and draws that to the destination with linear filtering ("sharp bilinear"). |
+| `render::GameFrame` | Owns the frame `SDL_TEXTUREACCESS_TARGET` texture (nearest), sized 765×503 times the render resolution `r = frameRenderRes(layout, mode)`: the whole part of the scale (Fit) or the largest factor of the integer scale (Integer), at most 4. Drawing into it uses `SDL_SetRenderScale(r, r)`, so game code still works in frame pixels, and the fonts are rasterised at `r` times their size and drawn at `1/r` (Silkscreen's glyphs hardened to solid pixels), so text is sharp at large scales. Uses `layoutFrame(SDL_GetWindowSizeInPixels, mode)` each frame. The final blit is either an exact whole-number enlargement (nearest) or a stretch of less than 2× with linear filtering ("sharp bilinear"). |
 | `render::TextureCache` | Loads PNGs through SDL3_image with nearest scaling. Also holds an LRU of composited textures (avatars, thumbnails). |
 | `render::NineSlice` | Draws a 9-slice from the UI atlas through `ImDrawList::AddImage`. |
 

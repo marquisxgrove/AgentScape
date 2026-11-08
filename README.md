@@ -46,7 +46,7 @@ Everything is stored locally in SQLite (in IndexedDB on the web). No server, no 
 - **Getting around:** every screen has **Back** (or **Cancel**), and **To town** in the right panel returns to the town map from anywhere.
 - **Mouse:** left-click to use, right-click for the context menu, hover for the top-left hover text.
 - **Keyboard and gamepad:** arrow keys / D-pad and Tab move the yellow focus cursor, Enter / A activates. Escape / B closes whatever is open (a form, a confirmation, a step of the quest scroll), and otherwise goes back a screen. If that would throw away a half-written Quest Log, unsaved Costumer changes or a started proposal, it asks for a second press. The `Menu` key, Shift+F10 or gamepad Y opens the context menu on the focused item.
-- **Settings** (right panel): *Plain font* (Atkinson Hyperlegible instead of the pixel font), *Reduce motion* (still fog, idle and fireworks; on the web it follows the browser setting for new Guests), *Sound effects*, *Pixel-perfect scaling* (whole-number scaling only; by default the game fits the window), *Codex Keeper tools*.
+- **Settings** (right panel): *Plain font* (Atkinson Hyperlegible instead of the pixel font), *Reduce motion* (still fog, idle and fireworks; on the web it follows the browser setting for new Guests), *Sound effects*, *Fullscreen* (on by default: the game fills the window, with sharp text at any size; off: whole-number scaling only), *Codex Keeper tools*.
 - **Kiroween** runs from 1 October to 15 November (UTC). Force it with `--kiroween=on`, `KIROWEEN_MODE=on`, `?kiroween=on` on the web, or the `AS_KIROWEEN_DEFAULT=on` build option. The published web and release builds have it on.
 
 ## Tech stack
