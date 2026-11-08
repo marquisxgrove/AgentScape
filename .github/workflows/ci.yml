@@ -82,3 +82,13 @@ jobs:
       - run: echo "EMSDK=$EMSDK" >> "$GITHUB_ENV"
       - run: cmake --preset web
       - run: cmake --build --preset web
+      - name: Upload web build
+        uses: actions/upload-artifact@v7
+        with:
+          name: web-build
+          path: |
+            build/web/agentscape.html
+            build/web/agentscape.js
+            build/web/agentscape.wasm
+            build/web/agentscape.data
+          retention-days: 7

@@ -14,6 +14,10 @@ TEST_CASE("settings round-trip and tolerate malformed JSON", "[unit][settings]")
   s.plainFont = true;
   s.sound = true;
   CHECK(domain::settingsFromJson(domain::settingsToJson(s)) == s);
+  s.pixelPerfect = true;
+  CHECK(domain::settingsFromJson(domain::settingsToJson(s)) == s);
+  // Saves from before "Pixel-perfect scaling" existed get the Fit default.
+  CHECK_FALSE(domain::settingsFromJson(R"({"plainFont":false,"reduceMotion":false,"sound":false})").pixelPerfect);
 
   domain::Settings defaults;
   defaults.reduceMotion = true;

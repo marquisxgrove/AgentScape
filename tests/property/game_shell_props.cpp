@@ -2,6 +2,8 @@
 
 #include <array>
 #include <chrono>
+#include <cmath>
+#include <cstdlib>
 #include <optional>
 #include <string_view>
 
@@ -32,6 +34,37 @@ TEST_CASE("Property 1: Frame scale is the largest integer that fits", "[property
     const auto [fx, fy] = toFramePoint(layout, static_cast<float>(layout.offsetX), static_cast<float>(layout.offsetY));
     RC_ASSERT(fx == 0.0F);
     RC_ASSERT(fy == 0.0F);
+  });
+}
+
+// Validates: game-shell Requirement 1.1 (Fit, the default) and 1.4 (pointer mapping at any scale)
+TEST_CASE("Property 1b: Fit scaling fills the window and maps the pointer", "[property][game-shell]") {
+  as::testing::checkProperty("the fitted frame lies inside the window and touches one pair of edges", [](const int rawW, const int rawH) {
+    const int w = 1 + std::abs(rawW % 8000);
+    const int h = 1 + std::abs(rawH % 6000);
+    const auto layout = layoutFrame(w, h, FrameScaling::Fit);
+    RC_ASSERT(layout.scale > 0.0F);
+    RC_ASSERT(layout.width >= 1);
+    RC_ASSERT(layout.height >= 1);
+    RC_ASSERT(layout.offsetX >= 0);
+    RC_ASSERT(layout.offsetY >= 0);
+    RC_ASSERT(layout.offsetX + layout.width <= w);
+    RC_ASSERT(layout.offsetY + layout.height <= h);
+    RC_ASSERT(layout.width >= w - 1 || layout.height >= h - 1);
+    RC_ASSERT(layout.scale >= static_cast<float>(computeFrameScale(w, h)) || w < FRAME_W || h < FRAME_H);
+  });
+
+  as::testing::checkProperty("the presented corners map to the frame corners", [](const int rawW, const int rawH, const bool fit) {
+    const int w = 1 + std::abs(rawW % 8000);
+    const int h = 1 + std::abs(rawH % 6000);
+    const auto layout = layoutFrame(w, h, fit ? FrameScaling::Fit : FrameScaling::Integer);
+    const auto [x0, y0] = toFramePoint(layout, static_cast<float>(layout.offsetX), static_cast<float>(layout.offsetY));
+    const auto [x1, y1] = toFramePoint(layout, static_cast<float>(layout.offsetX + layout.width),
+                                       static_cast<float>(layout.offsetY + layout.height));
+    RC_ASSERT(std::abs(x0) < 1e-3F);
+    RC_ASSERT(std::abs(y0) < 1e-3F);
+    RC_ASSERT(std::abs(x1 - static_cast<float>(FRAME_W)) < 1e-2F);
+    RC_ASSERT(std::abs(y1 - static_cast<float>(FRAME_H)) < 1e-2F);
   });
 }
 

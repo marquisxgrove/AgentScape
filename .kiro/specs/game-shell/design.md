@@ -8,7 +8,7 @@
 2. Starts an ImGui frame with `DisplaySize = 765×503`.
 3. Lays out the Game_Frame: the active Screen draws into the Viewport, then the Tab_Panel, Chatbox, hover text, and Context_Menu are drawn.
 4. Renders the scene sprites and ImGui draw data into the 765×503 frame texture.
-5. Presents the frame texture at the integer scale, with letterboxing.
+5. Presents the frame texture scaled to fit (or at the integer scale with "Pixel-perfect scaling"), with letterboxing.
 
 Screens hold only view state. They call services for data and changes, and they listen to `EventBus` events (for example, `ActivityPosted` or `XpChanged`) to update the Chatbox and effects.
 
@@ -21,7 +21,7 @@ flowchart TB
   end
   subgraph App["app::App"]
     Cfg["Config\nCLI > env > URL query > build default"]
-    GF["render::GameFrame\n765×503 target → integer scale"]
+    GF["render::GameFrame\n765×503 target → fit / integer scale"]
     SS["ScreenStack\nLogin, World, Costumer, Codex, Tavern, …"]
     UI["ui:: TabPanel, Chatbox, HoverText, ContextMenuHost"]
     Bus["EventBus"]
@@ -57,7 +57,8 @@ namespace as::domain {
 inline constexpr int FRAME_W = 765, FRAME_H = 503;
 struct FrameLayout { int scale; int offsetX; int offsetY; };
 int computeFrameScale(int drawableW, int drawableH);                 // ≥ 1, integer
-FrameLayout layoutFrame(int drawableW, int drawableH);               // scale + centring offsets
+float computeFitScale(int drawableW, int drawableH);                 // > 0, fractional
+FrameLayout layoutFrame(int drawableW, int drawableH, FrameScaling); // scale, size + centring offsets
 std::pair<float, float> toFramePoint(const FrameLayout&, float x, float y);
 }
 
@@ -89,7 +90,7 @@ std::vector<ChatMessage> appendMessages(std::span<const ChatMessage> log,
 | `app::Config` | Parses `--kiroween`, `--data-dir`, `--reseed`, and `--reset-data`, plus env vars and (web) URL query parameters. |
 | `app::EventBus` | Synchronous publish/subscribe with typed events: `ActivityPosted`, `RatingsChanged`, `XpChanged`, `ItemUnlocked`, `GameMessage`. Events are delivered on the main thread, after the publishing service commits. |
 | `app::ScreenStack` | `navigate(ScreenId, Params)` and `back()`, both queued and applied at the start of the next frame. The World and the login screen are hubs: navigating to one clears the history, which is how "To town" works. Each Screen implements `onEnter`, `update(FrameCtx&)`, `draw(FrameCtx&)`, and optionally `tabOverride()`, `onContextAction()` and `onEscape(FrameCtx&)`. On `Escape` / gamepad B, App calls `onEscape` first; a screen returns true to stay (it closed a form, confirmation or step, or it is warning about unsaved work), and otherwise App calls `back()` (Requirements 7.6–7.8). |
-| `render::GameFrame` | Owns the 765×503 `SDL_TEXTUREACCESS_TARGET` texture (nearest). Uses `layoutFrame(SDL_GetWindowSizeInPixels)` each frame and presents with `SDL_RenderTexture` to the integer-scaled destination rectangle. |
+| `render::GameFrame` | Owns the 765×503 `SDL_TEXTUREACCESS_TARGET` texture (nearest). Uses `layoutFrame(SDL_GetWindowSizeInPixels, mode)` each frame. At a whole-number scale it presents nearest-neighbour; at a fractional (Fit) scale it upscales nearest-neighbour by `ceil(s)` into an intermediate texture and draws that to the destination with linear filtering ("sharp bilinear"). |
 | `render::TextureCache` | Loads PNGs through SDL3_image with nearest scaling. Also holds an LRU of composited textures (avatars, thumbnails). |
 | `render::NineSlice` | Draws a 9-slice from the UI atlas through `ImDrawList::AddImage`. |
 
@@ -164,6 +165,8 @@ CREATE INDEX activity_event_created_at ON activity_event(created_at);
 ## Correctness properties
 
 **Property 1: Frame scale is the largest integer that fits.** *For any* drawable width and height ≥ 1, `s = computeFrameScale(w, h)` satisfies `s ≥ 1`. If `w ≥ 765` and `h ≥ 503`, then `765·s ≤ w`, `503·s ≤ h`, and `765·(s+1) > w || 503·(s+1) > h`.
+
+**Property 1b: Fit scaling fills the window and maps the pointer.** *For any* drawable size, the Fit layout lies inside the window, touches one pair of opposite edges (to within a pixel), is at least the integer scale, and `toFramePoint` maps the presented corners to `(0,0)` and `(765,503)` in both modes.
 **Validates: Requirement 1.1**
 
 **Property 2: Kiroween resolution.** *For any* `now`, setting `On` returns true and `Off` returns false. For `Auto` or `std::nullopt`, the result is true exactly when the UTC (month, day) falls between (10, 1) and (11, 15), inclusive. *For any* list of sources, `resolveKiroweenSetting` returns the first one that parses.
