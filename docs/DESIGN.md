@@ -64,7 +64,7 @@ flowchart LR
 
 ### MVP (required for submission)
 
-- **Game shell:** login ("Play as Guest" everywhere, plus GitHub device-flow sign-in on desktop), a frame that scales to fit the window (or whole-number "Pixel-perfect scaling"), world map, context menus, chatbox activity feed, settings (plain font, reduced motion, sound, pixel-perfect scaling), and local SQLite storage that persists in the browser too.
+- **Game shell:** login ("Play as Guest" everywhere, plus GitHub device-flow sign-in on desktop), a frame that scales to fit the window ("Fullscreen", or whole-number scaling with it off), world map, context menus, chatbox activity feed, settings (plain font, reduced motion, sound, fullscreen), and local SQLite storage that persists in the browser too.
   - Spec: [`game-shell`](../.kiro/specs/game-shell/requirements.md)
 - **Character creator and Costumer:**
   - Up to 5 Adventurers per account, with 6 style axes and 5 colour palettes.
@@ -164,7 +164,7 @@ Kiroween mode is active from 1 October to 15 November (UTC), or when forced with
 
 The full rules are in [`.kiro/steering/art-direction.md`](../.kiro/steering/art-direction.md).
 
-- Stone-and-parchment UI drawn with custom Dear ImGui widgets, a strict palette, pixel fonts (OFL), and the whole 765×503 frame scaled to fit the window with even, crisp pixels (nearest upscale to the next integer, then a linear downscale), or integer-only with "Pixel-perfect scaling".
+- Stone-and-parchment UI drawn with custom Dear ImGui widgets, a strict palette, pixel fonts (OFL), and the whole 765×503 frame scaled to fit the window with even, crisp pixels (drawn at the whole part of the scale, with text rasterised at that resolution, then stretched by less than 2×), or integer-only with "Fullscreen" off.
 - 32×48 paper-doll sprites with 4 facings, authored as 8-bit indexed PNGs and recoloured by palette swap.
 - **All assets are original or permissively licensed, and logged in [ASSETS.md](./ASSETS.md).** We don't use any names, fonts, sprites, or logos from existing commercial games or AI vendors.
 
@@ -271,7 +271,7 @@ Property-based tests (RapidCheck) cover every pure domain rule; each spec's `des
 Decided during the build:
 
 - **Seed Agents:** fictional familiars and vendors, not real products, so the sample ratings never misrepresent a real tool.
-- **Font size:** the pixel font is drawn at 12 px; "Plain font" remains for anyone who wants a vector face.
+- **Font size:** the pixel font is drawn at 12 px (1.5× its 8 px grid), which is slightly soft at 1×. At 2× and above it is rasterised at 24, 36 or 48 px with solid-pixel edges, so a large window shows sharp text. "Plain font" remains for anyone who wants a vector face.
 
 Still open:
 

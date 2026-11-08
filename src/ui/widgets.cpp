@@ -220,7 +220,7 @@ StonePanel::StonePanel(const char* id, std::string_view title, ImVec2 size, Pane
   float top = kPad;
   if (!title.empty()) {
     ImFont* tf = activeFonts().title;
-    const float ts = tf->FontSize;
+    const float ts = tf->FontSize * tf->Scale;  // layout size (fonts are rasterised at the render resolution)
     const ImVec2 tsz = floorVec(measure(tf, ts, title));
     drawShadowed(dl, tf, ts, {pos.x + std::floor((sz.x - tsz.x) / 2), pos.y + 8}, PaletteColor::TextOrange, title,
                  variant == PanelVariant::Parchment ? Surface::Parchment : Surface::Stone);

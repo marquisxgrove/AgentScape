@@ -33,7 +33,7 @@ TabPanelResult drawTabPanel(const domain::Settings& current, const TabPanelView&
   result.settingsChanged |= Toggle("Reduce motion", &result.settings.reduceMotion, "Calm the fog, idle and fireworks");
   result.settingsChanged |= Toggle("Sound effects", &result.settings.sound, "Play 8-bit UI clicks");
   result.settingsChanged |=
-      Toggle("Pixel-perfect scaling", &result.settings.pixelPerfect, "Scale by whole steps only: sharpest, but smaller");
+      Toggle("Fullscreen", &result.settings.fullscreen, "Fill the window. Off: whole steps only, smaller but exact");
 
   ImGui::Spacing();
   ImGui::Separator();

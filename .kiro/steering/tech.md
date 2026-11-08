@@ -31,7 +31,7 @@ inclusion: always
 - Use **SDL3 main callbacks** (`SDL_MAIN_USE_CALLBACKS`: `SDL_AppInit`, `SDL_AppEvent`, `SDL_AppIterate`, `SDL_AppQuit`), so the same code runs on desktop and in the browser without a blocking loop.
 - The app is single-threaded. Database calls run synchronously on the main thread because the data set is small. The only background work is the GitHub device-flow HTTP polling, which runs on a worker thread and posts results back as SDL user events.
 - Rendering uses **`SDL_Renderer`**, not SDL_GPU, because it works the same on desktop and WebGL.
-  - The whole game frame, including ImGui, is drawn into a **765×503 render target texture** and then presented scaled to fit the window ("sharp bilinear": nearest upscale to the next integer, then a linear downscale), or at the largest integer scale with `SDL_SCALEMODE_NEAREST` when "Pixel-perfect scaling" is on.
+  - The whole game frame, including ImGui, is drawn into a **765×503 render target texture** (times a render resolution of 1 to 4, with `SDL_SetRenderScale`, so code still works in frame pixels and fonts are rasterised at that resolution) and then presented scaled to fit the window ("sharp bilinear": a stretch of less than 2× with linear filtering), or at the largest integer scale with `SDL_SCALEMODE_NEAREST` when "Fullscreen" is off.
   - Every texture uses `SDL_SCALEMODE_NEAREST`. ImGui anti-aliasing is off (`AntiAliasedLines`, `AntiAliasedFill`, and `AntiAliasedLinesUseTex` are all false).
   - Palette-swap recolouring happens on the CPU: the app swaps `SDL_Palette` entries on 8-bit indexed surfaces, composites the layers, and caches the result as a texture.
 

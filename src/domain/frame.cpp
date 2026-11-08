@@ -35,6 +35,19 @@ FrameLayout layoutFrame(int drawableW, int drawableH, FrameScaling mode) {
   return layout;
 }
 
+int frameRenderRes(const FrameLayout& layout, FrameScaling mode, int maxTextureSize) {
+  const int whole = std::max(1, static_cast<int>(std::floor(layout.scale + 1e-4F)));
+  const auto fits = [maxTextureSize](int r) {
+    return maxTextureSize <= 0 || (FRAME_W * r <= maxTextureSize && FRAME_H * r <= maxTextureSize);
+  };
+  for (int r = std::min(whole, MAX_FRAME_RES); r > 1; --r) {
+    if (!fits(r)) continue;
+    if (mode == FrameScaling::Integer && whole % r != 0) continue;
+    return r;
+  }
+  return 1;
+}
+
 std::pair<float, float> toFramePoint(const FrameLayout& layout, float x, float y) {
   const float sx = static_cast<float>(layout.width) / static_cast<float>(FRAME_W);
   const float sy = static_cast<float>(layout.height) / static_cast<float>(FRAME_H);
