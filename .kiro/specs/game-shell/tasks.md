@@ -30,6 +30,7 @@
     - _Requirements: 1.1, 1.5, 4.1, 4.2, 5.4, 5.5, 6.1–6.3_
   - [x]* 4.2 Write property test for frame scale (Property 1).
     - **Property 1: Frame scale is the largest integer that fits**
+    - **Property 1b: Fit scaling fills the window and maps the pointer**
     - **Validates: Requirement 1.1**
   - [x]* 4.3 Write property test for Kiroween resolution (Property 2).
     - **Property 2: Kiroween resolution**

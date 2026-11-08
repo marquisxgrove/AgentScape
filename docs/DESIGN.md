@@ -64,7 +64,7 @@ flowchart LR
 
 ### MVP (required for submission)
 
-- **Game shell:** login ("Play as Guest" everywhere, plus GitHub device-flow sign-in on desktop), integer-scaled frame, world map, context menus, chatbox activity feed, settings (plain font, reduced motion, sound), and local SQLite storage that persists in the browser too.
+- **Game shell:** login ("Play as Guest" everywhere, plus GitHub device-flow sign-in on desktop), a frame that scales to fit the window (or whole-number "Pixel-perfect scaling"), world map, context menus, chatbox activity feed, settings (plain font, reduced motion, sound, pixel-perfect scaling), and local SQLite storage that persists in the browser too.
   - Spec: [`game-shell`](../.kiro/specs/game-shell/requirements.md)
 - **Character creator and Costumer:**
   - Up to 5 Adventurers per account, with 6 style axes and 5 colour palettes.
@@ -164,7 +164,7 @@ Kiroween mode is active from 1 October to 15 November (UTC), or when forced with
 
 The full rules are in [`.kiro/steering/art-direction.md`](../.kiro/steering/art-direction.md).
 
-- Stone-and-parchment UI drawn with custom Dear ImGui widgets, a strict palette, pixel fonts (OFL), and nearest-neighbour integer scaling of the whole 765×503 frame.
+- Stone-and-parchment UI drawn with custom Dear ImGui widgets, a strict palette, pixel fonts (OFL), and the whole 765×503 frame scaled to fit the window with even, crisp pixels (nearest upscale to the next integer, then a linear downscale), or integer-only with "Pixel-perfect scaling".
 - 32×48 paper-doll sprites with 4 facings, authored as 8-bit indexed PNGs and recoloured by palette swap.
 - **All assets are original or permissively licensed, and logged in [ASSETS.md](./ASSETS.md).** We don't use any names, fonts, sprites, or logos from existing commercial games or AI vendors.
 
@@ -181,7 +181,7 @@ flowchart TB
   subgraph Client["AgentScape client (C++20)"]
     APP["app::App\nSDL3 main callbacks, Config, ScreenStack, EventBus"]
     UI["screens + ui\nDear ImGui retro widgets"]
-    GAME["game + render\nWorldMap, AvatarRenderer (palette swap),\n765×503 GameFrame → integer scale"]
+    GAME["game + render\nWorldMap, AvatarRenderer (palette swap),\n765×503 GameFrame → fit / integer scale"]
     SVC["services\ntransactions → Result<T, GameError>"]
     DOM["domain (pure)\nskills, loadout, xp, voting, ranking, kiroween"]
     DB[("SQLite\nmigrations + seeded community snapshot")]

@@ -16,7 +16,7 @@ The other specs (character-creator, agent-codex, quest-logs) render their screen
 
 ## Glossary
 
-- **Game_Frame**: The 765×503 logical-pixel layout made of Viewport, Tab_Panel, and Chatbox, drawn into a render target and presented at an integer scale.
+- **Game_Frame**: The 765×503 logical-pixel layout made of Viewport, Tab_Panel, and Chatbox, drawn into a render target and scaled to fit the window (or, with "Pixel-perfect scaling", an integer scale).
 - **Viewport**: The main left region where screens render their primary content (map, creator, codex card, etc.).
 - **Tab_Panel**: The right-side panel with icon tabs (Equipment, Skills, Quest Log, Settings).
 - **Chatbox**: The bottom region that shows system messages and the activity feed.
@@ -37,7 +37,7 @@ The other specs (character-creator, agent-codex, quest-logs) render their screen
 
 #### Acceptance Criteria
 
-1. WHILE the window's drawable size is at least 765×503 pixels, THE Game_Frame SHALL render at the largest integer scale `s ≥ 1` such that `765·s ≤ drawableWidth` and `503·s ≤ drawableHeight`, centred, with letterbox bars in the stone-dark colour.
+1. BY default, THE Game_Frame SHALL render at the largest scale `s > 0` (fractional allowed) such that `765·s ≤ drawableWidth` and `503·s ≤ drawableHeight`, centred, with letterbox bars in the stone-dark colour; fractional scales SHALL keep pixels even (nearest-neighbour upscale to the next integer, then a linear downscale). WHILE "Pixel-perfect scaling" is on and the drawable size is at least 765×503 pixels, it SHALL instead render at the largest integer scale `s ≥ 1` that fits.
 2. THE desktop window SHALL have a minimum size of 765×503. IN the web build, WHEN the browser viewport is smaller than the frame, THE Game_Frame SHALL render at 1× and the page SHALL scroll.
 3. WHEN the window is resized or moved to a display with a different pixel density, THE Game_Frame SHALL recompute its scale on the next frame.
 4. THE Game_Frame SHALL render all sprite, UI, and frame textures with nearest-neighbour scaling (no blurring).
@@ -118,7 +118,7 @@ The other specs (character-creator, agent-codex, quest-logs) render their screen
 
 #### Acceptance Criteria
 
-1. THE Settings tab SHALL offer "Plain font", "Reduce motion", and "Sound effects" toggles, persisted per User.
+1. THE Settings tab SHALL offer "Plain font", "Reduce motion", "Sound effects", and "Pixel-perfect scaling" toggles, persisted per User.
 2. WHEN "Plain font" is on, THE UI SHALL render all text in a legible sans-serif font.
 3. All interactive elements SHALL be reachable by keyboard and gamepad navigation and SHALL show a visible focus indicator.
 4. Every map or scene interaction SHALL have an equivalent list control.

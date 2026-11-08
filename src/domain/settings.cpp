@@ -16,6 +16,7 @@ std::string settingsToJson(const Settings& s) {
   j["plainFont"] = s.plainFont;
   j["reduceMotion"] = s.reduceMotion;
   j["sound"] = s.sound;
+  j["pixelPerfect"] = s.pixelPerfect;
   return j.dump();
 }
 
@@ -26,6 +27,7 @@ Settings settingsFromJson(std::string_view json, const Settings& defaults) {
   s.plainFont = boolOr(j, "plainFont", defaults.plainFont);
   s.reduceMotion = boolOr(j, "reduceMotion", defaults.reduceMotion);
   s.sound = boolOr(j, "sound", defaults.sound);
+  s.pixelPerfect = boolOr(j, "pixelPerfect", defaults.pixelPerfect);
   return s;
 }
 

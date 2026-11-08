@@ -32,6 +32,8 @@ TabPanelResult drawTabPanel(const domain::Settings& current, const TabPanelView&
   result.settingsChanged |= Toggle("Plain font", &result.settings.plainFont, "Switch to a legible font");
   result.settingsChanged |= Toggle("Reduce motion", &result.settings.reduceMotion, "Calm the fog, idle and fireworks");
   result.settingsChanged |= Toggle("Sound effects", &result.settings.sound, "Play 8-bit UI clicks");
+  result.settingsChanged |=
+      Toggle("Pixel-perfect scaling", &result.settings.pixelPerfect, "Scale by whole steps only: sharpest, but smaller");
 
   ImGui::Spacing();
   ImGui::Separator();

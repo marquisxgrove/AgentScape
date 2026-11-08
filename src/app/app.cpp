@@ -662,7 +662,7 @@ SDL_AppResult App::iterate() {
     case platform::ExportOutcome::Cancelled:
     case platform::ExportOutcome::None: break;  // cancelling does nothing (Req 8.2)
   }
-  frame_->updateLayout(window_);
+  frame_->updateLayout(window_, settings_.pixelPerfect ? domain::FrameScaling::Integer : domain::FrameScaling::Fit);
 
   screens_.applyPending();
 
