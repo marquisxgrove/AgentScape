@@ -1,5 +1,6 @@
 #include "game/kiroween_layer.hpp"
 
+#include <cmath>
 #include <cstdint>
 #include <filesystem>
 
@@ -44,9 +45,13 @@ void KiroweenLayer::drawFog(ImDrawList* dl, render::TextureCache& tex, ImVec2 mi
   const auto fw = static_cast<float>(fog.w);
   const auto fh = static_cast<float>(fog.h);
   dl->PushClipRect(min, max, true);
-  // Tile with a per-frame scroll offset so the fog drifts.
-  for (float y = min.y - fh + fog_.y; y < max.y; y += fh) {
-    for (float x = min.x - fw + fog_.x; x < max.x; x += fw) {
+  // Tile with a per-frame scroll offset so the fog drifts. The offset is snapped to whole frame pixels (the drift
+  // itself stays smooth in fog_): at a fractional position, tile edges fall mid-pixel once the frame is drawn at
+  // 2x or more, and the rasteriser can leave a one-pixel seam between two tiles.
+  const float ox = std::floor(fog_.x);
+  const float oy = std::floor(fog_.y);
+  for (float y = std::floor(min.y) - fh + oy; y < max.y; y += fh) {
+    for (float x = std::floor(min.x) - fw + ox; x < max.x; x += fw) {
       dl->AddImage(texId(fog), {x, y}, {x + fw, y + fh});
     }
   }
