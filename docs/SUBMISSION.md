@@ -17,11 +17,11 @@ This file has the pre-submission checklist, the Devpost description, the demo vi
 
 ### Working app
 
-- [x] **Web build URL (GitHub Pages):** `https://marquisxgrove.github.io/AgentScape/`. Pages is enabled (source: GitHub Actions) and `.github/workflows/pages.yml` redeploys whenever CI passes on `main`; the latest deploy is from #42. The team opened the live link and confirmed the game loads.
+- [x] **Web build URL (GitHub Pages):** `https://marquisxgrove.github.io/AgentScape/`. Pages is enabled (source: GitHub Actions) and `.github/workflows/pages.yml` redeploys whenever CI passes on `main`; the latest deploy is from #45. The team opened the live link and confirmed the game loads.
 - [ ] **Release binaries** for Windows, macOS and Linux on a GitHub Release. ✏ YOU: `git tag v1.0.0 && git push origin v1.0.0`; `.github/workflows/release.yml` builds and attaches them. Then paste the link: `https://github.com/marquisxgrove/AgentScape/releases/latest`.
 - [ ] *(Optional)* **Sign in with GitHub** in the release builds. ✏ YOU: create a GitHub OAuth App with *Enable Device Flow* on, and put its client ID in the repository variable `AS_GITHUB_CLIENT_ID` before tagging. Without it the release offers Play as Guest and Create a profile, which is enough for judging.
 - [x] Judging builds (Pages and release) are built with `AS_KIROWEEN_DEFAULT=on`, so the spooky layer is visible for the whole judging period.
-- [x] "Play as Guest" works in the web build in a private window (an in-memory warning is acceptable there) and in a normal window, and data survives a reload. The team confirmed Play as Guest on the live Pages site. *Also checked by automation: the deployed Pages artifact (from #42) was loaded in headless Chromium. It opened with no errors and the store came up at schema 7. Play as Guest, creating an Adventurer with the keyboard, the Grand Codex and an Agent card all worked, and the signed-in Guest and Adventurer were still there after a reload (IndexedDB).*
+- [x] "Play as Guest" works in the web build in a private window (an in-memory warning is acceptable there) and in a normal window, and data survives a reload. The team confirmed Play as Guest on the live Pages site. *Also checked by automation: the deployed Pages artifact (from #45) was loaded in headless Chromium (WebGL) at 1920×940. It opened with no console errors and the store came up at schema 7. Play as Guest and creating an Adventurer with the keyboard worked; the frame filled the window, turning Fullscreen off dropped it to an exact 1×, and resizing to 2× and 3× sizes re-rasterised the text sharply and back again; the signed-in Guest was still there after a reload (IndexedDB).*
 - [x] On first launch, the seed data loads: every familiar is ranked, and the Hiscores, the Tavern (12 sample Quest Logs) and the Hall of Hallucinations (13 graves) are populated.
 - [x] The headless smoke tests pass in CI on Windows, macOS and Linux (and under AddressSanitizer + UBSan on Linux).
 - [ ] ✏ YOU: the demo path checked by hand in the web build in Chrome, Firefox and Safari.
@@ -65,7 +65,7 @@ We rebuilt them with today's tech: a native C++20 client on SDL3 and Dear ImGui,
 >
 > **Built with:** C++20 · SDL3 · Dear ImGui · SQLite · Emscripten (WebAssembly) · Catch2 · RapidCheck · CMake · GitHub Actions.
 
-Screenshots for the gallery: `docs/screenshots/readme/` (login, world map, Costumer, Codex, examine card, Proving Grounds, quest scroll, level-up, Tavern, Hiscores, Hall of Hallucinations, The Wilds idle, with a familiar, and solo). Regenerate them with the current build at any time; every one comes from the real app. ✏ YOU: add the video link.
+Screenshots for the gallery: `docs/screenshots/readme/` (login, world map, Costumer, Codex, examine card, Proving Grounds, quest scroll, level-up, Tavern, Hiscores, Hall of Hallucinations, The Wilds idle, with a familiar, and solo). They are 1530×1006 (the frame at 2×, with text rasterised at that resolution). Regenerate them with the current build at any time with `tools/render_readme_shots.sh`; every one comes from the real app. ✏ YOU: add the video link.
 
 ---
 
@@ -92,12 +92,12 @@ Recording notes: record the desktop build at 1080p, with the game frame at 2× s
 
 ## 5. How we used Kiro
 
-> Facts below are from the project's own history (42 pull requests, the specs and their task notes). Parts marked ✏ YOU are the team's own experience.
+> Facts below are from the project's own history (46 pull requests, the specs and their task notes). Parts marked ✏ YOU are the team's own experience.
 
 ### Kiro surfaces used
 
-- **Kiro Web (autonomous agent in a cloud sandbox).** Most of the implementation (the large majority of commits across PRs #1–#36) was written by the Kiro agent working in the browser-based environment: reading the specs, implementing one task slice per pull request, running the build and the whole test suite in its sandbox, rendering the real app headlessly to check every screen, and opening each PR with what it had and had not verified. The team reviewed and merged every PR, and steered between them in plain language ("use a branch and PR approach", "switch the sample data to fictional agents", "seed sample logs, then the final checkpoint", "increase the font size").
-- **Human-authored changes** sat between agent PRs where the team wanted control: CI hardening and test fixes (#31), Guest remember-me with Back navigation (#34), Pages gated on green CI and GitHub sign-in with platform TLS (#38), the navigation pass and local profiles (#39), the coding-sessions spec and The Wilds (#40), and the WebGL probe fix for the web build (#42).
+- **Kiro Web (autonomous agent in a cloud sandbox).** Most of the implementation (the large majority of commits across PRs #1–#36, plus the fit-to-window scaling in #44 and the final screenshot pass) was written by the Kiro agent working in the browser-based environment: reading the specs, implementing one task slice per pull request, running the build and the whole test suite in its sandbox, rendering the real app headlessly to check every screen, and opening each PR with what it had and had not verified. The team reviewed and merged every PR, and steered between them in plain language ("use a branch and PR approach", "switch the sample data to fictional agents", "seed sample logs, then the final checkpoint", "increase the font size").
+- **Human-authored changes** sat between agent PRs where the team wanted control: CI hardening and test fixes (#31), Guest remember-me with Back navigation (#34), Pages gated on green CI and GitHub sign-in with platform TLS (#38), the navigation pass and local profiles (#39), the coding-sessions spec and The Wilds (#40), the WebGL probe fix for the web build (#42), and the Fullscreen setting with sharp text at large scales (#45).
 - ✏ YOU: if you also used the Kiro IDE or CLI (for the specs, steering or hooks), say which tasks you preferred on each surface.
 
 ### Spec-driven development
