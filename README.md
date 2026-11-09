@@ -111,6 +111,17 @@ Release binaries aren't code-signed. On macOS, right-click the app and choose **
 1. **Web:** in the repository's *Settings → Pages*, set *Source* to **GitHub Actions** once. (Left on *Deploy from a branch*, the site shows this README instead of the game, and the deploy job fails with a 404.) After that, every push to `main` that passes CI builds the web target with Kiroween on and deploys it (`.github/workflows/pages.yml`). To publish straight away, run *Deploy web build* from the Actions tab.
 2. **Desktop:** push a version tag, for example `git tag v1.0.0 && git push origin v1.0.0`. `.github/workflows/release.yml` builds Windows, macOS and Linux archives and a web zip, all with Kiroween on, and attaches them to a GitHub Release.
 
+### Branch protection
+
+`main` is protected by a repository ruleset kept in code at `.github/rulesets/main.json`:
+
+- `main` can't be deleted or force-pushed.
+- Every change reaches `main` through a pull request; direct pushes are rejected.
+- A pull request can only merge once all five CI jobs pass: `linux-gcc`, `macos-clang`, `windows-msvc`, `linux-asan` and `web`.
+- No approving review is required (a solo author can't approve their own PR), and nobody bypasses the rules, admins included.
+
+GitHub doesn't read that file by itself. After changing it, a repository admin applies it with `tools/apply_rulesets.sh`, which creates or updates the ruleset by name; `tools/apply_rulesets.sh --check` shows the difference from GitHub without changing anything. The script refuses a required check that isn't a job in `ci.yml`, because a check that never reports would block every pull request. If you rename a CI job, update the ruleset in the same PR.
+
 ## Testing
 
 - **Property-based tests** (RapidCheck) for every pure domain rule: 33 numbered correctness properties across the five specs, from "incremental rating aggregates equal a full recompute" to "two-handed weapons and shields never coexist". Scoring maths runs 1,000 cases per property.
